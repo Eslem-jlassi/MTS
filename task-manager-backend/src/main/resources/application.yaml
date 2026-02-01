@@ -1,0 +1,31 @@
+server:
+  servlet:
+    contextpath: /api
+
+jwt:
+  secret: fjshbfJKHFDSJKhfos8fp3fofSDFsf32455vdcfghdfgv34234ggdgjghjdf5345DSFSDFsfrg43vdjhfbjdhb487v498bv0230vn0485vb
+  expiration:
+    ms: 86400000
+    remember-me:
+      ms: 2592000000
+
+google:
+  oauth:
+    client-id: 857347797520-ca56rug79hdelb4ar8pdqmjtoc6v07jb.apps.googleusercontent.com
+
+spring:
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: task_manager
+      autoindexcreation: true
+  output:
+    ansi:
+      enabled: always
+
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
