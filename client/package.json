@@ -1,0 +1,91 @@
+{
+  "name": "mts-telecom-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MTS Telecom Supervision System - Frontend React",
+  "dependencies": {
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "@headlessui/react": "^2.2.9",
+    "@material-tailwind/react": "^2.1.10",
+    "@mui/icons-material": "^5.15.6",
+    "@mui/material": "^5.15.6",
+    "@react-oauth/google": "^0.13.4",
+    "@reduxjs/toolkit": "^2.1.0",
+    "@stomp/stompjs": "^7.3.0",
+    "@tailwindcss/forms": "^0.5.11",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.11.10",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "ajv": "^8.17.1",
+    "assert": "^2.1.0",
+    "axios": "^1.6.7",
+    "framer-motion": "^10.18.0",
+    "lucide-react": "^0.563.0",
+    "react": "^18.2.0",
+    "react-colorful": "^5.6.1",
+    "react-dom": "^18.2.0",
+    "react-error-boundary": "^6.1.0",
+    "react-markdown": "^10.1.0",
+    "react-redux": "^9.1.0",
+    "react-router-dom": "^6.22.0",
+    "react-scripts": "5.0.1",
+    "recharts": "^3.7.0",
+    "remark-gfm": "^4.0.1",
+    "sockjs-client": "^1.6.1",
+    "web-vitals": "^3.5.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^14.2.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/sockjs-client": "^1.5.4",
+    "autoprefixer": "^10.4.17",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "postcss": "^8.4.35",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^4.9.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "test:ci": "react-scripts test --watchAll=false --ci --coverage",
+    "eject": "react-scripts eject",
+    "lint": "eslint src/ --ext .ts,.tsx --max-warnings 0",
+    "lint:fix": "eslint src/ --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest",
+      "prettier"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": "warn",
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:8080"
+}

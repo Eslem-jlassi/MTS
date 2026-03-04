@@ -1,0 +1,208 @@
+/* =============================================================================
+   MTS TELECOM - Soft AI SaaS Design System
+   Primary: Indigo | Accent: Orange (sparingly) | Premium neutral palette
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* =============================================================================
+   CSS Custom Properties - Light Theme (default)
+   ============================================================================= */
+:root {
+  --ds-page:      248 250 252;
+  --ds-card:      255 255 255;
+  --ds-surface:   255 255 255;
+  --ds-elevated:  241 245 249;
+  --ds-border:    226 232 240;
+
+  --ds-primary:   15 23 42;
+  --ds-secondary: 51 65 85;
+  --ds-muted:     100 116 139;
+
+  --color-primary: 79 70 229;
+  --color-primary-hover: 67 56 202;
+  --color-error:   239 68 68;
+  --color-accent:     249 115 22;
+  --color-accent-600: 234 88 12;
+
+  --sidebar-bg:       255 255 255;
+  --sidebar-border:   226 232 240;
+  --sidebar-active:   79 70 229;
+  --sidebar-text:     51 65 85;
+  --sidebar-muted:    100 116 139;
+}
+
+/* =============================================================================
+   CSS Custom Properties - Dark Theme
+   ============================================================================= */
+.dark {
+  --ds-page:      11 18 32;
+  --ds-card:      22 33 52;
+  --ds-surface:   22 33 52;
+  --ds-elevated:  30 44 67;
+  --ds-border:    44 60 86;
+
+  --ds-primary:   241 245 249;
+  --ds-secondary: 203 213 225;
+  --ds-muted:     148 163 184;
+
+  --color-primary: 129 140 248;
+  --color-primary-hover: 165 180 252;
+  --color-error:   248 113 113;
+  --color-accent:     251 146 60;
+  --color-accent-600: 249 115 22;
+
+  --sidebar-bg:       17 25 41;
+  --sidebar-border:   44 60 86;
+  --sidebar-active:   129 140 248;
+  --sidebar-text:     203 213 225;
+  --sidebar-muted:    100 116 139;
+}
+
+/* =============================================================================
+   Base Styles
+   ============================================================================= */
+body {
+  margin: 0;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: rgb(var(--ds-page));
+  color: rgb(var(--ds-primary));
+}
+
+code {
+  font-family: "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas,
+    "Courier New", monospace;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+/* Selection */
+::selection { background-color: rgba(79, 70, 229, 0.15); color: inherit; }
+.dark ::selection { background-color: rgba(129, 140, 248, 0.2); }
+
+/* Focus ring */
+.focus-ring { outline: none; }
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 2px rgb(var(--ds-card)), 0 0 0 4px rgb(var(--color-primary));
+  border-radius: 12px;
+}
+
+/* =============================================================================
+   AUTH PAGES – Enterprise SaaS
+   All accent / primary colours via CSS custom properties → auto dark-mode.
+   ============================================================================= */
+
+.auth-input {
+  width: 100%;
+  background: rgb(var(--ds-elevated));
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: rgb(var(--ds-primary));
+  padding: 0.875rem 1rem 0.875rem 2.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+.auth-input::placeholder { color: rgb(var(--ds-muted)); }
+.auth-input:hover { border-color: rgb(var(--color-accent) / 0.3); }
+.auth-input:focus {
+  border-color: rgb(var(--color-accent));
+  box-shadow: 0 0 0 3px rgb(var(--color-accent) / 0.15);
+  background: rgb(var(--ds-card));
+}
+
+.auth-btn-primary {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, rgb(var(--color-accent-600)), rgb(var(--color-accent)));
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 14px rgb(var(--color-accent) / 0.2);
+}
+.auth-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgb(var(--color-accent)), rgb(var(--color-accent-600)));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgb(var(--color-accent) / 0.35);
+}
+.auth-btn-primary:active:not(:disabled) { transform: translateY(0); }
+.auth-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-btn-secondary {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: transparent;
+  color: rgb(var(--color-primary));
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border-radius: 16px;
+  border: 2px solid rgb(var(--color-primary) / 0.25);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.auth-btn-secondary:hover:not(:disabled) {
+  border-color: rgb(var(--color-primary));
+  background: rgb(var(--color-primary) / 0.06);
+}
+.auth-btn-secondary:active:not(:disabled) { background: rgb(var(--color-primary) / 0.1); }
+.auth-btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.auth-link {
+  color: rgb(var(--color-accent));
+  font-weight: 500;
+  transition: color 0.2s ease;
+  text-decoration: none;
+}
+.auth-link:hover { color: rgb(var(--color-accent-600)); }
+
+.auth-separator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: rgb(var(--ds-muted));
+  font-size: 0.8125rem;
+}
+.auth-separator::before,
+.auth-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(var(--ds-border)), transparent);
+}
+
+.auth-glass {
+  background: rgb(var(--ds-card) / 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgb(var(--ds-border) / 0.6);
+  border-radius: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 8px 32px rgba(0, 0, 0, 0.06);
+}
+.dark .auth-glass {
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 40px rgba(0, 0, 0, 0.3);
+}
