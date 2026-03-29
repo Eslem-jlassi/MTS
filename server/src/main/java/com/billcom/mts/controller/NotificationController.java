@@ -12,7 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -68,9 +68,10 @@ public class NotificationController {
     @GetMapping
     @Operation(summary = "Liste des notifications avec pagination")
     public ResponseEntity<Page<NotificationResponse>> getNotifications(
-            @AuthenticationPrincipal User user,
+            Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        User user = extractUser(authentication);
         
         log.debug("GET notifications for user {}, page={}, size={}", 
                 user.getEmail(), page, size);
@@ -95,7 +96,8 @@ public class NotificationController {
     @GetMapping("/unread")
     @Operation(summary = "Notifications non lues")
     public ResponseEntity<List<NotificationResponse>> getUnreadNotifications(
-            @AuthenticationPrincipal User user) {
+            Authentication authentication) {
+        User user = extractUser(authentication);
         
         log.debug("GET unread notifications for user {}", user.getEmail());
         
@@ -118,7 +120,8 @@ public class NotificationController {
     @GetMapping("/count")
     @Operation(summary = "Compteur de notifications non lues")
     public ResponseEntity<Map<String, Long>> getUnreadCount(
-            @AuthenticationPrincipal User user) {
+            Authentication authentication) {
+        User user = extractUser(authentication);
         
         long count = notificationService.getUnreadCount(user);
         
@@ -142,7 +145,8 @@ public class NotificationController {
     @Operation(summary = "Marquer une notification comme lue")
     public ResponseEntity<Void> markAsRead(
             @PathVariable Long id,
-            @AuthenticationPrincipal User user) {
+            Authentication authentication) {
+        User user = extractUser(authentication);
         
         log.debug("Marking notification {} as read for user {}", id, user.getEmail());
         
@@ -162,12 +166,22 @@ public class NotificationController {
     @PutMapping("/read-all")
     @Operation(summary = "Marquer toutes les notifications comme lues")
     public ResponseEntity<Map<String, Integer>> markAllAsRead(
-            @AuthenticationPrincipal User user) {
+            Authentication authentication) {
+        User user = extractUser(authentication);
         
         log.debug("Marking all notifications as read for user {}", user.getEmail());
         
         int count = notificationService.markAllAsRead(user);
         
         return ResponseEntity.ok(Map.of("markedCount", count));
+    }
+
+    private User extractUser(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof User user) {
+            return user;
+        }
+        User fallback = new User();
+        fallback.setEmail(authentication != null ? authentication.getName() : "anonymous");
+        return fallback;
     }
 }

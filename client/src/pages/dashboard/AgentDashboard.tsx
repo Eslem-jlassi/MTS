@@ -25,13 +25,7 @@ import {
 import { Card, EmptyState, SkeletonCard } from "../../components/ui";
 import Skeleton from "../../components/ui/Skeleton";
 import type { DashboardStats, Ticket as TicketType } from "../../types";
-import {
-  TicketStatus,
-  PriorityLabels,
-  PriorityColors,
-  StatusLabels,
-  StatusColors,
-} from "../../types";
+import { TicketStatus, StatusLabels, StatusColors } from "../../types";
 
 // =============================================================================
 // TYPES
@@ -73,9 +67,13 @@ const AgentKpi: React.FC<{
   alert?: boolean;
 }> = ({ icon, iconBg, label, value, suffix, alert }) => (
   <motion.div variants={fadeUp}>
-    <Card className={`relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300 ${alert ? "ring-2 ring-error/30" : ""}`}>
+    <Card
+      className={`relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300 ${alert ? "ring-2 ring-error/30" : ""}`}
+    >
       <div className="flex items-center gap-4">
-        <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
+        <div
+          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}
+        >
           {icon}
         </div>
         <div className="min-w-0">
@@ -168,7 +166,9 @@ const SlaBadge: React.FC<{ priority: string }> = ({ priority }) => {
   };
   const s = map[priority] || map.LOW;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${s.bg} ${s.text}`}>
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${s.bg} ${s.text}`}
+    >
       {(priority === "CRITICAL" || priority === "HIGH") && <AlertTriangle size={11} />}
       {s.label}
     </span>
@@ -221,13 +221,19 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold text-ds-primary tracking-tight">Espace Agent</h1>
-          <p className="text-sm text-ds-muted mt-0.5">Vue d'ensemble de vos tickets et performances</p>
+          <p className="text-sm text-ds-muted mt-0.5">
+            Vue d'ensemble de vos tickets et performances
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ {new Date(lastUpdated).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              MAJ{" "}
+              {new Date(lastUpdated).toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           )}
           <button
@@ -243,7 +249,10 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
       </div>
 
       {/* KPI row */}
-      <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" variants={stagger}>
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={stagger}
+      >
         <AgentKpi
           icon={<Headphones size={22} className="text-primary-600 dark:text-primary-400" />}
           iconBg="bg-primary-50 dark:bg-primary-900/30"
@@ -317,11 +326,21 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
               <table className="w-full">
                 <thead className="bg-ds-elevated border-b border-ds-border">
                   <tr>
-                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">Numéro</th>
-                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">Titre</th>
-                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">Priorité</th>
-                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">Statut</th>
-                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider hidden md:table-cell">Date</th>
+                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+                      Numéro
+                    </th>
+                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+                      Titre
+                    </th>
+                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+                      Priorité
+                    </th>
+                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+                      Statut
+                    </th>
+                    <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider hidden md:table-cell">
+                      Date
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ds-border">
@@ -334,18 +353,26 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
                       className="hover:bg-ds-elevated/60 transition-colors"
                     >
                       <td className="px-4 sm:px-5 py-3.5">
-                        <Link to={`/tickets/${t.id}`} className="text-primary-500 hover:text-primary-600 font-medium text-sm">
+                        <Link
+                          to={`/tickets/${t.id}`}
+                          className="text-primary-500 hover:text-primary-600 font-medium text-sm"
+                        >
                           {t.ticketNumber}
                         </Link>
                       </td>
-                      <td className="px-4 sm:px-5 py-3.5 text-sm text-ds-primary max-w-xs truncate">{t.title}</td>
+                      <td className="px-4 sm:px-5 py-3.5 text-sm text-ds-primary max-w-xs truncate">
+                        {t.title}
+                      </td>
                       <td className="px-4 sm:px-5 py-3.5">
                         <SlaBadge priority={t.priority} />
                       </td>
                       <td className="px-4 sm:px-5 py-3.5">
                         <span
                           className="px-2 py-0.5 rounded-md text-[11px] font-medium"
-                          style={{ backgroundColor: `${StatusColors[t.status]}18`, color: StatusColors[t.status] }}
+                          style={{
+                            backgroundColor: `${StatusColors[t.status]}18`,
+                            color: StatusColors[t.status],
+                          }}
                         >
                           {StatusLabels[t.status]}
                         </span>

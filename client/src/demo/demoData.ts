@@ -51,16 +51,13 @@ import type {
 // =============================================================================
 
 /** Date relative : maintenant - N heures */
-const hoursAgo = (h: number): string =>
-  new Date(Date.now() - h * 3600_000).toISOString();
+const hoursAgo = (h: number): string => new Date(Date.now() - h * 3600_000).toISOString();
 
 /** Date relative : maintenant - N jours */
-const daysAgo = (d: number): string =>
-  new Date(Date.now() - d * 86400_000).toISOString();
+const daysAgo = (d: number): string => new Date(Date.now() - d * 86400_000).toISOString();
 
 /** Date relative : maintenant + N heures (deadlines) */
-const hoursFromNow = (h: number): string =>
-  new Date(Date.now() + h * 3600_000).toISOString();
+const hoursFromNow = (h: number): string => new Date(Date.now() + h * 3600_000).toISOString();
 
 /** Wrapper pour PageResponse */
 function page<T>(items: T[], totalElements?: number): PageResponse<T> {
@@ -227,7 +224,8 @@ export const DEMO_SERVICES: TelecomService[] = [
     name: "Fibre FTTH Entreprise",
     category: ServiceCategory.NETWORK,
     categoryLabel: "Réseau",
-    description: "Accès Internet fibre optique dédié pour entreprises (débit garanti 100 Mbps symétrique)",
+    description:
+      "Accès Internet fibre optique dédié pour entreprises (débit garanti 100 Mbps symétrique)",
     isActive: true,
     status: ServiceStatus.UP,
     statusLabel: "Opérationnel",
@@ -336,7 +334,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 1,
     ticketNumber: "TKT-2026-0042",
     title: "Perte de connectivité fibre site principal Casablanca",
-    description: "Coupure totale du lien fibre depuis ce matin 8h30. Le routeur CPE montre les LEDs Rx/Tx éteintes. Aucun trafic ne passe. Impact: 200 employés sans accès Internet ni VPN.",
+    description:
+      "Coupure totale du lien fibre depuis ce matin 8h30. Le routeur CPE montre les LEDs Rx/Tx éteintes. Aucun trafic ne passe. Impact: 200 employés sans accès Internet ni VPN.",
     status: TicketStatus.IN_PROGRESS,
     statusLabel: "En cours",
     priority: TicketPriority.CRITICAL,
@@ -367,7 +366,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 2,
     ticketNumber: "TKT-2026-0041",
     title: "Latence élevée sur le réseau 4G – zone industrielle Aïn Sebaâ",
-    description: "Nos techniciens terrain constatent des latences supérieures à 200ms sur la 4G depuis 2 jours. Les applications métier mobiles deviennent inutilisables.",
+    description:
+      "Nos techniciens terrain constatent des latences supérieures à 200ms sur la 4G depuis 2 jours. Les applications métier mobiles deviennent inutilisables.",
     status: TicketStatus.ASSIGNED,
     statusLabel: "Assigné",
     priority: TicketPriority.HIGH,
@@ -397,7 +397,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 3,
     ticketNumber: "TKT-2026-0040",
     title: "Demande d'augmentation de bande passante fibre – site Rabat",
-    description: "Suite à l'ouverture de notre nouveau département, nous avons besoin de passer de 100 Mbps à 200 Mbps symétrique sur le site de Rabat.",
+    description:
+      "Suite à l'ouverture de notre nouveau département, nous avons besoin de passer de 100 Mbps à 200 Mbps symétrique sur le site de Rabat.",
     status: TicketStatus.PENDING,
     statusLabel: "En attente client",
     priority: TicketPriority.MEDIUM,
@@ -427,7 +428,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 4,
     ticketNumber: "TKT-2026-0039",
     title: "Problème de qualité VoIP – écho et coupures",
-    description: "Depuis la mise à jour du central téléphonique, certains appels présentent de l'écho et des coupures aléatoires. Affecte environ 30% des appels sortants.",
+    description:
+      "Depuis la mise à jour du central téléphonique, certains appels présentent de l'écho et des coupures aléatoires. Affecte environ 30% des appels sortants.",
     status: TicketStatus.ESCALATED,
     statusLabel: "Escaladé",
     priority: TicketPriority.HIGH,
@@ -457,7 +459,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 5,
     ticketNumber: "TKT-2026-0038",
     title: "Création de 10 nouvelles lignes SIP pour extension centre d'appels",
-    description: "Notre centre d'appels s'agrandit. Nous avons besoin de 10 canaux SIP supplémentaires avec les numéros en 05 22.",
+    description:
+      "Notre centre d'appels s'agrandit. Nous avons besoin de 10 canaux SIP supplémentaires avec les numéros en 05 22.",
     status: TicketStatus.NEW,
     statusLabel: "Nouveau",
     priority: TicketPriority.LOW,
@@ -489,7 +492,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 6,
     ticketNumber: "TKT-2026-0037",
     title: "Migration serveur vers Cloud Hosting – Atlas Logistics",
-    description: "Migration complète de l'infrastructure on-premise vers Cloud Hosting Maroc. 3 VMs + base de données PostgreSQL.",
+    description:
+      "Migration complète de l'infrastructure on-premise vers Cloud Hosting Maroc. 3 VMs + base de données PostgreSQL.",
     status: TicketStatus.RESOLVED,
     statusLabel: "Résolu",
     priority: TicketPriority.MEDIUM,
@@ -510,7 +514,8 @@ export const DEMO_TICKETS: Ticket[] = [
     deadline: daysAgo(1),
     breachedSla: false,
     slaPercentage: 80,
-    resolution: "Migration effectuée avec succès. 3 VMs provisionnées, DB restaurée. Tests de charge OK.",
+    resolution:
+      "Migration effectuée avec succès. 3 VMs provisionnées, DB restaurée. Tests de charge OK.",
     createdAt: daysAgo(3),
     resolvedAt: daysAgo(1),
     commentCount: 8,
@@ -521,7 +526,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 7,
     ticketNumber: "TKT-2026-0036",
     title: "Facturation incorrecte – double prélèvement février",
-    description: "Nous avons été prélevés 2 fois pour le mois de février sur le service Fibre FTTH.",
+    description:
+      "Nous avons été prélevés 2 fois pour le mois de février sur le service Fibre FTTH.",
     status: TicketStatus.CLOSED,
     statusLabel: "Fermé",
     priority: TicketPriority.HIGH,
@@ -542,7 +548,8 @@ export const DEMO_TICKETS: Ticket[] = [
     deadline: daysAgo(4),
     breachedSla: false,
     slaPercentage: 60,
-    resolution: "Note de crédit émise. Remboursement du 2e prélèvement effectué sous 5 jours ouvrés.",
+    resolution:
+      "Note de crédit émise. Remboursement du 2e prélèvement effectué sous 5 jours ouvrés.",
     createdAt: daysAgo(5),
     resolvedAt: daysAgo(4),
     closedAt: daysAgo(3),
@@ -554,7 +561,8 @@ export const DEMO_TICKETS: Ticket[] = [
     id: 8,
     ticketNumber: "TKT-2026-0035",
     title: "Demande de rapport de disponibilité mensuel",
-    description: "Merci de nous fournir le rapport SLA de disponibilité de tous nos services pour le mois de janvier 2026.",
+    description:
+      "Merci de nous fournir le rapport SLA de disponibilité de tous nos services pour le mois de janvier 2026.",
     status: TicketStatus.CLOSED,
     statusLabel: "Fermé",
     priority: TicketPriority.LOW,
@@ -594,7 +602,8 @@ export const DEMO_INCIDENTS: Incident[] = [
     id: 1,
     incidentNumber: "INC-2026-0012",
     title: "Dégradation performances réseau 4G – région Casablanca",
-    description: "Augmentation de la latence de 15ms à 200ms+ sur les antennes du secteur Aïn Sebaâ / Sidi Bernoussi. Impact sur 3 clients entreprise. Cause suspectée : saturation backhaul.",
+    description:
+      "Augmentation de la latence de 15ms à 200ms+ sur les antennes du secteur Aïn Sebaâ / Sidi Bernoussi. Impact sur 3 clients entreprise. Cause suspectée : saturation backhaul.",
     severity: Severity.MAJOR,
     severityLabel: "Majeur",
     impact: IncidentImpact.PARTIAL,
@@ -617,7 +626,8 @@ export const DEMO_INCIDENTS: Incident[] = [
     id: 2,
     incidentNumber: "INC-2026-0011",
     title: "Maintenance planifiée plateforme Billing",
-    description: "Mise à jour de la plateforme de facturation vers la version 4.2. Fenêtre de maintenance : 02h00 – 06h00. Aucun impact sur les autres services.",
+    description:
+      "Mise à jour de la plateforme de facturation vers la version 4.2. Fenêtre de maintenance : 02h00 – 06h00. Aucun impact sur les autres services.",
     severity: Severity.LOW,
     severityLabel: "Faible",
     impact: IncidentImpact.LOCALIZED,
@@ -638,7 +648,8 @@ export const DEMO_INCIDENTS: Incident[] = [
     id: 3,
     incidentNumber: "INC-2026-0010",
     title: "Panne switch core datacenter – Rétabli",
-    description: "Panne du switch core Nexus 9000 dans le datacenter Casa. Basculement automatique sur le switch redondant en 12 secondes. Root cause: module alimentation défaillant.",
+    description:
+      "Panne du switch core Nexus 9000 dans le datacenter Casa. Basculement automatique sur le switch redondant en 12 secondes. Root cause: module alimentation défaillant.",
     severity: Severity.CRITICAL,
     severityLabel: "Critique",
     impact: IncidentImpact.MAJOR,
@@ -656,7 +667,8 @@ export const DEMO_INCIDENTS: Incident[] = [
     resolvedAt: daysAgo(3),
     cause: "Module alimentation PSU-2 défaillant sur switch Nexus 9000. Remplacé sous garantie.",
     hasPostMortem: true,
-    postMortem: "Le basculement automatique a fonctionné en 12s. Recommandation : ajouter monitoring SNMP sur les PSU.",
+    postMortem:
+      "Le basculement automatique a fonctionné en 12s. Recommandation : ajouter monitoring SNMP sur les PSU.",
     createdAt: daysAgo(3),
   },
 ];
@@ -666,59 +678,71 @@ export const DEMO_INCIDENTS: Incident[] = [
 // =============================================================================
 
 export const DEMO_DASHBOARD_STATS: DashboardStats = {
-  totalTickets: 42,
+  totalTickets: 8,
   activeTickets: 5,
-  resolvedThisMonth: 12,
-  slaBreachedCount: 3,
-  averageResolutionTimeHours: 6.4,
-  averageResolutionHours: 6.4,
-  slaComplianceRate: 92.8,
+  resolvedThisMonth: 3,
+  slaBreachedCount: 1,
+  averageResolutionTimeHours: 7.2,
+  averageResolutionHours: 7.2,
+  slaComplianceRate: 87.5,
   ticketsByStatus: {
     NEW: 1,
     ASSIGNED: 1,
     IN_PROGRESS: 1,
     PENDING: 1,
     ESCALATED: 1,
-    RESOLVED: 8,
-    CLOSED: 25,
-    CANCELLED: 4,
+    RESOLVED: 1,
+    CLOSED: 2,
+    CANCELLED: 0,
   },
   ticketsByPriority: {
-    CRITICAL: 3,
-    HIGH: 10,
-    MEDIUM: 18,
-    LOW: 11,
+    CRITICAL: 1,
+    HIGH: 3,
+    MEDIUM: 2,
+    LOW: 2,
   },
   ticketsByService: {
-    "Fibre FTTH Entreprise": 12,
-    "4G LTE Pro": 9,
-    "VoIP SIP Trunk": 7,
-    "Cloud Hosting Maroc": 6,
-    "CRM Telecom Suite": 4,
-    "Facturation & Billing": 4,
+    "Fibre FTTH Entreprise": 2,
+    "4G LTE Pro": 1,
+    "VoIP SIP Trunk": 2,
+    "Cloud Hosting Maroc": 1,
+    "CRM Telecom Suite": 1,
+    "Facturation & Billing": 1,
   },
   agentStats: [
-    { agentId: 3, agentName: "Karim Ziani", assignedTickets: 3, resolvedTickets: 18, averageResolutionTimeHours: 5.2 },
-    { agentId: 4, agentName: "Layla Amrani", assignedTickets: 2, resolvedTickets: 14, averageResolutionTimeHours: 7.1 },
+    {
+      agentId: 3,
+      agentName: "Karim Ziani",
+      assignedTickets: 3,
+      resolvedTickets: 1,
+      averageResolutionTimeHours: 6.6,
+    },
+    {
+      agentId: 4,
+      agentName: "Layla Amrani",
+      assignedTickets: 3,
+      resolvedTickets: 2,
+      averageResolutionTimeHours: 7.8,
+    },
   ],
-  criticalCount: 3,
-  highCount: 10,
-  mediumCount: 18,
-  lowCount: 11,
+  criticalCount: 1,
+  highCount: 3,
+  mediumCount: 2,
+  lowCount: 2,
   unassignedCount: 1,
-  createdToday: 2,
+  createdToday: 5,
   resolvedToday: 1,
   trendLast7Days: Array.from({ length: 7 }, (_, i) => ({
     date: new Date(Date.now() - (6 - i) * 86400_000).toISOString().split("T")[0],
-    created: [3, 5, 2, 4, 6, 3, 2][i],
-    resolved: [2, 4, 3, 3, 5, 4, 1][i],
-    active: [8, 9, 8, 9, 10, 9, 10][i],
+    created: [1, 0, 1, 0, 1, 0, 5][i],
+    resolved: [0, 1, 0, 1, 0, 0, 1][i],
+    active: [5, 4, 5, 4, 5, 5, 5][i],
   })),
   previousPeriodSnapshot: {
-    resolvedThisMonth: 10,
-    activeTickets: 7,
-    totalTickets: 38,
-    slaBreachedCount: 5,
+    resolvedThisMonth: 2,
+    activeTickets: 6,
+    totalTickets: 7,
+    slaBreachedCount: 1,
   },
 };
 
@@ -731,16 +755,16 @@ export const DEMO_AGENT_PERFORMANCE: AgentPerformance[] = [
     agentId: 3,
     agentName: "Karim Ziani",
     assignedTickets: 3,
-    resolvedTickets: 18,
-    averageResolutionHours: 5.2,
-    slaComplianceRate: 94.4,
+    resolvedTickets: 1,
+    averageResolutionHours: 6.6,
+    slaComplianceRate: 88.9,
   },
   {
     agentId: 4,
     agentName: "Layla Amrani",
-    assignedTickets: 2,
-    resolvedTickets: 14,
-    averageResolutionHours: 7.1,
+    assignedTickets: 3,
+    resolvedTickets: 2,
+    averageResolutionHours: 7.8,
     slaComplianceRate: 90.0,
   },
 ];

@@ -87,7 +87,9 @@ const KpiStat: React.FC<{
   <motion.div variants={fadeUp}>
     <Card className="relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300">
       <div className="flex items-center gap-4">
-        <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
+        <div
+          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}
+        >
           {icon}
         </div>
         <div className="min-w-0">
@@ -221,8 +223,13 @@ const ServicesHealth: React.FC<{ services: TelecomService[] }> = ({ services }) 
             [ServiceStatus.MAINTENANCE]: <WifiOff size={16} />,
           };
           return (
-            <li key={s.id} className="flex items-center gap-3 px-5 py-3 hover:bg-ds-elevated/60 transition-colors">
-              <div className={`flex-shrink-0 p-1.5 rounded-lg ${ServiceStatusBgColors[status] || "bg-ds-elevated"}`}>
+            <li
+              key={s.id}
+              className="flex items-center gap-3 px-5 py-3 hover:bg-ds-elevated/60 transition-colors"
+            >
+              <div
+                className={`flex-shrink-0 p-1.5 rounded-lg ${ServiceStatusBgColors[status] || "bg-ds-elevated"}`}
+              >
                 <span className={ServiceStatusColors[status] || "text-ds-muted"}>
                   {iconMap[status] || <Wifi size={16} />}
                 </span>
@@ -231,7 +238,9 @@ const ServicesHealth: React.FC<{ services: TelecomService[] }> = ({ services }) 
                 <p className="text-sm font-medium text-ds-primary truncate">{s.name}</p>
                 <p className="text-xs text-ds-muted">{s.categoryLabel || s.category}</p>
               </div>
-              <span className={`text-xs font-semibold ${ServiceStatusColors[status] || "text-ds-muted"}`}>
+              <span
+                className={`text-xs font-semibold ${ServiceStatusColors[status] || "text-ds-muted"}`}
+              >
                 {ServiceStatusLabels[status] || "—"}
               </span>
             </li>
@@ -258,7 +267,9 @@ const CtaPanel: React.FC = () => (
             <Plus size={22} />
           </div>
           <span className="text-sm font-semibold text-ds-primary">Nouveau ticket</span>
-          <span className="text-xs text-ds-muted text-center">Signaler un problème ou une demande</span>
+          <span className="text-xs text-ds-muted text-center">
+            Signaler un problème ou une demande
+          </span>
         </Link>
         <Link
           to="/dashboard"
@@ -271,7 +282,7 @@ const CtaPanel: React.FC = () => (
           <span className="text-xs text-ds-muted text-center">Obtenir une aide instantanée</span>
         </Link>
         <Link
-          to="/tickets"
+          to="/knowledge-base"
           className="flex flex-col items-center gap-2.5 py-6 px-4 hover:bg-info-50 dark:hover:bg-info-900/10 transition-colors group"
         >
           <div className="p-3 rounded-2xl bg-info-100 dark:bg-info-900/30 text-info-600 dark:text-info-400 group-hover:scale-110 transition-transform">
@@ -332,14 +343,20 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
       {/* Header + refresh */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-ds-primary tracking-tight">Mon tableau de bord</h1>
+          <h1 className="text-2xl font-extrabold text-ds-primary tracking-tight">
+            Mon tableau de bord
+          </h1>
           <p className="text-sm text-ds-muted mt-0.5">Vue d'ensemble de vos tickets et services</p>
         </div>
         <div className="flex items-center gap-3">
           {lastUpdated && (
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ {new Date(lastUpdated).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              MAJ{" "}
+              {new Date(lastUpdated).toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           )}
           <button

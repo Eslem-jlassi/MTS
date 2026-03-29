@@ -55,6 +55,16 @@ public interface IncidentRepository extends JpaRepository<Incident, Long> {
             @Param("serviceId") Long serviceId,
             Pageable pageable);
 
+    /**
+     * Compte les incidents lies via le champ legacy ticket_id.
+     */
+    long countByTicketId(Long ticketId);
+
+    /**
+     * Compte les incidents lies via la table many-to-many incident_tickets.
+     */
+    long countByTickets_Id(Long ticketId);
+
     // =========================================================================
     // V29 – Requêtes pour reporting avancé
     // =========================================================================

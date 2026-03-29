@@ -42,8 +42,15 @@ export const dashboardService = {
    * Get agent performance metrics
    */
   getAgentPerformance: async (): Promise<AgentPerformance[]> => {
-    const response = await api.get<AgentPerformance[]>(`${DASHBOARD_PREFIX}/agent-performance`);
-    return response.data;
+    const stats = await dashboardService.getStats();
+    return (stats.agentStats ?? []).map((agent) => ({
+      agentId: agent.agentId,
+      agentName: agent.agentName,
+      assignedTickets: agent.assignedTickets,
+      resolvedTickets: agent.resolvedTickets,
+      averageResolutionHours: agent.averageResolutionTimeHours,
+      slaComplianceRate: stats.slaComplianceRate ?? 0,
+    }));
   },
 };
 

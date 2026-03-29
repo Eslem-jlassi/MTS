@@ -77,6 +77,26 @@ class TicketControllerRbacTest {
 
         @Test
         @WithMockUser(roles = "CLIENT")
+        @DisplayName("CLIENT peut consulter les commentaires de son ticket (non bloque par RBAC)")
+        void clientCanGetTicketComments() throws Exception {
+            mockMvc.perform(get("/api/tickets/1/comments"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "CLIENT devrait pouvoir atteindre /comments (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "CLIENT")
+        @DisplayName("CLIENT peut consulter l'historique visible de son ticket (non bloque par RBAC)")
+        void clientCanGetTicketHistory() throws Exception {
+            mockMvc.perform(get("/api/tickets/1/history"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "CLIENT devrait pouvoir atteindre /history (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "CLIENT")
         @DisplayName("CLIENT ne peut pas exporter en CSV")
         void clientCannotExportCsv() throws Exception {
             mockMvc.perform(get("/api/tickets/export/csv"))
@@ -92,6 +112,32 @@ class TicketControllerRbacTest {
                             .content("{\"agentId\":3}"))
                     .andExpect(status().isForbidden());
         }
+
+        @Test
+        @WithMockUser(roles = "CLIENT")
+        @DisplayName("CLIENT peut supprimer son ticket (non bloqué par RBAC)")
+        void clientCanDeleteTicket() throws Exception {
+            mockMvc.perform(delete("/api/tickets/1"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "CLIENT devrait pouvoir supprimer un ticket (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "CLIENT")
+        @DisplayName("CLIENT ne peut pas voir le pool des tickets non assignes")
+        void clientCannotGetUnassignedTickets() throws Exception {
+            mockMvc.perform(get("/api/tickets/unassigned"))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    @WithMockUser(roles = "CLIENT")
+    @DisplayName("CLIENT ne peut pas supprimer definitivement un ticket")
+    void clientCannotHardDeleteTicket() throws Exception {
+        mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+                .andExpect(status().isForbidden());
     }
 
     // =========================================================================
@@ -125,6 +171,36 @@ class TicketControllerRbacTest {
 
         @Test
         @WithMockUser(roles = "AGENT")
+        @DisplayName("AGENT peut voir le pool des tickets non assignes (non bloque par RBAC)")
+        void agentCanGetUnassignedTickets() throws Exception {
+            mockMvc.perform(get("/api/tickets/unassigned"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "AGENT devrait acceder a /unassigned (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "AGENT")
+        @DisplayName("AGENT peut consulter les commentaires d'un ticket (non bloque par RBAC)")
+        void agentCanGetTicketComments() throws Exception {
+            mockMvc.perform(get("/api/tickets/1/comments"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "AGENT devrait pouvoir atteindre /comments (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "AGENT")
+        @DisplayName("AGENT peut consulter l'historique d'un ticket (non bloque par RBAC)")
+        void agentCanGetTicketHistory() throws Exception {
+            mockMvc.perform(get("/api/tickets/1/history"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "AGENT devrait pouvoir atteindre /history (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "AGENT")
         @DisplayName("AGENT ne peut pas assigner un ticket")
         void agentCannotAssign() throws Exception {
             mockMvc.perform(post("/api/tickets/1/assign")
@@ -150,6 +226,22 @@ class TicketControllerRbacTest {
             mockMvc.perform(get("/api/tickets/sla-breached"))
                     .andExpect(status().isForbidden());
         }
+
+                @Test
+                @WithMockUser(roles = "AGENT")
+                @DisplayName("AGENT ne peut pas supprimer un ticket client")
+                void agentCannotDeleteTicket() throws Exception {
+                        mockMvc.perform(delete("/api/tickets/1"))
+                                        .andExpect(status().isForbidden());
+                }
+    }
+
+    @Test
+    @WithMockUser(roles = "AGENT")
+    @DisplayName("AGENT ne peut pas supprimer definitivement un ticket")
+    void agentCannotHardDeleteTicket() throws Exception {
+        mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+                .andExpect(status().isForbidden());
     }
 
     // =========================================================================
@@ -179,6 +271,24 @@ class TicketControllerRbacTest {
                     .andExpect(result ->
                             assertNotEquals(403, result.getResponse().getStatus(),
                                     "MANAGER devrait accéder aux SLA breached (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "MANAGER")
+        @DisplayName("MANAGER peut voir le pool des tickets non assignes (non bloque par RBAC)")
+        void managerCanGetUnassignedTickets() throws Exception {
+            mockMvc.perform(get("/api/tickets/unassigned"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "MANAGER devrait acceder a /unassigned (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "MANAGER")
+        @DisplayName("MANAGER ne peut pas supprimer definitivement un ticket")
+        void managerCannotHardDeleteTicket() throws Exception {
+            mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -220,6 +330,16 @@ class TicketControllerRbacTest {
                             assertNotEquals(403, result.getResponse().getStatus(),
                                     "ADMIN devrait pouvoir exporter Excel (pas 403)"));
         }
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("ADMIN peut supprimer definitivement un ticket (non bloque par RBAC)")
+    void adminCanHardDeleteTicket() throws Exception {
+        mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+                .andExpect(result ->
+                        assertNotEquals(403, result.getResponse().getStatus(),
+                                "ADMIN devrait pouvoir supprimer definitivement un ticket (pas 403)"));
     }
 
     // =========================================================================

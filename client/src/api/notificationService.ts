@@ -51,9 +51,7 @@ export const notificationService = {
    * Marquer toutes les notifications comme lues.
    */
   markAllAsRead: async (): Promise<{ markedCount: number }> => {
-    const response = await api.put<{ markedCount: number }>(
-      `${NOTIFICATIONS_PREFIX}/read-all`
-    );
+    const response = await api.put<{ markedCount: number }>(`${NOTIFICATIONS_PREFIX}/read-all`);
     return response.data;
   },
 };

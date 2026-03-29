@@ -1,0 +1,156 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    ports:
+      - "${COMPOSE_DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-mts2026}
+      MYSQL_DATABASE: ${COMPOSE_DB_NAME:-mts_telecom_db}
+      MYSQL_USER: ${COMPOSE_DB_USERNAME:-mts_user}
+      MYSQL_PASSWORD: ${COMPOSE_DB_PASSWORD:-mts_password}
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=caching_sha2_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysqladmin",
+          "ping",
+          "-h",
+          "localhost",
+          "-u",
+          "root",
+          "-p${COMPOSE_DB_ROOT_PASSWORD:-mts2026}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  phpmyadmin:
+    image: phpmyadmin:5.2
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-mts2026}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  sentiment-service:
+    build:
+      context: ../sentiment-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  duplicate-service:
+    build:
+      context: ../duplicate-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  ai-chatbot:
+    build:
+      context: ../ai-chatbot
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      PYTHONUNBUFFERED: "1"
+    ports:
+      - "8002:8002"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  backend:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      sentiment-service:
+        condition: service_healthy
+      duplicate-service:
+        condition: service_healthy
+      ai-chatbot:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/${COMPOSE_DB_NAME:-mts_telecom_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=utf8
+      DB_USERNAME: ${COMPOSE_DB_USERNAME:-mts_user}
+      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-mts_password}
+      JWT_SECRET: ${COMPOSE_JWT_SECRET:-MTS_BILLCOM_2026_Hx7pL9mNqR3sT6vW8yZ2aB5cD0eF4gHjKlMnPqRsTuVwXyZ1a2B3c4D5e6F7g8H9i0JkLmNoPqRs}
+      GOOGLE_CLIENT_ID: ${COMPOSE_GOOGLE_CLIENT_ID:-}
+      COOKIE_SECURE: "false"
+      ALLOW_INTERNAL_SIGNUP: "false"
+      AUTH_EXPOSE_TOKENS_IN_BODY: "false"
+      AI_AUTOSTART_ENABLED: "false"
+      CORS_ALLOWED_ORIGINS: ${COMPOSE_CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      WS_ALLOWED_ORIGIN_PATTERNS: ${COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:3000,http://127.0.0.1:3000}
+      AI_SENTIMENT_BASE_URL: http://sentiment-service:8000
+      AI_DUPLICATE_BASE_URL: http://duplicate-service:8001
+      AI_CHATBOT_BASE_URL: http://ai-chatbot:8002
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+  frontend:
+    build:
+      context: ../client
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ${COMPOSE_REACT_APP_API_URL:-http://localhost:8080/api}
+        REACT_APP_GOOGLE_OAUTH_CLIENT_ID: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_CLIENT_ID:-}
+        REACT_APP_DEMO_MODE: "false"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  mysql_data:

@@ -36,9 +36,7 @@ export const escalationService = {
    * Récupère l'historique SLA (timeline) d'un ticket.
    */
   getTimeline: async (ticketId: number): Promise<SlaTimelineEvent[]> => {
-    const response = await api.get<SlaTimelineEvent[]>(
-      `${PREFIX}/timeline/${ticketId}`
-    );
+    const response = await api.get<SlaTimelineEvent[]>(`${PREFIX}/timeline/${ticketId}`);
     return response.data;
   },
 
@@ -53,27 +51,16 @@ export const escalationService = {
   /**
    * Crée une nouvelle règle d'escalade.
    */
-  createRule: async (
-    request: EscalationRuleRequest
-  ): Promise<EscalationRule> => {
-    const response = await api.post<EscalationRule>(
-      `${PREFIX}/rules`,
-      request
-    );
+  createRule: async (request: EscalationRuleRequest): Promise<EscalationRule> => {
+    const response = await api.post<EscalationRule>(`${PREFIX}/rules`, request);
     return response.data;
   },
 
   /**
    * Met à jour une règle d'escalade existante.
    */
-  updateRule: async (
-    id: number,
-    request: EscalationRuleRequest
-  ): Promise<EscalationRule> => {
-    const response = await api.put<EscalationRule>(
-      `${PREFIX}/rules/${id}`,
-      request
-    );
+  updateRule: async (id: number, request: EscalationRuleRequest): Promise<EscalationRule> => {
+    const response = await api.put<EscalationRule>(`${PREFIX}/rules/${id}`, request);
     return response.data;
   },
 
@@ -89,9 +76,7 @@ export const escalationService = {
    * Retourne le nombre de tickets escaladés.
    */
   forceEvaluate: async (): Promise<number> => {
-    const response = await api.post<{ escalatedCount: number }>(
-      `${PREFIX}/evaluate`
-    );
+    const response = await api.post<{ escalatedCount: number }>(`${PREFIX}/evaluate`);
     return response.data.escalatedCount;
   },
 };

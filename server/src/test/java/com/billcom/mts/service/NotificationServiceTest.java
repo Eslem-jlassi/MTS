@@ -155,9 +155,12 @@ class NotificationServiceTest {
             notificationService.notifyTicketAssigned(testTicket, agentUser);
 
             verify(notificationRepository, atLeastOnce()).save(notificationCaptor.capture());
-            Notification saved = notificationCaptor.getValue();
-            assertThat(saved.getUser().getId()).isEqualTo(3L);
-            assertThat(saved.getType()).isEqualTo(NotificationType.TICKET_ASSIGNED);
+            List<Notification> savedNotifications = notificationCaptor.getAllValues();
+            assertThat(savedNotifications)
+                    .anySatisfy(saved -> {
+                        assertThat(saved.getUser().getId()).isEqualTo(3L);
+                        assertThat(saved.getType()).isEqualTo(NotificationType.TICKET_ASSIGNED);
+                    });
 
             verify(messagingTemplate, atLeastOnce()).convertAndSendToUser(
                     eq("agent@billcom.tn"), eq("/queue/notifications"), any(NotificationResponse.class));

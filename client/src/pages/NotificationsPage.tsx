@@ -106,7 +106,7 @@ export default function NotificationsPage() {
       const todayStr = new Date().toISOString().slice(0, 10);
       const todayResponse = await notificationService.getNotifications(0, 100);
       const todayCount = todayResponse.content.filter(
-        (n) => n.createdAt && n.createdAt.slice(0, 10) === todayStr
+        (n) => n.createdAt && n.createdAt.slice(0, 10) === todayStr,
       ).length;
       setStats({
         total: allResponse.totalElements,
@@ -151,7 +151,7 @@ export default function NotificationsPage() {
       try {
         await notificationService.markAsRead(notification.id);
         setNotifications((prev) =>
-          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
+          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
         );
         fetchStats();
       } catch (error) {
@@ -218,9 +218,7 @@ export default function NotificationsPage() {
           <Bell className="w-7 h-7 text-primary-600 dark:text-primary-400" />
           Notifications
         </h1>
-        <p className="text-ds-muted mt-1">
-          Suivez tous les événements importants du système
-        </p>
+        <p className="text-ds-muted mt-1">Suivez tous les événements importants du système</p>
       </div>
 
       {/* Stats Cards */}
@@ -325,9 +323,7 @@ export default function NotificationsPage() {
       {/* Liste des notifications */}
       <Card padding="none">
         {loading ? (
-          <div className="p-12 text-center text-ds-muted">
-            Chargement des notifications...
-          </div>
+          <div className="p-12 text-center text-ds-muted">Chargement des notifications...</div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center">
             <Bell className="w-16 h-16 mx-auto mb-4 text-ds-muted opacity-30" />
@@ -356,15 +352,9 @@ export default function NotificationsPage() {
                     {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4 mb-1">
-                        <h3 className="text-sm font-semibold text-ds-primary">
-                          {notif.title}
-                        </h3>
+                        <h3 className="text-sm font-semibold text-ds-primary">{notif.title}</h3>
                         <div className="flex items-center gap-2 shrink-0">
-                          {isToday(notif.createdAt) && (
-                            <Badge variant="success">
-                              Aujourd'hui
-                            </Badge>
-                          )}
+                          {isToday(notif.createdAt) && <Badge variant="success">Aujourd'hui</Badge>}
                           {!notif.isRead && (
                             <div className="w-2.5 h-2.5 rounded-full bg-primary-600 dark:text-primary-500" />
                           )}

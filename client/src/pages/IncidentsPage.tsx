@@ -4,17 +4,10 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import {
-  AlertTriangle,
-  Plus,
-  RefreshCw,
-  Filter,
-  ChevronUp,
-  FileStack,
-  Shield,
-  Activity,
-} from "lucide-react";
+import { AlertTriangle, Plus, RefreshCw, Filter, ChevronUp, Shield, Activity, Trash2 } from "lucide-react";
 import { incidentService } from "../api/incidentService";
+import { usePermissions } from "../hooks/usePermissions";
+import { useToast } from "../context/ToastContext";
 import type { Incident } from "../types";
 import {
   IncidentStatusLabels,
@@ -23,7 +16,7 @@ import {
   IncidentStatus,
   Severity,
 } from "../types";
-import { Card, Button, EmptyState, ErrorState, Badge } from "../components/ui";
+import { Card, Button, EmptyState, ErrorState, Badge, ConfirmModal } from "../components/ui";
 
 function formatDate(s: string | undefined): string {
   if (!s) return "—";
@@ -61,6 +54,27 @@ export default function IncidentsPage() {
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
   const [severityFilter, setSeverityFilter] = useState<Severity | "">("");
 
+  const { canDeleteIncident } = usePermissions();
+  const toast = useToast();
+  
+  const [incidentToDelete, setIncidentToDelete] = useState<Incident | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    if (!incidentToDelete) return;
+    setIsDeleting(true);
+    try {
+      await incidentService.hardDeleteIncident(incidentToDelete.id);
+      toast.success(`Incident ${incidentToDelete.incidentNumber} supprimé définitivement`);
+      setIncidentToDelete(null);
+      load();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || "Erreur lors de la suppression");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const load = () => {
     setLoading(true);
     setError(null);
@@ -87,15 +101,48 @@ export default function IncidentsPage() {
   }, [incidents, statusFilter, severityFilter]);
 
   const activeCount = useMemo(
-    () => incidents.filter((i) => i.status === IncidentStatus.OPEN || i.status === IncidentStatus.IN_PROGRESS).length,
-    [incidents]
+    () =>
+      incidents.filter(
+        (i) => i.status === IncidentStatus.OPEN || i.status === IncidentStatus.IN_PROGRESS,
+      ).length,
+    [incidents],
   );
-  const criticalCount = useMemo(() => incidents.filter((i) => i.severity === Severity.CRITICAL).length, [incidents]);
-  const resolvedCount = useMemo(() => incidents.filter((i) => i.status === IncidentStatus.RESOLVED).length, [incidents]);
-  const withPostMortem = useMemo(() => incidents.filter((i) => i.hasPostMortem).length, [incidents]);
+  const criticalCount = useMemo(
+    () => incidents.filter((i) => i.severity === Severity.CRITICAL).length,
+    [incidents],
+  );
+  const resolvedCount = useMemo(
+    () => incidents.filter((i) => i.status === IncidentStatus.RESOLVED).length,
+    [incidents],
+  );
+  const withPostMortem = useMemo(
+    () => incidents.filter((i) => i.hasPostMortem).length,
+    [incidents],
+  );
 
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        isOpen={!!incidentToDelete}
+        onClose={() => setIncidentToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Supprimer définitivement l'incident ?"
+        message={
+          incidentToDelete ? (
+            <>
+              <p>Vous êtes sur le point de supprimer définitivement l'incident <strong>{incidentToDelete.incidentNumber}</strong>.</p>
+              <p className="mt-2 text-sm">Cette action est <strong>irréversible</strong> et supprimera également toutes les notes et relations associées (les tickets liés seront conservés mais détachés).</p>
+            </>
+          ) : ""
+        }
+        confirmLabel="Supprimer"
+        cancelLabel="Annuler"
+        variant="danger"
+        loading={isDeleting}
+        confirmationKeyword="SUPPRIMER"
+        confirmationHint="Tapez SUPPRIMER pour confirmer."
+      />
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-ds-primary">Incidents</h1>
@@ -170,7 +217,9 @@ export default function IncidentsPage() {
         >
           <option value="">Tous les statuts</option>
           {(Object.keys(IncidentStatus) as IncidentStatus[]).map((s) => (
-            <option key={s} value={s}>{IncidentStatusLabels[s]}</option>
+            <option key={s} value={s}>
+              {IncidentStatusLabels[s]}
+            </option>
           ))}
         </select>
         <select
@@ -180,10 +229,18 @@ export default function IncidentsPage() {
         >
           <option value="">Toutes gravités</option>
           {(Object.keys(Severity) as Severity[]).map((s) => (
-            <option key={s} value={s}>{SeverityLabels[s]}</option>
+            <option key={s} value={s}>
+              {SeverityLabels[s]}
+            </option>
           ))}
         </select>
-        <Button variant="secondary" icon={<RefreshCw size={18} />} iconPosition="left" onClick={load} disabled={loading}>
+        <Button
+          variant="secondary"
+          icon={<RefreshCw size={18} />}
+          iconPosition="left"
+          onClick={load}
+          disabled={loading}
+        >
           Actualiser
         </Button>
       </div>
@@ -236,20 +293,28 @@ export default function IncidentsPage() {
                     <td className="px-4 sm:px-6 py-4">
                       <div>
                         {inc.incidentNumber && (
-                          <span className="text-xs font-mono text-ds-muted">{inc.incidentNumber}</span>
+                          <span className="text-xs font-mono text-ds-muted">
+                            {inc.incidentNumber}
+                          </span>
                         )}
                         <p className="font-medium text-ds-primary">{inc.title}</p>
-                        <p className="text-sm text-ds-secondary">{inc.serviceName ?? `Service #${inc.serviceId}`}</p>
+                        <p className="text-sm text-ds-secondary">
+                          {inc.serviceName ?? `Service #${inc.serviceId}`}
+                        </p>
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
-                      <Badge variant={severityBadgeVariant[inc.severity]}>{SeverityLabels[inc.severity]}</Badge>
+                      <Badge variant={severityBadgeVariant[inc.severity]}>
+                        {SeverityLabels[inc.severity]}
+                      </Badge>
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-sm text-ds-secondary">
                       {inc.impact ? (inc.impactLabel ?? ImpactLabels[inc.impact]) : "—"}
                     </td>
                     <td className="px-4 sm:px-6 py-4">
-                      <Badge variant={statusBadgeVariant[inc.status]}>{IncidentStatusLabels[inc.status]}</Badge>
+                      <Badge variant={statusBadgeVariant[inc.status]}>
+                        {IncidentStatusLabels[inc.status]}
+                      </Badge>
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-sm">
                       {inc.ticketNumbers && inc.ticketNumbers.length > 0 ? (
@@ -264,11 +329,16 @@ export default function IncidentsPage() {
                             </Link>
                           ))}
                           {inc.ticketNumbers.length > 3 && (
-                            <span className="text-xs text-ds-muted">+{inc.ticketNumbers.length - 3}</span>
+                            <span className="text-xs text-ds-muted">
+                              +{inc.ticketNumbers.length - 3}
+                            </span>
                           )}
                         </div>
                       ) : inc.ticketNumber ? (
-                        <Link to={`/tickets/${inc.ticketId}`} className="text-primary hover:underline text-xs">
+                        <Link
+                          to={`/tickets/${inc.ticketId}`}
+                          className="text-primary hover:underline text-xs"
+                        >
                           {inc.ticketNumber}
                         </Link>
                       ) : (
@@ -279,12 +349,23 @@ export default function IncidentsPage() {
                       {formatDate(inc.startedAt)}
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-right">
-                      <Link
-                        to={`/incidents/${inc.id}`}
-                        className="text-sm font-medium text-primary hover:text-primary-hover"
-                      >
-                        Voir
-                      </Link>
+                      <div className="flex items-center justify-end gap-3">
+                        <Link
+                          to={`/incidents/${inc.id}`}
+                          className="text-sm font-medium text-primary hover:text-primary-hover"
+                        >
+                          Voir
+                        </Link>
+                        {canDeleteIncident && (
+                          <button
+                            onClick={() => setIncidentToDelete(inc)}
+                            className="text-error-600 hover:text-error-700 p-1 rounded-lg hover:bg-ds-elevated transition-colors"
+                            title="Supprimer définitivement"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

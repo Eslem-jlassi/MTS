@@ -46,6 +46,7 @@ import java.time.temporal.ChronoUnit;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.UUID;
 
 import com.lowagie.text.Document;
@@ -80,6 +81,9 @@ public class TicketServiceImpl implements TicketService {
     private final TelecomServiceRepository serviceRepository;
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
+    private final IncidentRepository incidentRepository;
+    private final SlaTimelineRepository slaTimelineRepository;
     private final com.billcom.mts.repository.MacroRepository macroRepository;
     private final com.billcom.mts.repository.SlaConfigRepository slaConfigRepository;
 
@@ -118,13 +122,7 @@ public class TicketServiceImpl implements TicketService {
             .orElseThrow(() -> new BadRequestException("User does not have a client profile"));
 
         // Get telecom service
-        TelecomService telecomService = serviceRepository.findById(request.getServiceId())
-            .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
-
-        // Verify service is active
-        if (!telecomService.getIsActive()) {
-            throw new BadRequestException("Service is not active");
-        }
+        TelecomService telecomService = resolveTelecomService(request, currentUser, client);
 
         // Generate ticket number
         String ticketNumber = generateTicketNumber();
@@ -171,7 +169,97 @@ public class TicketServiceImpl implements TicketService {
         }
 
         log.info("Ticket created: {}", ticketNumber);
-        return mapToResponse(ticket);
+        return mapToResponse(ticket, currentUser);
+    }
+
+    private TelecomService resolveTelecomService(TicketCreateRequest request, User currentUser, Client client) {
+        if (request.getServiceId() != null && request.getServiceId() > 0) {
+            TelecomService telecomService = serviceRepository.findById(request.getServiceId())
+                .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
+
+            if (!telecomService.getIsActive()) {
+                throw new BadRequestException("Service is not active");
+            }
+
+            return telecomService;
+        }
+
+        String requestedServiceName = request.getServiceName() != null ? request.getServiceName().trim() : "";
+        if (requestedServiceName.isEmpty()) {
+            requestedServiceName = extractServiceNameFromDescription(request.getDescription());
+        }
+        if (requestedServiceName.isEmpty()) {
+            throw new BadRequestException("Service ID or service name is required");
+        }
+
+        Optional<TelecomService> existingService = serviceRepository.findFirstByNameIgnoreCase(requestedServiceName);
+        if (existingService.isPresent()) {
+            TelecomService telecomService = existingService.get();
+            if (!telecomService.getIsActive()) {
+                throw new BadRequestException("Service is not active");
+            }
+            return telecomService;
+        }
+
+        TelecomService newService = TelecomService.builder()
+            .name(requestedServiceName)
+            .description("Service auto-cree depuis un brouillon IA de ticket")
+            .category(inferServiceCategory(requestedServiceName))
+            .isActive(true)
+            .createdBy(currentUser)
+            .company(client.getCompany())
+            .build();
+
+        TelecomService savedService = serviceRepository.save(newService);
+        log.info("Created missing telecom service '{}' during ticket creation", requestedServiceName);
+        return savedService;
+    }
+
+    private String extractServiceNameFromDescription(String description) {
+        if (description == null || description.isBlank()) {
+            return "";
+        }
+
+        for (String line : description.split("\\R")) {
+            String trimmedLine = line.trim();
+            if (trimmedLine.regionMatches(true, 0, "Service détecté:", 0, "Service détecté:".length())) {
+                return trimmedLine.substring("Service détecté:".length()).trim();
+            }
+            if (trimmedLine.regionMatches(true, 0, "Service detecte:", 0, "Service detecte:".length())) {
+                return trimmedLine.substring("Service detecte:".length()).trim();
+            }
+            if (trimmedLine.regionMatches(true, 0, "Detected service:", 0, "Detected service:".length())) {
+                return trimmedLine.substring("Detected service:".length()).trim();
+            }
+        }
+
+        return "";
+    }
+
+    private ServiceCategory inferServiceCategory(String serviceName) {
+        String normalizedName = serviceName.toLowerCase(Locale.ROOT);
+
+        if (normalizedName.contains("billing") || normalizedName.contains("bscs")
+                || normalizedName.contains("rating") || normalizedName.contains("facturation")) {
+            return ServiceCategory.BILLING;
+        }
+
+        if (normalizedName.contains("crm") || normalizedName.contains("order care")) {
+            return ServiceCategory.CRM;
+        }
+
+        if (normalizedName.contains("network") || normalizedName.contains("core")
+                || normalizedName.contains("voip") || normalizedName.contains("provisioning")
+                || normalizedName.contains("gateway") || normalizedName.contains("portability")) {
+            return ServiceCategory.NETWORK;
+        }
+
+        if (normalizedName.contains("migration") || normalizedName.contains("cloud")
+                || normalizedName.contains("infra") || normalizedName.contains("database")) {
+            return ServiceCategory.INFRA;
+        }
+
+        return ServiceCategory.OTHER;
     }
 
     @Override
@@ -224,7 +312,8 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
-        return mapToResponse(ticket);
+        assertCanViewTicket(ticket, currentUser);
+        return mapToResponse(ticket, currentUser);
     }
 
     @Override
@@ -242,7 +331,8 @@ public class TicketServiceImpl implements TicketService {
             }
             case AGENT, MANAGER, ADMIN -> { /* accès autorisé */ }
         }
-        return mapToResponse(ticket);
+        assertCanViewTicket(ticket, currentUser);
+        return mapToResponse(ticket, currentUser);
     }
 
     @Override
@@ -256,12 +346,18 @@ public class TicketServiceImpl implements TicketService {
                     .orElseThrow(() -> new BadRequestException("User does not have a client profile"));
                 tickets = ticketRepository.findByClientId(client.getId(), pageable);
             }
-            case AGENT -> tickets = ticketRepository.findByAssignedToId(currentUser.getId(), pageable);
+            case AGENT -> tickets = ticketRepository.findAll(
+                (root, query, cb) -> cb.or(
+                    cb.equal(root.get("assignedTo").get("id"), currentUser.getId()),
+                    cb.isNull(root.get("assignedTo"))
+                ),
+                pageable
+            );
             case MANAGER, ADMIN -> tickets = ticketRepository.findAll(pageable);
             default -> throw new ForbiddenException("Unknown role");
         }
 
-        return tickets.map(this::mapToResponse);
+        return tickets.map(ticket -> mapToResponse(ticket, currentUser));
     }
 
     /**
@@ -311,7 +407,7 @@ public class TicketServiceImpl implements TicketService {
             clientId, slaStatus, dateFrom, dateTo);
 
         Page<Ticket> tickets = ticketRepository.findAll(spec, pageable);
-        return tickets.map(this::mapToResponse);
+        return tickets.map(ticket -> mapToResponse(ticket, currentUser));
     }
 
     /**
@@ -462,9 +558,15 @@ public class TicketServiceImpl implements TicketService {
                                          User currentUser, String ipAddress) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertCanWorkOnTicket(ticket, currentUser);
 
         TicketStatus oldStatus = ticket.getStatus();
         TicketStatus newStatus = request.getNewStatus();
+
+        if (newStatus == TicketStatus.ASSIGNED) {
+            throw new BadRequestException(
+                "Le statut ASSIGNED doit passer par l'assignation du ticket");
+        }
 
         // Validate transition
         if (!isValidTransition(oldStatus, newStatus)) {
@@ -478,6 +580,10 @@ public class TicketServiceImpl implements TicketService {
             throw new BadRequestException("Resolution is required when resolving a ticket");
         }
 
+        if (request.getTimeSpentMinutes() != null && request.getTimeSpentMinutes() < 0) {
+            throw new BadRequestException("Le temps passe ne peut pas etre negatif");
+        }
+
         // Update status
         ticket.setStatus(newStatus);
 
@@ -486,15 +592,19 @@ public class TicketServiceImpl implements TicketService {
         if (newStatus == TicketStatus.PENDING && oldStatus != TicketStatus.PENDING) {
             try {
                 slaCalculationService.pauseSla(ticket);
+                createHistoryEntry(ticket, currentUser, TicketAction.SLA_PAUSED,
+                    null, null, "SLA mis en pause pendant l'attente client", ipAddress);
                 log.info("SLA paused for ticket {} (status: {} -> {})", ticket.getTicketNumber(), oldStatus, newStatus);
             } catch (Exception e) {
                 log.warn("Failed to pause SLA for ticket {}: {}", ticket.getTicketNumber(), e.getMessage());
             }
         }
         // Si le ticket quitte PENDING → reprise du compteur SLA
-        if (oldStatus == TicketStatus.PENDING && newStatus != TicketStatus.PENDING) {
+        if (oldStatus == TicketStatus.PENDING && newStatus.isSlaRunning()) {
             try {
                 slaCalculationService.resumeSla(ticket);
+                createHistoryEntry(ticket, currentUser, TicketAction.SLA_RESUMED,
+                    null, null, "SLA repris apres la sortie de l'attente client", ipAddress);
                 log.info("SLA resumed for ticket {} (status: {} -> {})", ticket.getTicketNumber(), oldStatus, newStatus);
             } catch (Exception e) {
                 log.warn("Failed to resume SLA for ticket {}: {}", ticket.getTicketNumber(), e.getMessage());
@@ -502,12 +612,20 @@ public class TicketServiceImpl implements TicketService {
         }
 
         if (newStatus == TicketStatus.RESOLVED) {
+            LocalDateTime resolvedAt = LocalDateTime.now();
             ticket.setResolution(request.getResolution());
-            ticket.setResolvedAt(LocalDateTime.now());
+            ticket.setResolvedAt(resolvedAt);
+            ticket.setClosedAt(null);
+            if (ticket.getDeadline() != null && resolvedAt.isAfter(ticket.getDeadline())) {
+                ticket.setBreachedSla(true);
+            }
             if (request.getRootCause() != null) ticket.setRootCause(request.getRootCause());
             if (request.getFinalCategory() != null) ticket.setFinalCategory(request.getFinalCategory());
             if (request.getTimeSpentMinutes() != null) ticket.setTimeSpentMinutes(request.getTimeSpentMinutes());
             if (request.getImpact() != null) ticket.setImpact(request.getImpact());
+        } else if (oldStatus == TicketStatus.RESOLVED && newStatus == TicketStatus.IN_PROGRESS) {
+            ticket.setResolvedAt(null);
+            ticket.setClosedAt(null);
         } else if (newStatus == TicketStatus.CLOSED) {
             ticket.setClosedAt(LocalDateTime.now());
         }
@@ -520,7 +638,10 @@ public class TicketServiceImpl implements TicketService {
         ticket = ticketRepository.save(ticket);
 
         // Create audit entry
-        createHistoryEntry(ticket, currentUser, TicketAction.STATUS_CHANGE,
+        TicketAction historyAction = oldStatus == TicketStatus.RESOLVED && newStatus == TicketStatus.IN_PROGRESS
+            ? TicketAction.REOPEN
+            : TicketAction.STATUS_CHANGE;
+        createHistoryEntry(ticket, currentUser, historyAction,
             oldStatus.name(), newStatus.name(), request.getComment(), ipAddress);
         try {
             auditService.log("Ticket", ticket.getId().toString(), "STATUS_CHANGE", currentUser,
@@ -538,7 +659,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         log.info("Ticket {} status changed: {} -> {}", ticket.getTicketNumber(), oldStatus, newStatus);
-        return mapToResponse(ticket);
+        return mapToResponse(ticket, currentUser);
     }
 
     @Override
@@ -547,12 +668,17 @@ public class TicketServiceImpl implements TicketService {
                                          User currentUser, String ipAddress) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertTicketAllowsAssignment(ticket);
 
         User agent = userRepository.findById(request.getAgentId())
             .orElseThrow(() -> new ResourceNotFoundException("Agent", "id", request.getAgentId()));
 
         if (agent.getRole() != UserRole.AGENT) {
             throw new BadRequestException("User is not an agent");
+        }
+
+        if (Boolean.FALSE.equals(agent.getIsActive())) {
+            throw new BadRequestException("Impossible d'assigner un ticket a un agent inactif");
         }
 
         String oldValue = ticket.getAssignedTo() != null 
@@ -580,7 +706,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         log.info("Ticket {} assigned to {}", ticket.getTicketNumber(), agent.getEmail());
-        return mapToResponse(ticket);
+        return mapToResponse(ticket, currentUser);
     }
 
     @Override
@@ -588,19 +714,95 @@ public class TicketServiceImpl implements TicketService {
     public TicketResponse unassignTicket(Long ticketId, User currentUser, String ipAddress) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertTicketAllowsAssignment(ticket);
+
+        if (ticket.getAssignedTo() == null) {
+            throw new BadRequestException("Aucun agent n'est actuellement assigne a ce ticket");
+        }
 
         String oldValue = ticket.getAssignedTo() != null 
             ? ticket.getAssignedTo().getFullName() : null;
 
         ticket.setAssignedTo(null);
+        if (ticket.getStatus() == TicketStatus.ASSIGNED) {
+            ticket.setStatus(TicketStatus.NEW);
+        }
         ticket = ticketRepository.save(ticket);
 
         // Create audit entry
         createHistoryEntry(ticket, currentUser, TicketAction.UNASSIGNMENT,
             oldValue, null, "Ticket unassigned", ipAddress);
+        if (ticket.getStatus() == TicketStatus.NEW) {
+            createHistoryEntry(ticket, currentUser, TicketAction.STATUS_CHANGE,
+                TicketStatus.ASSIGNED.name(), TicketStatus.NEW.name(),
+                "Retour au pool non assigne", ipAddress);
+        }
 
         log.info("Ticket {} unassigned", ticket.getTicketNumber());
-        return mapToResponse(ticket);
+        return mapToResponse(ticket, currentUser);
+    }
+
+    @Override
+    @Transactional
+    public void deleteTicketAsClient(Long ticketId, User currentUser, String ipAddress) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+
+        Client client = clientRepository.findByUserId(currentUser.getId())
+            .orElseThrow(() -> new BadRequestException("User does not have a client profile"));
+
+        if (!ticket.getClient().getId().equals(client.getId())) {
+            throw new ForbiddenException("Vous ne pouvez supprimer que vos propres tickets");
+        }
+
+        if (ticket.getStatus() != TicketStatus.NEW) {
+            throw new BadRequestException("Suppression autorisée uniquement pour les tickets nouveaux/non traités");
+        }
+
+        if (ticket.getAssignedTo() != null) {
+            throw new BadRequestException("Impossible de supprimer un ticket déjà pris en charge");
+        }
+
+        TicketStatus oldStatus = ticket.getStatus();
+        String ticketNumber = ticket.getTicketNumber();
+        ticket.setStatus(TicketStatus.CANCELLED);
+        ticket = ticketRepository.save(ticket);
+
+        createHistoryEntry(ticket, currentUser, TicketAction.STATUS_CHANGE,
+            oldStatus.name(), TicketStatus.CANCELLED.name(), "Ticket annule par le client", ipAddress);
+
+        try {
+            auditService.log("Ticket", ticketId.toString(), "STATUS_CHANGE", currentUser,
+                "Annulation " + ticketNumber, ipAddress);
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
+        }
+
+        log.info("Ticket {} cancelled by client {}", ticketNumber, currentUser.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void hardDeleteTicketAsAdmin(Long ticketId, User currentUser, String ipAddress) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+
+        assertTicketCanBeHardDeleted(ticket);
+
+        String ticketNumber = ticket.getTicketNumber();
+        String ticketTitle = ticket.getTitle();
+
+        try {
+            auditService.log("Ticket", ticketId.toString(), "DELETE", currentUser,
+                "Suppression definitive " + ticketNumber, ipAddress);
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
+        }
+
+        cleanupTicketNotifications(ticketId);
+        cleanupTicketUploadDirectory(ticketId);
+        ticketRepository.delete(ticket);
+        log.info("Ticket {} ({}) hard deleted by admin {}", ticketNumber, ticketTitle, currentUser.getEmail());
     }
 
     // === Comments ===
@@ -619,6 +821,8 @@ public class TicketServiceImpl implements TicketService {
                                        User currentUser, String ipAddress) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertCanWorkOnTicket(ticket, currentUser);
+        assertTicketAllowsCollaboration(ticket);
 
         // SÉCURITÉ: Un CLIENT ne peut JAMAIS créer de note interne
         boolean isInternal = request.getIsInternal() != null && request.getIsInternal();
@@ -654,7 +858,7 @@ public class TicketServiceImpl implements TicketService {
         log.info("{} added to ticket {} by {}",
             isInternal ? "Internal note" : "Comment",
             ticket.getTicketNumber(), currentUser.getEmail());
-        return mapToResponse(ticket);
+        return mapToResponse(ticket, currentUser);
     }
 
     // ========== Bulk actions ==========
@@ -888,6 +1092,8 @@ public class TicketServiceImpl implements TicketService {
     public TicketResponse applyMacro(Long ticketId, ApplyMacroRequest request, User currentUser, String ipAddress) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertCanWorkOnTicket(ticket, currentUser);
+        assertTicketAllowsCollaboration(ticket);
         if (currentUser.getRole() == UserRole.CLIENT) {
             Client client = clientRepository.findByUserId(currentUser.getId()).orElse(null);
             if (client == null || !ticket.getClient().getId().equals(client.getId())) {
@@ -914,7 +1120,7 @@ public class TicketServiceImpl implements TicketService {
             addComment(ticketId, commentReq, currentUser, ipAddress);
             ticket = ticketRepository.findById(ticketId).orElse(ticket);
         }
-        return mapToResponse(ticket);
+        return mapToResponse(ticket, currentUser);
     }
 
     // === Client-specific ===
@@ -927,6 +1133,12 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public Page<TicketResponse> getAgentTickets(Long agentId, Pageable pageable) {
         return ticketRepository.findByAssignedToId(agentId, pageable).map(this::mapToResponse);
+    }
+
+    @Override
+    public Page<TicketResponse> getUnassignedTickets(User currentUser, Pageable pageable) {
+        return ticketRepository.findUnassignedActiveTickets(pageable)
+            .map(ticket -> mapToResponse(ticket, currentUser));
     }
 
     // === SLA Monitoring ===
@@ -989,6 +1201,8 @@ public class TicketServiceImpl implements TicketService {
     public TicketResponse addAttachment(Long ticketId, MultipartFile file, User currentUser) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertCanWorkOnTicket(ticket, currentUser);
+        assertTicketAllowsCollaboration(ticket);
         // Contrôle d'accès (même logique que getTicketByIdSecured)
         switch (currentUser.getRole()) {
             case CLIENT -> {
@@ -1030,7 +1244,7 @@ public class TicketServiceImpl implements TicketService {
                 .build();
             attachmentRepository.save(attachment);
             log.info("Attachment {} added to ticket {} by {}", originalFilename, ticket.getTicketNumber(), currentUser.getEmail());
-            return mapToResponse(ticket);
+            return mapToResponse(ticket, currentUser);
         } catch (IOException e) {
             log.error("Failed to store attachment for ticket {}", ticketId, e);
             throw new BadRequestException("Erreur lors de l'enregistrement du fichier");
@@ -1042,6 +1256,7 @@ public class TicketServiceImpl implements TicketService {
     public AttachmentDownloadDto getAttachmentForDownload(Long ticketId, Long attachmentId, User currentUser) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertCanViewTicket(ticket, currentUser);
         switch (currentUser.getRole()) {
             case CLIENT -> {
                 Client client = clientRepository.findByUserId(currentUser.getId()).orElse(null);
@@ -1070,6 +1285,45 @@ public class TicketServiceImpl implements TicketService {
 
     // ========== Private Helper Methods ==========
 
+    private void assertCanViewTicket(Ticket ticket, User currentUser) {
+        switch (currentUser.getRole()) {
+            case CLIENT -> {
+                Client client = clientRepository.findByUserId(currentUser.getId()).orElse(null);
+                if (client == null || !ticket.getClient().getId().equals(client.getId())) {
+                    throw new ForbiddenException("Vous n'avez pas acces a ce ticket");
+                }
+            }
+            case AGENT -> {
+                if (ticket.getAssignedTo() != null
+                        && !ticket.getAssignedTo().getId().equals(currentUser.getId())) {
+                    throw new ForbiddenException(
+                        "Un agent ne peut voir que ses tickets assignes ou non assignes");
+                }
+            }
+            case MANAGER, ADMIN -> {
+                // Supervision complete
+            }
+            default -> throw new ForbiddenException("Role non autorise");
+        }
+    }
+
+    private void assertCanWorkOnTicket(Ticket ticket, User currentUser) {
+        switch (currentUser.getRole()) {
+            case CLIENT -> assertCanViewTicket(ticket, currentUser);
+            case AGENT -> {
+                if (ticket.getAssignedTo() == null
+                        || !ticket.getAssignedTo().getId().equals(currentUser.getId())) {
+                    throw new ForbiddenException(
+                        "Un agent ne peut traiter que les tickets qui lui sont assignes");
+                }
+            }
+            case MANAGER, ADMIN -> {
+                // Supervision complete
+            }
+            default -> throw new ForbiddenException("Role non autorise");
+        }
+    }
+
     private String generateTicketNumber() {
         int year = Year.now().getValue();
         String prefix = String.format("TKT-%d-", year);
@@ -1091,6 +1345,9 @@ public class TicketServiceImpl implements TicketService {
 
     /** Résout les heures SLA: config (priorité+service) > config (priorité) > props/enum. */
     private int resolveSlaHours(TicketPriority priority, Long serviceId) {
+        if (slaConfigRepository == null) {
+            return getSlaHours(priority);
+        }
         return slaConfigRepository.findByPriorityAndService_Id(priority, serviceId)
             .or(() -> slaConfigRepository.findByPriorityAndServiceIsNull(priority))
             .map(SlaConfig::getSlaHours)
@@ -1116,7 +1373,222 @@ public class TicketServiceImpl implements TicketService {
         historyRepository.save(history);
     }
 
+    private void assertTicketCanBeHardDeleted(Ticket ticket) {
+        if (ticket.getStatus() != TicketStatus.NEW) {
+            throw new BadRequestException(
+                "Seuls les tickets neufs et jamais traites peuvent etre supprimes definitivement"
+            );
+        }
+
+        if (ticket.getAssignedTo() != null) {
+            throw new BadRequestException(
+                "Impossible de supprimer definitivement un ticket deja assigne"
+            );
+        }
+
+        long commentCount = commentRepository.countByTicketId(ticket.getId());
+        if (commentCount > 0) {
+            throw new BadRequestException(
+                "Impossible de supprimer definitivement un ticket avec commentaires"
+            );
+        }
+
+        long attachmentCount = attachmentRepository.countByTicketId(ticket.getId());
+        if (attachmentCount > 0) {
+            throw new BadRequestException(
+                "Impossible de supprimer definitivement un ticket avec pieces jointes"
+            );
+        }
+
+        long historyCount = historyRepository.countByTicketId(ticket.getId());
+        if (historyCount > 1) {
+            throw new BadRequestException(
+                "Impossible de supprimer definitivement un ticket ayant deja un historique metier"
+            );
+        }
+
+        long slaTimelineCount = slaTimelineRepository.countByTicket_Id(ticket.getId());
+        if (slaTimelineCount > 0) {
+            throw new BadRequestException(
+                "Impossible de supprimer definitivement un ticket ayant deja un historique SLA"
+            );
+        }
+
+        long directIncidentCount = incidentRepository.countByTicketId(ticket.getId());
+        long groupedIncidentCount = incidentRepository.countByTickets_Id(ticket.getId());
+        if (directIncidentCount > 0 || groupedIncidentCount > 0) {
+            throw new BadRequestException(
+                "Impossible de supprimer definitivement un ticket lie a un incident"
+            );
+        }
+    }
+
+    private void cleanupTicketNotifications(Long ticketId) {
+        long deletedNotifications = notificationRepository.deleteByReferenceTypeAndReferenceId("TICKET", ticketId);
+        if (deletedNotifications > 0) {
+            log.info("Deleted {} notification(s) linked to ticket {}", deletedNotifications, ticketId);
+        }
+    }
+
+    private void cleanupTicketUploadDirectory(Long ticketId) {
+        Path uploadDirectory = Paths.get(ticketUploadDir, ticketId.toString()).normalize();
+        if (!Files.exists(uploadDirectory)) {
+            return;
+        }
+
+        try (Stream<Path> paths = Files.walk(uploadDirectory)) {
+            paths.sorted(Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException exception) {
+                    throw new BadRequestException(
+                        "Impossible de supprimer les fichiers joints physiques de ce ticket"
+                    );
+                }
+            });
+        } catch (IOException exception) {
+            throw new BadRequestException(
+                "Impossible de supprimer les fichiers joints physiques de ce ticket"
+            );
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TicketResponse.CommentInfo> getComments(Long ticketId, User currentUser) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertCanViewTicket(ticket, currentUser);
+        return buildCommentInfos(ticket, currentUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TicketResponse.HistoryInfo> getHistory(Long ticketId, User currentUser) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+            .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertCanViewTicket(ticket, currentUser);
+        return buildHistoryInfos(ticket, currentUser);
+    }
+
+    private void assertTicketAllowsCollaboration(Ticket ticket) {
+        if (ticket.getStatus() == TicketStatus.CLOSED || ticket.getStatus() == TicketStatus.CANCELLED) {
+            throw new BadRequestException(
+                "Aucun commentaire, note interne ou piece jointe n'est autorise sur un ticket clos ou annule"
+            );
+        }
+    }
+
+    private void assertTicketAllowsAssignment(Ticket ticket) {
+        if (ticket.getStatus() == TicketStatus.RESOLVED
+                || ticket.getStatus() == TicketStatus.CLOSED
+                || ticket.getStatus() == TicketStatus.CANCELLED) {
+            throw new BadRequestException(
+                "Impossible d'assigner ou de desassigner un ticket deja resolu, clos ou annule"
+            );
+        }
+    }
+
+    private boolean canViewInternalNotes(User viewer) {
+        return viewer == null || viewer.getRole() != UserRole.CLIENT;
+    }
+
+    private List<TicketResponse.CommentInfo> buildCommentInfos(Ticket ticket, User viewer) {
+        List<TicketComment> commentEntries = commentRepository != null
+            ? commentRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId())
+            : (ticket.getComments() != null ? ticket.getComments() : List.of());
+
+        return commentEntries.stream()
+            .filter(comment -> canViewInternalNotes(viewer) || !Boolean.TRUE.equals(comment.getIsInternal()))
+            .map(comment -> TicketResponse.CommentInfo.builder()
+                .id(comment.getId())
+                .authorId(comment.getAuthor().getId())
+                .authorName(comment.getAuthor().getFullName())
+                .authorRole(comment.getAuthor().getRole().name())
+                .content(comment.getContent())
+                .isInternal(comment.getIsInternal())
+                .createdAt(comment.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    private List<TicketResponse.HistoryInfo> buildHistoryInfos(Ticket ticket, User viewer) {
+        List<TicketHistory> historyEntries = historyRepository != null
+            ? historyRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId())
+            : List.of();
+
+        return historyEntries.stream()
+            .filter(history -> canViewInternalNotes(viewer) || history.getAction() != TicketAction.INTERNAL_NOTE)
+            .map(history -> TicketResponse.HistoryInfo.builder()
+                .id(history.getId())
+                .userId(history.getUser() != null ? history.getUser().getId() : null)
+                .userName(history.getUser() != null ? history.getUser().getFullName() : null)
+                .action(history.getAction().name())
+                .actionLabel(history.getAction().getLabel())
+                .oldValue(history.getOldValue())
+                .newValue(history.getNewValue())
+                .details(history.getDetails())
+                .createdAt(history.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    private List<TicketResponse.AttachmentInfo> buildAttachmentInfos(Ticket ticket) {
+        List<TicketAttachment> attachmentEntries = attachmentRepository != null
+            ? attachmentRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId())
+            : List.of();
+
+        return attachmentEntries.stream()
+            .map(att -> TicketResponse.AttachmentInfo.builder()
+                .id(att.getId())
+                .fileName(att.getFileName())
+                .fileSize(att.getFileSize())
+                .contentType(att.getContentType())
+                .uploadedByName(att.getUploadedBy() != null ? att.getUploadedBy().getFullName() : null)
+                .createdAt(att.getCreatedAt())
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    private List<TicketStatus> resolveAllowedTransitions(Ticket ticket, User viewer) {
+        if (ticket.getStatus() == null) {
+            return List.of();
+        }
+
+        if (viewer != null) {
+            switch (viewer.getRole()) {
+                case CLIENT -> {
+                    return List.of();
+                }
+                case AGENT -> {
+                    if (ticket.getAssignedTo() == null
+                            || !ticket.getAssignedTo().getId().equals(viewer.getId())) {
+                        return List.of();
+                    }
+                }
+                case MANAGER, ADMIN -> {
+                    // Acces total de supervision
+                }
+                default -> {
+                    return List.of();
+                }
+            }
+        }
+
+        if (ticket.getStatus() == TicketStatus.NEW) {
+            return List.of(TicketStatus.CANCELLED);
+        }
+
+        return Arrays.stream(ticket.getStatus().getAllowedTransitions())
+            .filter(status -> status != TicketStatus.ASSIGNED)
+            .collect(Collectors.toList());
+    }
+
     private TicketResponse mapToResponse(Ticket ticket) {
+        return mapToResponse(ticket, null);
+    }
+
+    private TicketResponse mapToResponse(Ticket ticket, User viewer) {
         // Calculate SLA metrics
         double slaPercentage = 0.0;
         boolean isSlaBreached = ticket.getBreachedSla() != null && ticket.getBreachedSla();
@@ -1142,51 +1614,9 @@ public class TicketServiceImpl implements TicketService {
             if (overdue) isSlaBreached = true;
         }
 
-        // Map comments (avec authorRole pour l'affichage frontend)
-        List<TicketResponse.CommentInfo> commentInfos = new ArrayList<>();
-        if (ticket.getComments() != null) {
-            for (TicketComment comment : ticket.getComments()) {
-                commentInfos.add(TicketResponse.CommentInfo.builder()
-                    .id(comment.getId())
-                    .authorId(comment.getAuthor().getId())
-                    .authorName(comment.getAuthor().getFullName())
-                    .authorRole(comment.getAuthor().getRole().name())
-                    .content(comment.getContent())
-                    .isInternal(comment.getIsInternal())
-                    .createdAt(comment.getCreatedAt())
-                    .build());
-            }
-        }
-
-        // Map history
-        List<TicketResponse.HistoryInfo> historyInfos = new ArrayList<>();
-        List<TicketHistory> historyEntries = historyRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId());
-        for (TicketHistory h : historyEntries) {
-            historyInfos.add(TicketResponse.HistoryInfo.builder()
-                .id(h.getId())
-                .userId(h.getUser() != null ? h.getUser().getId() : null)
-                .userName(h.getUser() != null ? h.getUser().getFullName() : null)
-                .action(h.getAction().name())
-                .actionLabel(h.getAction().getLabel())
-                .oldValue(h.getOldValue())
-                .newValue(h.getNewValue())
-                .details(h.getDetails())
-                .createdAt(h.getCreatedAt())
-                .build());
-        }
-
-        // Map attachments (metadata only; download via dedicated endpoint)
-        List<TicketResponse.AttachmentInfo> attachmentInfos = new ArrayList<>();
-        for (TicketAttachment att : attachmentRepository.findByTicketIdOrderByCreatedAtDesc(ticket.getId())) {
-            attachmentInfos.add(TicketResponse.AttachmentInfo.builder()
-                .id(att.getId())
-                .fileName(att.getFileName())
-                .fileSize(att.getFileSize())
-                .contentType(att.getContentType())
-                .uploadedByName(att.getUploadedBy() != null ? att.getUploadedBy().getFullName() : null)
-                .createdAt(att.getCreatedAt())
-                .build());
-        }
+        List<TicketResponse.CommentInfo> commentInfos = buildCommentInfos(ticket, viewer);
+        List<TicketResponse.HistoryInfo> historyInfos = buildHistoryInfos(ticket, viewer);
+        List<TicketResponse.AttachmentInfo> attachmentInfos = buildAttachmentInfos(ticket);
 
         return TicketResponse.builder()
             .id(ticket.getId())
@@ -1229,8 +1659,7 @@ public class TicketServiceImpl implements TicketService {
             .history(historyInfos)
             .attachments(attachmentInfos)
             .commentCount(commentInfos.size())
-            .allowedTransitions(ticket.getStatus() != null ? 
-                java.util.Arrays.asList(ticket.getStatus().getAllowedTransitions()) : null)
+            .allowedTransitions(resolveAllowedTransitions(ticket, viewer))
             .build();
     }
 
@@ -1259,11 +1688,14 @@ public class TicketServiceImpl implements TicketService {
             int count = 0;
             for (Ticket ticket : overdueTickets) {
             if (ticket.getBreachedSla() == null || !ticket.getBreachedSla()) {
+                TicketStatus previousStatus = ticket.getStatus();
                 ticket.setBreachedSla(true);
                 // Escalade auto: passer en ESCALATED pour visibilité managers
+                boolean escalatedAutomatically = false;
                 if (ticket.getStatus() != TicketStatus.ESCALATED && ticket.getStatus() != TicketStatus.RESOLVED
                         && ticket.getStatus() != TicketStatus.CLOSED && ticket.getStatus() != TicketStatus.CANCELLED) {
                     ticket.setStatus(TicketStatus.ESCALATED);
+                    escalatedAutomatically = true;
                 }
                 ticketRepository.save(ticket);
                 // Use the ticket creator as the history user (system action attributed to creator)
@@ -1276,6 +1708,8 @@ public class TicketServiceImpl implements TicketService {
                         "false", "true", "Délai SLA dépassé automatiquement", "SYSTEM");
                 } else {
                     log.warn("Cannot create SLA breach history for ticket {} - no user found", ticket.getTicketNumber());
+                    createHistoryEntry(ticket, null, TicketAction.SLA_BREACH,
+                        "false", "true", "SLA breach detected automatically", "SYSTEM");
                 }
                 
                 // *** NOTIFICATION TEMPS RÉEL - SLA BREACH ***
@@ -1286,6 +1720,19 @@ public class TicketServiceImpl implements TicketService {
                         ticket.getTicketNumber(), e.getMessage());
                 }
                 
+                if (escalatedAutomatically) {
+                    createHistoryEntry(ticket, historyUser, TicketAction.ESCALATION,
+                        previousStatus.name(), TicketStatus.ESCALATED.name(),
+                        "Escalade automatique suite au depassement du SLA", "SYSTEM");
+                    try {
+                        notificationService.notifyTicketStatusChanged(
+                            ticket, previousStatus.name(), TicketStatus.ESCALATED.name());
+                    } catch (Exception e) {
+                        log.warn("Failed to send automatic escalation notification for {}: {}",
+                            ticket.getTicketNumber(), e.getMessage());
+                    }
+                }
+
                 count++;
             }
         }

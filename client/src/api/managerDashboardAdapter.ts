@@ -130,10 +130,7 @@ export function buildManagerDashboardData(
 ): ManagerDashboardData {
   // -- KPI ------------------------------------------------------------------
   const slaCompliance = stats.slaComplianceRate ?? estimateSlaCompliance(stats);
-  const mttr =
-    stats.averageResolutionTimeHours ??
-    stats.averageResolutionHours ??
-    0;
+  const mttr = stats.averageResolutionTimeHours ?? stats.averageResolutionHours ?? 0;
   const backlog = stats.activeTickets ?? 0;
   const escalations = stats.ticketsByStatus?.ESCALATED ?? 0;
   const criticalTickets = stats.criticalCount ?? 0;
@@ -218,10 +215,7 @@ function estimateSlaCompliance(stats: DashboardStats): number {
  * Derives at-risk services from the service list and ticket distribution.
  * Computes SLA rates from available breach data.
  */
-function deriveServicesAtRisk(
-  services: TelecomService[],
-  stats: DashboardStats,
-): ServiceAtRisk[] {
+function deriveServicesAtRisk(services: TelecomService[], stats: DashboardStats): ServiceAtRisk[] {
   const byService = stats.ticketsByService ?? {};
 
   // Si on a ticketsByService, on s'en sert
@@ -252,9 +246,7 @@ function deriveServicesAtRisk(
   return services
     .filter(
       (s) =>
-        s.ticketCount > 0 ||
-        s.status === ServiceStatus.DEGRADED ||
-        s.status === ServiceStatus.DOWN,
+        s.ticketCount > 0 || s.status === ServiceStatus.DEGRADED || s.status === ServiceStatus.DOWN,
     )
     .slice(0, 6)
     .map((s) => {
@@ -280,5 +272,3 @@ function deriveTeamOptions(agents: AgentStats[]): TeamFilterItem[] {
     name: a.agentName || `Agent #${a.agentId}`,
   }));
 }
-
-

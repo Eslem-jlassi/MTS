@@ -3,7 +3,14 @@
 // =============================================================================
 
 import api from "./client";
-import { TelecomService, CreateServiceRequest, PageResponse, PageRequest, ServiceCategory, ServiceStatus } from "../types";
+import {
+  TelecomService,
+  CreateServiceRequest,
+  PageResponse,
+  PageRequest,
+  ServiceCategory,
+  ServiceStatus,
+} from "../types";
 import type { ServiceStatusHistoryEntry } from "../types";
 
 const SERVICES_PREFIX = "/services";
@@ -59,7 +66,12 @@ export const telecomServiceService = {
    */
   updateService: async (
     id: number,
-    data: { name?: string; description?: string; category?: ServiceCategory; status?: ServiceStatus }
+    data: {
+      name?: string;
+      description?: string;
+      category?: ServiceCategory;
+      status?: ServiceStatus;
+    },
   ): Promise<TelecomService> => {
     const response = await api.put<TelecomService>(`${SERVICES_PREFIX}/${id}`, data);
     return response.data;
@@ -69,7 +81,11 @@ export const telecomServiceService = {
    * Update service operational status (Admin/Manager).
    * Sends { status, reason? } to PATCH /api/services/:id/status (ServiceStatusUpdateRequest).
    */
-  updateServiceStatus: async (id: number, status: ServiceStatus, reason?: string): Promise<TelecomService> => {
+  updateServiceStatus: async (
+    id: number,
+    status: ServiceStatus,
+    reason?: string,
+  ): Promise<TelecomService> => {
     const response = await api.patch<TelecomService>(`${SERVICES_PREFIX}/${id}/status`, {
       status,
       reason,
@@ -121,7 +137,9 @@ export const telecomServiceService = {
    */
   getStatusHistory: async (id: number): Promise<ServiceStatusHistoryEntry[]> => {
     try {
-      const response = await api.get<ServiceStatusHistoryEntry[]>(`${SERVICES_PREFIX}/${id}/status-history`);
+      const response = await api.get<ServiceStatusHistoryEntry[]>(
+        `${SERVICES_PREFIX}/${id}/status-history`,
+      );
       return Array.isArray(response.data) ? response.data : [];
     } catch {
       return [];
@@ -135,7 +153,7 @@ export const telecomServiceService = {
     try {
       const response = await api.get<ServiceStatusHistoryEntry[]>(
         `${SERVICES_PREFIX}/${id}/status-history/recent`,
-        { params: { days } }
+        { params: { days } },
       );
       return Array.isArray(response.data) ? response.data : [];
     } catch {

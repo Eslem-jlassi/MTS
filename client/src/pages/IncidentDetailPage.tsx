@@ -23,10 +23,8 @@ import type { Incident, IncidentTimelineEntry } from "../types";
 import {
   IncidentStatus,
   IncidentStatusLabels,
-  IncidentStatusColors,
   Severity,
   SeverityLabels,
-  SeverityColors,
   ImpactLabels,
   IncidentTimelineEventType,
 } from "../types";
@@ -161,10 +159,17 @@ export default function IncidentDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" icon={<ArrowLeft size={18} />} iconPosition="left" onClick={() => navigate(-1)}>
+        <Button
+          variant="ghost"
+          icon={<ArrowLeft size={18} />}
+          iconPosition="left"
+          onClick={() => navigate(-1)}
+        >
           Retour
         </Button>
-        <Card><p className="text-ds-secondary py-8 text-center">Chargement…</p></Card>
+        <Card>
+          <p className="text-ds-secondary py-8 text-center">Chargement…</p>
+        </Card>
       </div>
     );
   }
@@ -172,19 +177,32 @@ export default function IncidentDetailPage() {
   if (!incident) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" icon={<ArrowLeft size={18} />} iconPosition="left" onClick={() => navigate(-1)}>
+        <Button
+          variant="ghost"
+          icon={<ArrowLeft size={18} />}
+          iconPosition="left"
+          onClick={() => navigate(-1)}
+        >
           Retour
         </Button>
-        <Card><p className="text-ds-secondary py-8 text-center">Incident introuvable.</p></Card>
+        <Card>
+          <p className="text-ds-secondary py-8 text-center">Incident introuvable.</p>
+        </Card>
       </div>
     );
   }
 
-  const isActive = incident.status === IncidentStatus.OPEN || incident.status === IncidentStatus.IN_PROGRESS;
+  const isActive =
+    incident.status === IncidentStatus.OPEN || incident.status === IncidentStatus.IN_PROGRESS;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <Button variant="ghost" icon={<ArrowLeft size={18} />} iconPosition="left" onClick={() => navigate("/incidents")}>
+      <Button
+        variant="ghost"
+        icon={<ArrowLeft size={18} />}
+        iconPosition="left"
+        onClick={() => navigate("/incidents")}
+      >
         Retour aux incidents
       </Button>
 
@@ -276,12 +294,16 @@ export default function IncidentDetailPage() {
             <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
               <div>
                 <dt className="text-ds-muted">Service principal</dt>
-                <dd className="font-medium text-ds-primary">{incident.serviceName ?? `Service #${incident.serviceId}`}</dd>
+                <dd className="font-medium text-ds-primary">
+                  {incident.serviceName ?? `Service #${incident.serviceId}`}
+                </dd>
               </div>
               {incident.impact && (
                 <div>
                   <dt className="text-ds-muted">Impact</dt>
-                  <dd className="font-medium text-ds-primary">{incident.impactLabel ?? ImpactLabels[incident.impact]}</dd>
+                  <dd className="font-medium text-ds-primary">
+                    {incident.impactLabel ?? ImpactLabels[incident.impact]}
+                  </dd>
                 </div>
               )}
               <div>
@@ -368,10 +390,14 @@ export default function IncidentDetailPage() {
             {incident.hasPostMortem && incident.postMortem ? (
               <div className="space-y-2">
                 <div className="prose prose-sm dark:prose-invert max-w-none bg-ds-elevated p-4 rounded-lg">
-                  <pre className="whitespace-pre-wrap text-sm text-ds-primary font-sans">{incident.postMortem}</pre>
+                  <pre className="whitespace-pre-wrap text-sm text-ds-primary font-sans">
+                    {incident.postMortem}
+                  </pre>
                 </div>
                 {incident.postMortemAt && (
-                  <p className="text-xs text-ds-muted">Rédigé le {formatDate(incident.postMortemAt)}</p>
+                  <p className="text-xs text-ds-muted">
+                    Rédigé le {formatDate(incident.postMortemAt)}
+                  </p>
                 )}
               </div>
             ) : showPmForm ? (
@@ -456,7 +482,9 @@ export default function IncidentDetailPage() {
                       </div>
                       <div>
                         <p className="text-sm text-ds-primary">
-                          <span className="font-medium">{entry.eventTypeLabel ?? entry.eventType}</span>
+                          <span className="font-medium">
+                            {entry.eventTypeLabel ?? entry.eventType}
+                          </span>
                           {entry.authorName && (
                             <span className="text-ds-muted"> — {entry.authorName}</span>
                           )}

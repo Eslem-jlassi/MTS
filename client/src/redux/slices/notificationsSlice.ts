@@ -41,57 +41,52 @@ export const fetchUnreadNotifications = createAsyncThunk<
   } catch (e: unknown) {
     return rejectWithValue(
       (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Erreur chargement notifications"
+        "Erreur chargement notifications",
     );
   }
 });
 
-export const fetchUnreadCount = createAsyncThunk<
-  number,
-  void,
-  { rejectValue: string }
->("notifications/fetchUnreadCount", async (_, { rejectWithValue }) => {
-  try {
-    return await notificationService.getUnreadCount();
-  } catch (e: unknown) {
-    return rejectWithValue(
-      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Erreur compteur"
-    );
-  }
-});
+export const fetchUnreadCount = createAsyncThunk<number, void, { rejectValue: string }>(
+  "notifications/fetchUnreadCount",
+  async (_, { rejectWithValue }) => {
+    try {
+      return await notificationService.getUnreadCount();
+    } catch (e: unknown) {
+      return rejectWithValue(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          "Erreur compteur",
+      );
+    }
+  },
+);
 
-export const markNotificationAsRead = createAsyncThunk<
-  number,
-  number,
-  { rejectValue: string }
->("notifications/markAsRead", async (id, { rejectWithValue }) => {
-  try {
-    await notificationService.markAsRead(id);
-    return id;
-  } catch (e: unknown) {
-    return rejectWithValue(
-      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Erreur"
-    );
-  }
-});
+export const markNotificationAsRead = createAsyncThunk<number, number, { rejectValue: string }>(
+  "notifications/markAsRead",
+  async (id, { rejectWithValue }) => {
+    try {
+      await notificationService.markAsRead(id);
+      return id;
+    } catch (e: unknown) {
+      return rejectWithValue(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur",
+      );
+    }
+  },
+);
 
-export const markAllNotificationsAsRead = createAsyncThunk<
-  number,
-  void,
-  { rejectValue: string }
->("notifications/markAllAsRead", async (_, { rejectWithValue }) => {
-  try {
-    const { markedCount } = await notificationService.markAllAsRead();
-    return markedCount;
-  } catch (e: unknown) {
-    return rejectWithValue(
-      (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Erreur"
-    );
-  }
-});
+export const markAllNotificationsAsRead = createAsyncThunk<number, void, { rejectValue: string }>(
+  "notifications/markAllAsRead",
+  async (_, { rejectWithValue }) => {
+    try {
+      const { markedCount } = await notificationService.markAllAsRead();
+      return markedCount;
+    } catch (e: unknown) {
+      return rejectWithValue(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur",
+      );
+    }
+  },
+);
 
 // =============================================================================
 // SLICE

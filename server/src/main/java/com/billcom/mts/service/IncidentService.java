@@ -18,6 +18,8 @@ public interface IncidentService {
 
     IncidentResponse getById(Long id, User currentUser);
 
+    void hardDeleteIncidentAsAdmin(Long id, User currentUser, String ipAddress);
+
     Page<IncidentResponse> findAll(Pageable pageable, User currentUser);
 
     Page<IncidentResponse> findByServiceId(Long serviceId, Pageable pageable, User currentUser);

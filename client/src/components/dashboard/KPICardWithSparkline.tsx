@@ -3,12 +3,7 @@
  */
 import React from "react";
 import { motion } from "framer-motion";
-import {
-  ResponsiveContainer,
-  Tooltip,
-  Area,
-  AreaChart,
-} from "recharts";
+import { ResponsiveContainer, Tooltip, Area, AreaChart } from "recharts";
 import Card from "../ui/Card";
 
 interface KPICardWithSparklineProps {
@@ -64,17 +59,11 @@ const KPICardWithSparkline: React.FC<KPICardWithSparklineProps> = ({
       : null;
 
   return (
-    <motion.div
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.2 }}
-      className={className}
-    >
+    <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }} className={className}>
       <Card padding="md" className="h-full">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-ds-muted">
-              {title}
-            </p>
+            <p className="text-sm font-medium text-ds-muted">{title}</p>
             <p className="text-2xl sm:text-3xl font-bold text-ds-primary mt-1 tabular-nums">
               {value}
             </p>
@@ -91,24 +80,13 @@ const KPICardWithSparkline: React.FC<KPICardWithSparklineProps> = ({
                   {pctChange.toFixed(1)}% {previousLabel}
                 </span>
               )}
-              {trend7d != null && (
-                <span className="text-ds-muted">
-                  7j: {trend7d}
-                </span>
-              )}
-              {trend30d != null && (
-                <span className="text-ds-muted">
-                  30j: {trend30d}
-                </span>
-              )}
+              {trend7d != null && <span className="text-ds-muted">7j: {trend7d}</span>}
+              {trend30d != null && <span className="text-ds-muted">30j: {trend30d}</span>}
             </div>
             {hasSparkline && (
               <div className="h-10 w-full mt-2 -mb-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={data}
-                    margin={{ top: 2, right: 2, left: 2, bottom: 2 }}
-                  >
+                  <AreaChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
                     <defs>
                       <linearGradient
                         id={`spark-${title.replace(/\s/g, "")}`}
@@ -117,16 +95,8 @@ const KPICardWithSparkline: React.FC<KPICardWithSparklineProps> = ({
                         x2="0"
                         y2="1"
                       >
-                        <stop
-                          offset="0%"
-                          stopColor={strokeColor}
-                          stopOpacity={0.35}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor={strokeColor}
-                          stopOpacity={0}
-                        />
+                        <stop offset="0%" stopColor={strokeColor} stopOpacity={0.35} />
+                        <stop offset="100%" stopColor={strokeColor} stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <Tooltip
@@ -154,14 +124,15 @@ const KPICardWithSparkline: React.FC<KPICardWithSparklineProps> = ({
           <div className="flex items-center gap-2 flex-shrink-0">
             {status && (
               <span
-                className={`w-2 h-2 rounded-full ${status === "success"
+                className={`w-2 h-2 rounded-full ${
+                  status === "success"
                     ? "bg-success"
                     : status === "warning"
                       ? "bg-warning"
                       : status === "error"
                         ? "bg-error"
                         : "bg-slate-400"
-                  }`}
+                }`}
                 title={status}
               />
             )}

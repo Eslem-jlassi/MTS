@@ -104,10 +104,7 @@ export const reportService = {
   /**
    * Récupère tous les rapports (publiés) avec pagination.
    */
-  getReports: async (params?: {
-    page?: number;
-    size?: number;
-  }): Promise<ReportListResponse> => {
+  getReports: async (params?: { page?: number; size?: number }): Promise<ReportListResponse> => {
     const response = await api.get<ReportListResponse>(`${REPORTS_PREFIX}/all`, { params });
     return response.data;
   },

@@ -125,6 +125,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
     Page<Ticket> findByAssignedToId(Long agentId, Pageable pageable);
 
     /**
+     * Trouve les tickets non assignes encore actifs.
+     */
+    @EntityGraph(attributePaths = {"client", "client.user", "service", "assignedTo"})
+    @Query("SELECT t FROM Ticket t WHERE t.assignedTo IS NULL AND t.status NOT IN " +
+           "(com.billcom.mts.enums.TicketStatus.CLOSED, com.billcom.mts.enums.TicketStatus.RESOLVED, com.billcom.mts.enums.TicketStatus.CANCELLED)")
+    Page<Ticket> findUnassignedActiveTickets(Pageable pageable);
+
+    /**
      * Trouve les tickets d'un agent avec certains statuts.
      */
     @EntityGraph(attributePaths = {"client", "service", "assignedTo"})
@@ -372,6 +380,12 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
 
     /** Compte les tickets d'un client */
     long countByClientId(Long clientId);
+
+    /** Compte les tickets assignes a un utilisateur */
+    long countByAssignedToId(Long userId);
+
+    /** Compte les tickets crees par un utilisateur */
+    long countByCreatedById(Long userId);
 
     /** Compte les tickets actifs d'un client */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.client.id = :clientId AND t.status NOT IN (com.billcom.mts.enums.TicketStatus.CLOSED, com.billcom.mts.enums.TicketStatus.RESOLVED, com.billcom.mts.enums.TicketStatus.CANCELLED)")

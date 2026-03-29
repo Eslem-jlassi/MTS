@@ -1,273 +1,144 @@
-# Architecture — MTS Telecom Supervisor
+# Architecture - MTS Telecom
 
----
+## Vue d'ensemble
 
-## 1. Vue d'ensemble
+MTS est une plateforme de supervision telecom et de support client composee de cinq blocs techniques :
 
-```mermaid
-graph TB
-    subgraph Client["Frontend — React 18 + TypeScript"]
-        SPA["Single Page Application<br/>Port 3000"]
-        Redux["Redux Toolkit Store"]
-        Axios["Axios HTTP Client<br/>+ JWT Interceptor"]
-        WS_Client["WebSocket Client<br/>STOMP.js"]
-    end
+1. un frontend React pour les parcours utilisateur
+2. un backend Spring Boot pour le coeur metier, la securite et l'orchestration
+3. une base MySQL avec migrations Flyway
+4. un microservice IA de sentiment/classification
+5. un microservice IA de detection de doublons et un chatbot RAG
 
-    subgraph Server["Backend — Spring Boot 3.2"]
-        API["REST API<br/>Port 8080"]
-        SEC["Spring Security 6<br/>JWT + OAuth2"]
-        SVC["Services métier"]
-        SLA["SLA Engine<br/>+ Escalation"]
-        WS_Server["WebSocket Broker<br/>STOMP"]
-        FLYWAY["Flyway Migrations<br/>V1 → V33"]
-    end
+## Topologie reelle
 
-    subgraph Data["Couche données"]
-        MySQL["MySQL 8.0<br/>mts_telecom_db"]
-        H2["H2 In-Memory<br/>(profil dev)"]
-        FS["File System<br/>uploads/"]
-    end
+| Bloc | Technologie | Role | Port local |
+|---|---|---|---|
+| Frontend | React 18 + TypeScript + Redux Toolkit | UI, routes, dashboards, formulaires, notifications | `3000` |
+| Backend | Spring Boot 3 + Spring Security + JPA + WebSocket | API metier, auth, RBAC, audit, SLA, orchestration IA | `8080` |
+| Base de donnees | MySQL 8 / H2 profil local | persistance metier et seeds | `3306` |
+| Sentiment service | FastAPI / Python | classification et sentiment | `8000` |
+| Duplicate service | FastAPI / Python | detection de tickets similaires | `8001` |
+| AI chatbot | FastAPI / Python | chatbot RAG et detection d'incidents massifs | `8002` |
 
-    subgraph Future["Évolution future"]
-        CHATBOT["Microservice Chatbot<br/>Python / NLP"]
-        CHATBOT_API["API REST chatbot<br/>Port 5000"]
-    end
+## Architecture fonctionnelle
 
-    SPA --> Axios
-    SPA --> WS_Client
-    Axios -->|"HTTP/JSON"| API
-    WS_Client -->|"STOMP/WebSocket"| WS_Server
-    API --> SEC
-    SEC --> SVC
-    SVC --> SLA
-    SVC -->|"JPA/Hibernate"| MySQL
-    SVC -->|"JPA/Hibernate"| H2
-    SVC -->|"Fichiers"| FS
-    FLYWAY -->|"Migrations SQL"| MySQL
-    WS_Server --> SVC
+### Frontend
 
-    CHATBOT_API -.->|"REST<br/>(futur)"| API
-    CHATBOT -.-> CHATBOT_API
+Le frontend couvre les parcours suivants :
 
-    style Client fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f
-    style Server fill:#dcfce7,stroke:#22c55e,color:#14532d
-    style Data fill:#fef3c7,stroke:#f59e0b,color:#78350f
-    style Future fill:#f3e8ff,stroke:#a855f7,color:#581c87
-```
+- dashboards par role
+- tickets liste/detail/kanban/drawer
+- clients, services, incidents, SLA, rapports
+- profil, compte, notifications, audit, administration
+- chatbot IA et mode demo explicite
 
----
+Composants structurants :
 
-## 2. Architecture backend — Couches
+- `App.tsx` : routes et gardes UI
+- `components/layout/` : shell applicatif
+- `redux/` : etat global
+- `api/` : couche d'appel HTTP
+- `hooks/usePermissions.ts` : miroir UI des permissions backend
+- `hooks/useWebSocketNotifications.ts` : notifications temps reel
 
-```mermaid
-graph LR
-    subgraph Presentation["Couche Présentation"]
-        CTRL["Controllers<br/>(14 @RestController)"]
-        FILTER["Filtres HTTP<br/>JwtAuthFilter<br/>RequestIdFilter"]
-        SWAGGER["Swagger UI<br/>/swagger-ui.html"]
-    end
+### Backend
 
-    subgraph Business["Couche Métier"]
-        SVC_INT["Interfaces Service"]
-        SVC_IMPL["Implémentations<br/>(ServiceImpl)"]
-        MAPPER["MapStruct Mappers<br/>(Entity ↔ DTO)"]
-        VALID["Validateurs<br/>(Bean Validation)"]
-    end
+Le backend est organise autour de controllers REST, services metier, repositories JPA et configuration de securite.
 
-    subgraph Persistence["Couche Persistance"]
-        REPO["JPA Repositories<br/>(Spring Data)"]
-        ENTITY["Entités JPA<br/>(23 @Entity)"]
-    end
+Controllers principaux :
 
-    subgraph Cross["Transversal"]
-        SEC2["Spring Security<br/>@PreAuthorize"]
-        EXC["GlobalExceptionHandler<br/>RFC 7807 ProblemDetail"]
-        AUDIT["AuditLog Service<br/>Journal immuable"]
-        MDC["RequestIdFilter<br/>MDC Correlation"]
-    end
+- `AuthController`
+- `UserController`
+- `ClientController`
+- `TicketController`
+- `DashboardController`
+- `ServiceController`
+- `IncidentController`
+- `ReportController`
+- `NotificationController`
+- `AuditLogController`
+- `BusinessHoursController`
+- `SlaPolicyController`
+- `SlaEscalationController`
+- `MacroController`
+- `QuickReplyTemplateController`
+- `AiSentimentController`
+- `AiDuplicateController`
+- `ChatbotController`
 
-    CTRL --> SVC_INT
-    FILTER --> CTRL
-    SVC_INT --> SVC_IMPL
-    SVC_IMPL --> MAPPER
-    SVC_IMPL --> VALID
-    SVC_IMPL --> REPO
-    REPO --> ENTITY
+Services metier structurants :
 
-    SEC2 -.-> CTRL
-    EXC -.-> CTRL
-    AUDIT -.-> SVC_IMPL
-    MDC -.-> FILTER
+- authentification, refresh tokens, OAuth Google
+- gestion des tickets, workflow, commentaires, pieces jointes, exports
+- incidents, services et supervision
+- dashboard, rapports, notifications, audit
+- politiques SLA, business hours, escalade
+- orchestration des microservices IA
 
-    style Presentation fill:#e0f2fe,stroke:#0284c7
-    style Business fill:#ecfdf5,stroke:#059669
-    style Persistence fill:#fefce8,stroke:#ca8a04
-    style Cross fill:#fce7f3,stroke:#db2777
-```
+### Base de donnees
 
-### Détail des couches
+La persistance est geree par :
 
-| Couche | Rôle | Exemples |
-|--------|------|----------|
-| **Controller** | Point d'entrée HTTP, validation `@Valid`, sécurité `@PreAuthorize`, délégation au service | `TicketController`, `AuthController`, `IncidentController` |
-| **DTO** | Objets de transfert — découplent l'API des entités JPA | `TicketCreateRequest`, `TicketResponse`, `LoginRequest` |
-| **Service** | Logique métier, orchestration, calculs SLA, gestion de l'escalade | `TicketServiceImpl`, `SlaCalculationServiceImpl`, `EscalationEngineServiceImpl` |
-| **Mapper** | Conversion automatique Entity ↔ DTO via MapStruct | `TicketMapper`, `UserMapper`, `IncidentMapper` |
-| **Repository** | Accès données (CRUD + requêtes personnalisées JPQL/Native) | `TicketRepository`, `UserRepository`, `IncidentRepository` |
-| **Entity** | Modèle de données JPA, annotations Hibernate, relations | `Ticket`, `User`, `Incident`, `SlaConfig` |
-| **Exception** | Gestion centralisée des erreurs → `ProblemDetail` (RFC 7807) avec `traceId` | `GlobalExceptionHandler`, `ResourceNotFoundException` |
-| **Security** | Filtre JWT, provider de tokens, `@PreAuthorize` sur chaque endpoint | `JwtAuthenticationFilter`, `JwtService` |
+- JPA/Hibernate pour les entites metier
+- Flyway pour la creation et l'evolution du schema
+- seeds SQL MySQL et `DataInitializer` pour H2
+- stockage fichier local pour les rapports et certains uploads
 
----
+## Flux techniques majeurs
 
-## 3. Architecture frontend
+### Authentification navigateur
 
-```mermaid
-graph TB
-    subgraph App["React App"]
-        Router["React Router 6<br/>Routes protégées"]
-    end
+- le frontend utilise `withCredentials=true`
+- le backend emet des cookies HttpOnly pour la session navigateur
+- `GET /api/auth/me` et `GET /api/users/me` servent au bootstrap de session
+- `POST /api/auth/refresh` repose sur le cookie de refresh
+- Google OAuth reste branche via le backend
 
-    subgraph Pages["Pages (25)"]
-        DASH["Dashboards<br/>(Admin/Manager/Agent/Client)"]
-        TICK["Tickets<br/>(Liste + Détail + Kanban)"]
-        INC["Incidents<br/>(Liste + Détail + Création)"]
-        SRV["Services<br/>(Gestion + Topologie)"]
-        RPT["Rapports"]
-        ADM["Admin<br/>(Users, Clients, SLA, Audit)"]
-    end
+### Notifications temps reel
 
-    subgraph Components["Composants"]
-        UI["Design System<br/>(Button, Card, Modal, DataTable…)"]
-        LAYOUT["Layout<br/>(MainLayout, Breadcrumb)"]
-        AUTH_C["Auth<br/>(AuthLayout, RoleBasedRoute)"]
-        NOTIF["NotificationCenter<br/>(WebSocket)"]
-    end
+- le backend expose `/ws`
+- l'auth WebSocket est verifiee cote backend
+- le frontend ouvre la connexion pour remonter notifications et compteurs
 
-    subgraph State["État global"]
-        STORE["Redux Store"]
-        SLICES["Slices<br/>(auth, tickets, dashboard, notifications)"]
-        THUNKS["Async Thunks<br/>(fetchTickets, login…)"]
-    end
+### Ticketing et SLA
 
-    subgraph API_Layer["Couche API"]
-        CLIENT["Axios Client<br/>+ JWT Interceptor"]
-        SERVICES["18 services<br/>(authService, ticketService…)"]
-    end
+- un ticket est cree par un client
+- manager/admin peuvent assigner
+- agent traite si le ticket lui est assigne
+- l'historique et les commentaires restent traces
+- les politiques SLA, business hours et escalades alimentent la supervision
 
-    Router --> Pages
-    Pages --> Components
-    Pages --> State
-    STORE --> SLICES
-    SLICES --> THUNKS
-    THUNKS --> API_Layer
-    CLIENT --> SERVICES
+### IA
 
-    style App fill:#ede9fe,stroke:#7c3aed
-    style Pages fill:#dbeafe,stroke:#3b82f6
-    style Components fill:#dcfce7,stroke:#22c55e
-    style State fill:#fef3c7,stroke:#f59e0b
-    style API_Layer fill:#fce7f3,stroke:#ec4899
-```
+- `AiSentimentController` appelle `sentiment-service`
+- `AiDuplicateController` appelle `duplicate-service`
+- `ChatbotController` appelle `ai-chatbot`
+- le backend reste la couche d'orchestration et de securite vis-a-vis du frontend
 
-### Structure des dossiers frontend
+## Modes d'execution
 
-| Dossier | Contenu | Fichiers clés |
-|---------|---------|---------------|
-| `api/` | 18 services Axios, client HTTP centralisé, intercepteurs JWT/refresh | `client.ts`, `ticketService.ts`, `authService.ts` |
-| `components/ui/` | Design system : 16 composants réutilisables | `Button`, `Card`, `DataTable`, `Modal`, `Badge`, `Input`, `Select` |
-| `components/layout/` | Structure de page : sidebar, topbar, breadcrumb | `MainLayout`, `PageHeader`, `Breadcrumb` |
-| `components/auth/` | Authentification : layout, route protégée, sélecteur de profil | `AuthLayout`, `RoleBasedRoute`, `ThemeToggle` |
-| `pages/` | 25 pages organisées par domaine fonctionnel | Dashboards (4), Tickets (3), Incidents (3), Services, Reports… |
-| `redux/` | Store Redux Toolkit + slices + thunks asynchrones | `authSlice`, `ticketsSlice`, `dashboardSlice` |
-| `hooks/` | Hooks personnalisés | `usePermissions`, `useDarkMode`, `useWebSocketNotifications` |
-| `context/` | Contextes React (thème, langue, toasts) | `ThemeContext`, `LanguageContext`, `ToastContext` |
-| `demo/` | Mode démo autonome (intercepteur Axios, données simulées) | `demoInterceptor.ts`, `demoData.ts` |
+### Local recommande
 
----
+- `scripts/dev/start-local.bat`
+- MySQL en Docker
+- backend, frontend et IA en local
 
-## 4. Flux d'authentification
+### Demo rapide
 
-```mermaid
-sequenceDiagram
-    participant U as Utilisateur
-    participant F as Frontend
-    participant B as Backend
-    participant DB as Base de données
+- `scripts/demo/start-demo-h2.bat`
+- backend H2 local
+- frontend et IA en local
 
-    U->>F: Saisie email + mot de passe
-    F->>B: POST /api/auth/login
-    B->>DB: Vérifier credentials (BCrypt)
-    DB-->>B: User trouvé
-    B->>B: Générer accessToken (15 min)
-    B->>B: Générer refreshToken (7 jours)
-    B->>DB: Stocker refreshToken (rotation)
-    B-->>F: { accessToken, refreshToken, user }
-    F->>F: Stocker dans Redux + localStorage
+### Stack conteneurisee
 
-    Note over F,B: Requêtes suivantes
+- `docker compose up -d --build`
+- source de verite de deploiement : `docker-compose.yml`
 
-    F->>B: GET /api/tickets<br/>Authorization: Bearer {accessToken}
-    B->>B: JwtAuthFilter → valider token
-    B-->>F: 200 OK + données
+## Decisions d'architecture a retenir pour la soutenance
 
-    Note over F,B: Token expiré
-
-    F->>B: Requête échoue (401)
-    F->>B: POST /api/auth/refresh<br/>{ refreshToken }
-    B->>DB: Valider + rotation refreshToken
-    B-->>F: Nouveau { accessToken, refreshToken }
-    F->>F: Mettre à jour tokens
-    F->>B: Rejouer requête originale
-```
-
----
-
-## 5. Flux SLA & Escalade
-
-```mermaid
-graph TD
-    A["Ticket créé"] --> B["SLA calculé<br/>(priorité × service × heures ouvrées)"]
-    B --> C{"Deadline = now + SLA"}
-    C --> D["Suivi continu"]
-    D --> E{"75% du SLA écoulé ?"}
-    E -->|Oui| F["⚠️ Alerte SLA Approaching<br/>Notification manager"]
-    E -->|Non| D
-    F --> G{"100% du SLA écoulé ?"}
-    G -->|Oui| H["🔴 SLA Breached<br/>breachedSla = true"]
-    H --> I["Évaluation règles d'escalade"]
-    I --> J["Actions automatiques :<br/>— Changer priorité<br/>— Notifier superviseur<br/>— Réassigner"]
-    G -->|Non| D
-
-    style H fill:#fee2e2,stroke:#ef4444
-    style F fill:#fef3c7,stroke:#f59e0b
-    style A fill:#dbeafe,stroke:#3b82f6
-```
-
----
-
-## 6. Microservice chatbot (évolution future)
-
-Le système est conçu pour accueillir un microservice chatbot indépendant :
-
-```
-┌───────────────────┐     REST/JSON      ┌──────────────────┐
-│  Frontend React   │ ◄───────────────► │  Backend Spring  │
-│  (chat widget)    │                    │  Boot 3.2        │
-└───────────────────┘                    └────────┬─────────┘
-                                                  │ REST
-                                         ┌────────▼─────────┐
-                                         │  Chatbot Service  │
-                                         │  Python + NLP     │
-                                         │  Port 5000        │
-                                         └──────────────────┘
-```
-
-| Aspect | Détail |
-|--------|--------|
-| **Technologie** | Python (FastAPI ou Flask) + modèle NLP (Rasa / HuggingFace) |
-| **Communication** | API REST entre Spring Boot et le chatbot |
-| **Fonctions** | Triage automatique des tickets, suggestions de résolution, FAQ intelligente |
-| **Intégration** | Le backend Spring Boot sert de gateway — le frontend n'appelle jamais le chatbot directement |
-
-> Les tables `chatbot_logs` et `messages` ont été supprimées (V16) car le module chatbot n'est pas encore implémenté. Elles seront recréées dans le microservice dédié.
+- backend = source de verite securite et RBAC
+- mode demo explicite et non cache
+- chatbot et microservices IA reels dans le depot
+- architecture modulaire mais deployable depuis un seul depot
+- conservation de la tracabilite via audit, historique ticket et politique de suppression professionnelle

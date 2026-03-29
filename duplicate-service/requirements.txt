@@ -1,0 +1,22 @@
+# =============================================================================
+# MTS TELECOM — Dépendances du microservice de détection de doublons
+# =============================================================================
+#
+# Installation : pip install -r requirements.txt
+#
+# EXPLICATIONS (JURY) :
+#   fastapi        → Framework web async (comme Express.js mais en Python)
+#   uvicorn        → Serveur ASGI pour exécuter FastAPI
+#   pydantic       → Validation des données entrée/sortie (schémas)
+#   sentence-transformers → Modèles de NLP pour créer des embeddings de texte
+#   scikit-learn   → Calcul de la similarité cosinus (cosine_similarity)
+#   numpy          → Manipulation de vecteurs/matrices (embeddings)
+#   python-dotenv  → Chargement de variables d'environnement (.env)
+
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+sentence-transformers>=2.2.0
+scikit-learn>=1.3.0
+numpy>=1.24.0
+python-dotenv>=1.0.0

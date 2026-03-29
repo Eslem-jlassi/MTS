@@ -1,116 +1,128 @@
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, ArrowLeft, Send, Loader2 } from "lucide-react";
+import { ArrowLeft, KeyRound, Mail, ShieldCheck } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
-import { useToast } from "../context/ToastContext";
 import { authFlowService } from "../api/authFlowService";
+import { useToast } from "../context/ToastContext";
+import { getErrorMessage } from "../api/client";
 
 const ForgotPasswordPage: React.FC = () => {
+  const toast = useToast();
   const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const { success, error: showError } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    try {
-      await authFlowService.forgotPassword(email);
-      setSubmitted(true);
-      success("Un email de réinitialisation a été envoyé");
-    } catch (err: unknown) {
-      showError(err instanceof Error ? err.message : "Une erreur est survenue");
-    } finally {
-      setIsLoading(false);
+    if (!email.trim()) {
+      toast.addToast("warning", "Veuillez renseigner votre adresse email.");
+      return;
     }
-  }, [email, success, showError]);
+
+    setSubmitting(true);
+    try {
+      await authFlowService.forgotPassword(email.trim());
+      setSuccess(true);
+      toast.success("Si un compte existe, un email de reinitialisation a ete emis.");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <AuthLayout>
       <motion.div
-        className="text-center mb-8"
+        className="mb-8 text-center"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >
-        <h2 className="text-3xl font-extrabold text-ds-primary tracking-tight">
-          Mot de passe oublié
+        <h2 className="text-3xl font-extrabold tracking-tight text-ds-primary">
+          Reinitialisation du mot de passe
         </h2>
-        <p className="text-ds-muted mt-2 text-sm">
-          Saisissez votre adresse email pour recevoir un lien de
-          réinitialisation
+        <p className="mt-2 text-sm text-ds-muted">
+          Saisissez votre email pour recevoir un lien de reinitialisation.
         </p>
       </motion.div>
 
-      {submitted ? (
+      {success ? (
         <motion.div
-          className="p-6 rounded-2xl text-center
-                     bg-success-50 dark:bg-success/10
-                     border border-success-200 dark:border-success/20"
-          initial={{ opacity: 0, scale: 0.95 }}
+          className="space-y-5 rounded-2xl border border-success-200 bg-success-50 p-6 text-center dark:border-success/20 dark:bg-success/10"
+          initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
         >
-          <p className="text-sm text-success-700 dark:text-success-200 font-medium">
-            Si un compte existe avec cette adresse, un email de
-            réinitialisation a été envoyé.
+          <ShieldCheck className="mx-auto h-10 w-10 text-success-500" />
+          <div>
+            <p className="text-sm font-medium text-success-700 dark:text-success-200">
+              Demande prise en compte
+            </p>
+            <p className="mt-2 text-sm text-ds-muted">
+              Si un compte correspond a cette adresse, un email avec un lien de reinitialisation a
+              ete envoye.
+            </p>
+          </div>
+          <p className="text-xs text-ds-muted">
+            Pensez a verifier egalement votre dossier spam.
           </p>
-          <Link
-            to="/login"
-            className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold
-                       text-accent-500 hover:text-accent-600 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            Retour à la connexion
-          </Link>
         </motion.div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <motion.form
+          onSubmit={handleSubmit}
+          className="space-y-5 rounded-2xl border border-ds-border bg-ds-elevated/50 p-6"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
           <div className="group">
-            <label className="block text-sm font-medium text-ds-muted mb-2">
-              Adresse email
-            </label>
+            <label className="mb-2 block text-sm font-medium text-ds-primary">Adresse email</label>
             <div className="relative">
-              <Mail
-                size={18}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2
-                           text-ds-muted group-focus-within:text-accent-500
-                           transition-colors duration-200"
-              />
+              <Mail className="absolute left-3.5 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-ds-muted group-focus-within:text-accent-500" />
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
+                placeholder="vous@entreprise.com"
                 autoComplete="email"
-                className="w-full bg-ds-elevated text-ds-primary
-                           placeholder:text-ds-muted
-                           border border-transparent
-                           focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20
-                           rounded-xl py-3 pl-11 pr-4 text-sm outline-none
-                           transition-all duration-200"
-                placeholder="votre@email.com"
+                className="w-full rounded-xl border border-ds-border bg-ds-card py-3 pl-11 pr-4 text-sm text-ds-primary outline-none transition-all focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20"
               />
             </div>
           </div>
 
-          <button type="submit" className="auth-btn-primary" disabled={isLoading}>
-            {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-            {isLoading ? "Envoi en cours…" : "Envoyer le lien"}
-          </button>
+          <div className="flex items-start gap-3 rounded-xl border border-ds-border/60 bg-ds-card/60 p-4">
+            <KeyRound className="mt-0.5 h-5 w-5 text-primary-500" />
+            <p className="text-sm text-ds-muted">
+              Le lien de reinitialisation sera envoye uniquement si SMTP est configure sur cette
+              instance.
+            </p>
+          </div>
 
-          <p className="text-center text-sm text-ds-muted">
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 font-semibold
-                         text-accent-500 hover:text-accent-600 transition-colors"
-            >
-              <ArrowLeft size={16} />
-              Retour à la connexion
-            </Link>
-          </p>
-        </form>
+          <button type="submit" disabled={submitting} className="auth-btn-primary">
+            {submitting ? (
+              <>
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Envoi en cours...
+              </>
+            ) : (
+              <>
+                <Mail size={18} />
+                Envoyer le lien de reinitialisation
+              </>
+            )}
+          </button>
+        </motion.form>
       )}
+
+      <p className="mt-6 text-center text-sm text-ds-muted">
+        <Link
+          to="/login"
+          className="inline-flex items-center gap-1.5 font-semibold text-accent-500 transition-colors hover:text-accent-600"
+        >
+          <ArrowLeft size={16} />
+          Retour a la connexion
+        </Link>
+      </p>
     </AuthLayout>
   );
 };

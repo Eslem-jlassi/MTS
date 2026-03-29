@@ -4,14 +4,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ticketService, telecomServiceService } from "../../api";
-import {
-  CreateTicketRequest,
-  TelecomService,
-  TicketPriority,
-  TicketCategory,
-} from "../../types";
-import { useSelector } from "react-redux";
-import { RootState } from "../../redux/store";
+import { CreateTicketRequest, TelecomService, TicketPriority, TicketCategory } from "../../types";
 
 interface Props {
   isOpen: boolean;
@@ -34,8 +27,6 @@ const categoryOptions: { value: TicketCategory; label: string }[] = [
 ];
 
 const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
-  const user = useSelector((state: RootState) => state.auth.user);
-
   const [services, setServices] = useState<TelecomService[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -52,7 +43,13 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
   useEffect(() => {
     if (isOpen) {
       loadServices();
-      setForm({ title: "", description: "", priority: TicketPriority.MEDIUM, category: TicketCategory.PANNE, serviceId: 0 });
+      setForm({
+        title: "",
+        description: "",
+        priority: TicketPriority.MEDIUM,
+        category: TicketCategory.PANNE,
+        serviceId: 0,
+      });
       setError(null);
     }
   }, [isOpen]);
@@ -87,7 +84,6 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
         priority: form.priority,
         category: form.category,
         serviceId: form.serviceId,
-        clientId: user?.id || 0, // Backend uses currentUser anyway
       };
       await ticketService.createTicket(request);
       onCreated();
@@ -106,13 +102,8 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
       <div className="bg-ds-card rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ds-border">
-          <h2 className="text-lg font-bold text-ds-primary">
-            Nouveau ticket
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-ds-muted hover:text-ds-secondary text-xl"
-          >
+          <h2 className="text-lg font-bold text-ds-primary">Nouveau ticket</h2>
+          <button onClick={onClose} className="text-ds-muted hover:text-ds-secondary text-xl">
             ✕
           </button>
         </div>
@@ -128,9 +119,7 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-sm font-medium text-ds-primary mb-1">
-              Titre *
-            </label>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Titre *</label>
             <input
               type="text"
               value={form.title}
@@ -143,9 +132,7 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-ds-primary mb-1">
-              Description
-            </label>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Description</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -157,9 +144,7 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
 
           {/* Service */}
           <div>
-            <label className="block text-sm font-medium text-ds-primary mb-1">
-              Service *
-            </label>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Service *</label>
             {loadingServices ? (
               <p className="text-sm text-ds-muted">Chargement des services...</p>
             ) : (
@@ -169,7 +154,9 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
                 className="w-full px-3 py-2 border border-ds-border rounded-lg bg-ds-elevated text-ds-primary"
                 required
               >
-                <option value={0} disabled>-- Sélectionner un service --</option>
+                <option value={0} disabled>
+                  -- Sélectionner un service --
+                </option>
                 {services.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} {s.category ? `(${s.category})` : ""}
@@ -182,9 +169,7 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
           <div className="grid grid-cols-2 gap-4">
             {/* Priority */}
             <div>
-              <label className="block text-sm font-medium text-ds-primary mb-1">
-                Priorité
-              </label>
+              <label className="block text-sm font-medium text-ds-primary mb-1">Priorité</label>
               <select
                 value={form.priority}
                 onChange={(e) => setForm({ ...form, priority: e.target.value as TicketPriority })}
@@ -200,9 +185,7 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
 
             {/* Category */}
             <div>
-              <label className="block text-sm font-medium text-ds-primary mb-1">
-                Catégorie
-              </label>
+              <label className="block text-sm font-medium text-ds-primary mb-1">Catégorie</label>
               <select
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value as TicketCategory })}

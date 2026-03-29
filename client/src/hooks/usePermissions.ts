@@ -1,118 +1,67 @@
-// =============================================================================
-// MTS TELECOM - usePermissions Hook (RBAC Frontend)
-// =============================================================================
-// Billcom Consulting - PFE 2026
-// =============================================================================
-
-import { useSelector } from 'react-redux';
-import { RootState } from '../redux/store';
-import { UserRole } from '../types';
+import { useSelector } from "react-redux";
+import { RootState } from "../redux/store";
+import { UserRole } from "../types";
 
 /**
- * usePermissions - Hook React pour vérifier les permissions RBAC côté frontend.
- * 
- * Méthodes:
- * - hasRole(role): Vérifie si l'utilisateur a un rôle spécifique
- * - hasAnyRole(...roles): Vérifie si l'utilisateur a au moins un des rôles
- * - can{Action}{Entity}: Méthodes de permission spécifiques (ex: canCreateTicket)
- * 
- * IMPORTANT: Ces vérifications sont pour l'UI uniquement (masquer boutons/menus).
- * Le backend DOIT toujours valider avec @PreAuthorize pour la sécurité réelle.
- * 
- * @author Billcom Consulting
- * @version 1.0
- * @since 2026-02-28
- * 
- * @example
- * const { hasRole, canDeleteTicket } = usePermissions();
- * 
- * if (hasRole(UserRole.ADMIN)) {
- *   // Show admin menu
- * }
- * 
- * if (canDeleteTicket) {
- *   // Show delete button
- * }
+ * Hook de permissions UI.
+ * Le backend reste la source de verite; ce hook ne sert qu'a aligner l'affichage.
  */
 export function usePermissions() {
   const { user } = useSelector((state: RootState) => state.auth);
   const userRole = user?.role;
 
-  // ==========================================================================
-  // CORE PERMISSION CHECKS
-  // ==========================================================================
-
-  const hasRole = (role: UserRole): boolean => {
-    return userRole === role;
-  };
-
-  const hasAnyRole = (...roles: UserRole[]): boolean => {
-    return userRole ? roles.includes(userRole) : false;
-  };
+  const hasRole = (role: UserRole): boolean => userRole === role;
+  const hasAnyRole = (...roles: UserRole[]): boolean =>
+    userRole ? roles.includes(userRole) : false;
 
   const isAdmin = hasRole(UserRole.ADMIN);
   const isManager = hasRole(UserRole.MANAGER);
   const isAgent = hasRole(UserRole.AGENT);
   const isClient = hasRole(UserRole.CLIENT);
+  const isAuthenticated = userRole !== undefined;
 
-  // ==========================================================================
-  // TICKET PERMISSIONS (see docs/RBAC_MATRIX.md)
-  // ==========================================================================
-
-  const canCreateTicket = userRole !== undefined; // All authenticated users
-  const canViewTickets = userRole !== undefined; // All (CLIENT sees own only)
+  // Tickets
+  const canCreateTicket = isClient;
+  const canViewTickets = isAuthenticated;
   const canUpdateTicket = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
   const canAssignTicket = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canChangeTicketStatus = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
   const canChangeTicketPriority = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
   const canDeleteTicket = isAdmin;
-  const canAddComment = userRole !== undefined; // All
-  const canViewAllTickets = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
+  const canHardDeleteTicket = isAdmin;
+  const canAddComment = isAuthenticated;
+  const canViewAllTickets = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canExportTickets = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
 
-  // ==========================================================================
-  // CLIENT PERMISSIONS
-  // ==========================================================================
-
-  const canViewClients = userRole !== undefined; // All (CLIENT sees own profile only)
-  const canCreateClient = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
-  const canUpdateClient = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
+  // Clients
+  const canViewClients = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
+  const canCreateClient = isAdmin;
+  const canUpdateClient = isAdmin;
   const canDeleteClient = isAdmin;
+  const canArchiveClient = isAdmin;
 
-  // ==========================================================================
-  // SERVICE PERMISSIONS
-  // ==========================================================================
-
-  const canViewServices = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
+  // Services
+  const canViewServices = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canCreateService = isAdmin;
-  const canUpdateService = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
-  const canUpdateServiceStatus = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
+  const canUpdateService = isAdmin;
+  const canUpdateServiceStatus = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canDeleteService = isAdmin;
-  const canViewServiceHistory = isAdmin;
+  const canViewServiceHistory = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
 
-  // ==========================================================================
-  // INCIDENT PERMISSIONS
-  // ==========================================================================
-
+  // Incidents
   const canViewIncidents = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
   const canCreateIncident = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
   const canUpdateIncident = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
   const canResolveIncident = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canDeleteIncident = isAdmin;
 
-  // ==========================================================================
-  // REPORT PERMISSIONS
-  // ==========================================================================
-
+  // Reports
   const canViewReports = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canGenerateReport = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canDownloadReport = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canDeleteReport = isAdmin;
 
-  // ==========================================================================
-  // SLA & ESCALATION PERMISSIONS
-  // ==========================================================================
-
+  // SLA
   const canViewSlaPolicies = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canCreateSlaPolicy = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canUpdateSlaPolicy = isAdmin;
@@ -121,61 +70,43 @@ export function usePermissions() {
   const canResolveEscalation = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canManageBusinessHours = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
 
-  // ==========================================================================
-  // USER MANAGEMENT PERMISSIONS
-  // ==========================================================================
-
-  const canViewUsers = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
+  // Users
+  const canViewUsers = isAdmin;
   const canCreateUser = isAdmin;
   const canUpdateUser = isAdmin;
   const canDeleteUser = isAdmin;
+  const canHardDeleteUser = isAdmin;
   const canChangeUserRole = isAdmin;
   const canActivateDeactivateUser = isAdmin;
 
-  // ==========================================================================
-  // AUDIT & NOTIFICATIONS PERMISSIONS
-  // ==========================================================================
-
-  const canViewAuditLogs = isAdmin; // Full audit
+  // Audit & notifications
+  const canViewAuditLogs = isAdmin;
   const canViewTicketHistory = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
-  const canViewNotifications = userRole !== undefined; // All (own notifications only)
+  const canViewNotifications = isAuthenticated;
 
-  // ==========================================================================
-  // HEALTH MONITORING PERMISSIONS
-  // ==========================================================================
-
+  // Health
   const canViewHealthMonitoring = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
 
-  // ==========================================================================
-  // ROUTE PERMISSIONS (for RoleBasedRoute)
-  // ==========================================================================
-
-  const canAccessDashboard = userRole !== undefined; // All roles have a dashboard
-  const canAccessTickets = userRole !== undefined;
-  const canAccessClients = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
-  const canAccessServices = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
+  // Routes
+  const canAccessDashboard = isAuthenticated;
+  const canAccessTickets = isAuthenticated;
+  const canAccessClients = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
+  const canAccessServices = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canAccessIncidents = hasAnyRole(UserRole.AGENT, UserRole.MANAGER, UserRole.ADMIN);
   const canAccessReports = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canAccessSla = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
   const canAccessUsers = isAdmin;
   const canAccessAuditLogs = isAdmin;
-  const canAccessSettings = userRole !== undefined; // All (own profile)
+  const canAccessSettings = isAuthenticated;
   const canAccessHealthMonitoring = hasAnyRole(UserRole.MANAGER, UserRole.ADMIN);
 
-  // ==========================================================================
-  // RETURN OBJECT (all permissions)
-  // ==========================================================================
-
   return {
-    // Core checks
     hasRole,
     hasAnyRole,
     isAdmin,
     isManager,
     isAgent,
     isClient,
-
-    // Tickets
     canCreateTicket,
     canViewTickets,
     canUpdateTicket,
@@ -183,38 +114,30 @@ export function usePermissions() {
     canChangeTicketStatus,
     canChangeTicketPriority,
     canDeleteTicket,
+    canHardDeleteTicket,
     canAddComment,
     canViewAllTickets,
     canExportTickets,
-
-    // Clients
     canViewClients,
     canCreateClient,
     canUpdateClient,
     canDeleteClient,
-
-    // Services
+    canArchiveClient,
     canViewServices,
     canCreateService,
     canUpdateService,
     canUpdateServiceStatus,
     canDeleteService,
     canViewServiceHistory,
-
-    // Incidents
     canViewIncidents,
     canCreateIncident,
     canUpdateIncident,
     canResolveIncident,
     canDeleteIncident,
-
-    // Reports
     canViewReports,
     canGenerateReport,
     canDownloadReport,
     canDeleteReport,
-
-    // SLA
     canViewSlaPolicies,
     canCreateSlaPolicy,
     canUpdateSlaPolicy,
@@ -222,24 +145,17 @@ export function usePermissions() {
     canViewEscalations,
     canResolveEscalation,
     canManageBusinessHours,
-
-    // Users
     canViewUsers,
     canCreateUser,
     canUpdateUser,
     canDeleteUser,
+    canHardDeleteUser,
     canChangeUserRole,
     canActivateDeactivateUser,
-
-    // Audit & Notifications
     canViewAuditLogs,
     canViewTicketHistory,
     canViewNotifications,
-
-    // Health Monitoring
     canViewHealthMonitoring,
-
-    // Routes
     canAccessDashboard,
     canAccessTickets,
     canAccessClients,
@@ -250,7 +166,7 @@ export function usePermissions() {
     canAccessUsers,
     canAccessAuditLogs,
     canAccessSettings,
-    canAccessHealthMonitoring
+    canAccessHealthMonitoring,
   };
 }
 

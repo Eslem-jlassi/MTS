@@ -487,6 +487,22 @@ public class TicketController {
         return ResponseEntity.ok(ticketService.addComment(id, request, user, ipAddress));
     }
 
+    @GetMapping("/{id}/comments")
+    @Operation(summary = "Recupere les commentaires visibles du ticket")
+    public ResponseEntity<List<TicketResponse.CommentInfo>> getComments(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ticketService.getComments(id, user));
+    }
+
+    @GetMapping("/{id}/history")
+    @Operation(summary = "Recupere l'historique visible du ticket")
+    public ResponseEntity<List<TicketResponse.HistoryInfo>> getHistory(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(ticketService.getHistory(id, user));
+    }
+
     // =========================================================================
     // PIÈCES JOINTES
     // =========================================================================
@@ -538,6 +554,26 @@ public class TicketController {
     }
 
     /**
+     * DELETE /api/tickets/{id} - Supprime un ticket du client connecté.
+     *
+     * RÈGLES:
+     * - Le ticket doit appartenir au client connecté
+     * - Le ticket doit être non traité (NEW) et non assigné
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('CLIENT')")
+    @Operation(summary = "Supprime un ticket client (si non traité)")
+    public ResponseEntity<Map<String, String>> deleteMyTicket(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest httpRequest) {
+
+        String ipAddress = getClientIpAddress(httpRequest);
+        ticketService.deleteTicketAsClient(id, user, ipAddress);
+        return ResponseEntity.ok(Map.of("message", "Ticket annulé avec succès"));
+    }
+
+    /**
      * GET /api/tickets/assigned - Récupère les tickets assignés à l'agent.
      * 
      * Endpoint dédié pour les agents.
@@ -547,6 +583,19 @@ public class TicketController {
      * @param pageable Pagination
      * @return Page des tickets assignés
      */
+    @DeleteMapping("/{id}/hard-delete")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Supprime definitivement un ticket si aucune dependance critique ne sera casse")
+    public ResponseEntity<Map<String, String>> hardDeleteTicket(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest httpRequest) {
+
+        String ipAddress = getClientIpAddress(httpRequest);
+        ticketService.hardDeleteTicketAsAdmin(id, user, ipAddress);
+        return ResponseEntity.ok(Map.of("message", "Ticket supprime definitivement"));
+    }
+
     @GetMapping("/assigned")
     @PreAuthorize("hasRole('AGENT')")
     @Operation(summary = "Récupère les tickets assignés à l'agent connecté")
@@ -554,6 +603,15 @@ public class TicketController {
             @AuthenticationPrincipal User user,
             Pageable pageable) {
         return ResponseEntity.ok(ticketService.getAgentTickets(user.getId(), pageable));
+    }
+
+    @GetMapping("/unassigned")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER', 'AGENT')")
+    @Operation(summary = "Recupere le pool de tickets non assignes")
+    public ResponseEntity<Page<TicketResponse>> getUnassignedTickets(
+            @AuthenticationPrincipal User user,
+            Pageable pageable) {
+        return ResponseEntity.ok(ticketService.getUnassignedTickets(user, pageable));
     }
 
     // =========================================================================

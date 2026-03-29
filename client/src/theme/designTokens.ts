@@ -53,21 +53,21 @@ export interface DesignTokens {
 
 export const designTokens: DesignTokens = {
   colors: {
-    primary: "#4F46E5",       // Indigo-600
-    primaryDark: "#3730A3",   // Indigo-800
-    primaryLight: "#818CF8",  // Indigo-400
-    accent: "#F97316",        // Orange-500
-    accentDark: "#EA580C",    // Orange-600
-    success: "#10B981",       // Emerald-500
-    warning: "#F59E0B",       // Amber-500
-    danger: "#EF4444",        // Red-500
-    info: "#0EA5E9",          // Sky-500
-    background: "#F8FAFC",    // Slate-50
+    primary: "#4F46E5", // Indigo-600
+    primaryDark: "#3730A3", // Indigo-800
+    primaryLight: "#818CF8", // Indigo-400
+    accent: "#F97316", // Orange-500
+    accentDark: "#EA580C", // Orange-600
+    success: "#10B981", // Emerald-500
+    warning: "#F59E0B", // Amber-500
+    danger: "#EF4444", // Red-500
+    info: "#0EA5E9", // Sky-500
+    background: "#F8FAFC", // Slate-50
     surface: "#FFFFFF",
-    border: "#E2E8F0",        // Slate-200
-    textPrimary: "#0F172A",   // Slate-900
+    border: "#E2E8F0", // Slate-200
+    textPrimary: "#0F172A", // Slate-900
     textSecondary: "#334155", // Slate-700
-    textMuted: "#64748B",     // Slate-500
+    textMuted: "#64748B", // Slate-500
   },
   spacing: {
     xs: "0.25rem",

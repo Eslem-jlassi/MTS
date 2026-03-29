@@ -1,60 +1,55 @@
 // =============================================================================
 // MTS TELECOM - Demo Mode Configuration
 // =============================================================================
-// Billcom Consulting - PFE 2026
-// =============================================================================
 //
 // OBJECTIF:
-// Centralise le flag REACT_APP_DEMO_MODE et les constantes du mode démo.
-// Ce mode permet de montrer l'application avec des données réalistes
-// lors de la soutenance, sans dépendre d'un backend fonctionnel.
+// Centraliser le flag REACT_APP_DEMO_MODE et les constantes du mode demo.
+// Ce mode permet de montrer l'application avec des donnees telecom
+// demonstratives, sans masquer les erreurs d'API hors des routes
+// explicitement simulees.
 //
 // ACTIVATION:
 // - .env : REACT_APP_DEMO_MODE=true
-// - ou via l'URL : ?demo=true (pour tests rapides)
 //
-// DÉSACTIVATION EN PROD:
-// - Ne pas définir REACT_APP_DEMO_MODE dans .env.production
-// - Le mode est strictement opt-in
+// DESACTIVATION EN PROD:
+// - Ne pas definir REACT_APP_DEMO_MODE dans .env.production
+// - Le mode demo reste strictement opt-in
 //
 // =============================================================================
 
+const isDevelopmentBuild = process.env.NODE_ENV === "development";
+
 /**
- * Vérifie si le Demo Mode est activé.
+ * Verifie si le mode demo est active.
  *
- * Activation stricte : REACT_APP_DEMO_MODE=true ET NODE_ENV=development.
- * Le query param ?demo=true est aussi limité au mode développement.
+ * Activation stricte : REACT_APP_DEMO_MODE=true ET build de developpement.
+ * Aucun query param navigateur ne peut activer le mode demo a lui seul.
  */
 export const isDemoMode = (): boolean => {
-  // Bloque le mode démo en production
-  if (process.env.NODE_ENV === "production") return false;
-
-  // Variable d'environnement (définie au build time)
-  if (process.env.REACT_APP_DEMO_MODE === "true") return true;
-
-  // Query param (uniquement en dev, utile pour les tests)
-  if (typeof window !== "undefined") {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("demo") === "true") return true;
+  if (!isDevelopmentBuild) {
+    return false;
   }
 
-  return false;
+  return process.env.REACT_APP_DEMO_MODE === "true";
 };
 
 /**
- * Shortcut: valeur évaluée une seule fois au chargement.
- * Utilisé dans les hot paths (interceptor Axios, renders).
+ * Shortcut : valeur evaluee une seule fois au chargement.
  */
 export const DEMO_MODE_ACTIVE = isDemoMode();
 
 /**
- * Latence simulée (ms) pour les réponses API en démo.
- * Donne un retour visuel réaliste (spinner visible brièvement).
+ * Permet d'indiquer clairement d'ou vient l'activation du mode demo.
+ */
+export const DEMO_MODE_SOURCE = DEMO_MODE_ACTIVE ? "env" : "disabled";
+
+/**
+ * Latence simulee (ms) pour les reponses API en demo.
  */
 export const DEMO_LATENCY_MS = 300;
 
 /**
- * Utilisateur démo pré-authentifié (ADMIN pour montrer toutes les features).
+ * Utilisateur demo pre-authentifie.
  */
 export const DEMO_USER = {
   id: 1,
@@ -67,34 +62,34 @@ export const DEMO_USER = {
   isActive: true,
   createdAt: "2025-06-15T09:00:00",
   lastLoginAt: new Date().toISOString(),
-  supportSignature: "Mohammed Benali – Admin MTS Telecom",
+  supportSignature: "Mohammed Benali - Admin MTS Telecom",
   preferredLanguage: "fr",
 };
 
 /**
- * Token JWT factice (ne sera jamais envoyé à un vrai backend).
+ * Token JWT factice, reserve au mode demo.
  */
 export const DEMO_TOKEN = "demo.jwt.token.mts-telecom-2026";
+export const DEMO_REFRESH_TOKEN = "demo-refresh-token";
 
 /**
- * Seed localStorage avec l'utilisateur et le token démo.
+ * Seed localStorage avec la session demo.
  *
- * DOIT être appelé AVANT l'import du Redux store,
- * car authSlice lit localStorage au moment de son initialisation.
- *
- * Idempotent : ne fait rien si déjà seed ou si DEMO_MODE_ACTIVE === false.
+ * DOIT etre appele avant l'initialisation du store Redux, car authSlice lit
+ * localStorage au moment de son bootstrap.
  */
 export function seedDemoAuth(): void {
   if (!DEMO_MODE_ACTIVE) return;
 
   localStorage.setItem("token", DEMO_TOKEN);
+  localStorage.setItem("refreshToken", DEMO_REFRESH_TOKEN);
   localStorage.setItem("user", JSON.stringify(DEMO_USER));
 
-  // Ajoute classe CSS pour adapter l'espacement du bandeau
   document.body.classList.add("demo-mode");
+  document.body.setAttribute("data-demo-mode", "true");
 
   console.info(
-    "%c🎭 MTS Demo Mode — Auth pré-chargée (ADMIN: admin@mts-telecom.ma)",
-    "color: #f59e0b; font-weight: bold;"
+    "%cMTS Demo Mode - session demonstrative chargee (ADMIN: admin@mts-telecom.ma)",
+    "color: #f59e0b; font-weight: bold;",
   );
 }

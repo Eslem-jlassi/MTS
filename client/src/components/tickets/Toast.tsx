@@ -5,24 +5,24 @@
  * ============================================================================
  * Toast.tsx - Système de notifications toast
  * ============================================================================
- * 
+ *
  * RÔLE:
  * Affiche des messages de succès, erreur ou information en haut à droite
  * de l'écran. Remplace les alert() natifs du navigateur.
- * 
+ *
  * UTILISATION:
  * <Toast message="Ticket créé" type="success" onClose={() => setToast(null)} />
- * 
+ *
  * TYPES:
  * - success: Fond vert (opération réussie)
  * - error: Fond rouge (erreur)
  * - info: Fond bleu (information)
  * - warning: Fond jaune (avertissement)
- * 
+ *
  * AUTO-DISMISS:
  * Le toast disparaît automatiquement après 4 secondes.
  * L'utilisateur peut aussi cliquer sur la croix pour le fermer.
- * 
+ *
  * ============================================================================
  */
 

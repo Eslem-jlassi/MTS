@@ -3,24 +3,25 @@
 // =============================================================================
 
 import api from "./client";
-import { UserResponse, PageResponse, PageRequest, UserRole } from "../types";
+import {
+  CreateInternalUserRequest,
+  NotificationPreferences,
+  PageRequest,
+  PageResponse,
+  UserResponse,
+  UserRole,
+} from "../types";
 
 const USERS_PREFIX = "/users";
 
 export const userService = {
-  /**
-   * Get all users (no pagination)
-   */
   getAllUsers: async (): Promise<UserResponse[]> => {
     const response = await api.get<PageResponse<UserResponse>>(USERS_PREFIX, {
-      params: { size: 1000 }
+      params: { size: 1000 },
     });
     return response.data.content;
   },
 
-  /**
-   * Get all users with optional pagination
-   */
   getUsers: async (page?: PageRequest): Promise<PageResponse<UserResponse>> => {
     const params = new URLSearchParams();
     if (page) {
@@ -31,108 +32,104 @@ export const userService = {
     return response.data;
   },
 
-  /**
-   * Get user by ID
-   */
   getUserById: async (id: number): Promise<UserResponse> => {
     const response = await api.get<UserResponse>(`${USERS_PREFIX}/${id}`);
     return response.data;
   },
 
-  /**
-   * Get users by role
-   */
   getUsersByRole: async (role: UserRole): Promise<UserResponse[]> => {
     const response = await api.get<UserResponse[]>(`${USERS_PREFIX}/role/${role}`);
     return response.data;
   },
 
-  /**
-   * Get all agents (for assignment dropdown)
-   */
   getAgents: async (): Promise<UserResponse[]> => {
-    const response = await api.get<UserResponse[]>(`${USERS_PREFIX}/role/AGENT`);
+    const response = await api.get<UserResponse[]>(`${USERS_PREFIX}/agents/available`);
     return response.data;
   },
 
-  /**
-   * Update user by ID (Admin)
-   */
+  createInternalUser: async (data: CreateInternalUserRequest): Promise<UserResponse> => {
+    const response = await api.post<UserResponse>(`${USERS_PREFIX}/internal`, data);
+    return response.data;
+  },
+
   updateUser: async (
     id: number,
-    data: { firstName?: string; lastName?: string; phone?: string }
+    data: { firstName?: string; lastName?: string; phone?: string },
   ): Promise<UserResponse> => {
     const response = await api.put<UserResponse>(`${USERS_PREFIX}/${id}`, data);
     return response.data;
   },
 
-  /**
-   * Change user role (Admin only)
-   */
   changeRole: async (id: number, role: UserRole): Promise<UserResponse> => {
-    const response = await api.patch<UserResponse>(`${USERS_PREFIX}/${id}/role`, { role });
+    const response = await api.put<UserResponse>(`${USERS_PREFIX}/${id}/role`, { role });
     return response.data;
   },
 
-  /**
-   * Deactivate user (Admin only)
-   */
   deactivateUser: async (id: number): Promise<void> => {
-    await api.patch(`${USERS_PREFIX}/${id}/deactivate`);
+    await api.post(`${USERS_PREFIX}/${id}/deactivate`);
   },
 
-  /**
-   * Activate user (Admin only)
-   */
   activateUser: async (id: number): Promise<void> => {
-    await api.patch(`${USERS_PREFIX}/${id}/activate`);
+    await api.post(`${USERS_PREFIX}/${id}/activate`);
   },
 
-  /**
-   * Request password reset for user (Admin only). Backend sends email with reset link.
-   * TODO BACKEND: POST /api/users/:id/reset-password (optionally body: { sendEmail: true })
-   */
+  hardDeleteUser: async (id: number): Promise<void> => {
+    await api.delete(`${USERS_PREFIX}/${id}/hard-delete`);
+  },
+
+  setPasswordByAdmin: async (id: number, newPassword: string): Promise<void> => {
+    await api.put(`${USERS_PREFIX}/${id}/password`, { newPassword });
+  },
+
   resetPassword: async (id: number): Promise<void> => {
     await api.post(`${USERS_PREFIX}/${id}/reset-password`, {});
   },
 
-  /**
-   * Get current user profile (authenticated user)
-   */
   getProfile: async (): Promise<UserResponse> => {
-    const response = await api.get<UserResponse>("/auth/me");
+    const response = await api.get<UserResponse>("/users/me");
     return response.data;
   },
 
-  /**
-   * Update current user profile (authenticated user)
-   * Accepts: fullName, phone, supportSignature, preferredLanguage
-   */
-  updateProfile: async (data: {
-    fullName?: string;
-    phone?: string;
-    supportSignature?: string;
-    preferredLanguage?: string;
-  }): Promise<UserResponse> => {
-    const response = await api.put<UserResponse>("/auth/me", data);
+  uploadAvatar: async (file: File): Promise<UserResponse> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await api.post<UserResponse>("/users/me/avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
     return response.data;
   },
 
-  /**
-   * Change password for current user
-   */
-  changePassword: async (data: {
-    currentPassword: string;
-    newPassword: string;
-  }): Promise<void> => {
-    await api.post("/auth/change-password", data);
+  updateProfile: async (data: { fullName?: string; phone?: string }): Promise<UserResponse> => {
+    const normalizedPayload: {
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+    } = {
+      phone: data.phone,
+    };
+
+    if (data.fullName && data.fullName.trim()) {
+      const parts = data.fullName.trim().split(/\s+/);
+      normalizedPayload.firstName = parts[0];
+      normalizedPayload.lastName = parts.slice(1).join(" ") || "-";
+    }
+
+    const response = await api.put<UserResponse>("/users/me", normalizedPayload);
+    return response.data;
   },
 
-  /**
-   * Update notification preferences for the current user.
-   * POST /api/users/me/notification-preferences
-   */
-  updateNotificationPreferences: async (prefs: Record<string, boolean>): Promise<void> => {
+  changePassword: async (data: { currentPassword: string; newPassword: string }): Promise<void> => {
+    await api.put("/users/me/change-password", data);
+  },
+
+  getNotificationPreferences: async (): Promise<NotificationPreferences> => {
+    const response = await api.get<NotificationPreferences>("/users/me/notification-preferences");
+    return response.data;
+  },
+
+  updateNotificationPreferences: async (prefs: NotificationPreferences): Promise<void> => {
     await api.post("/users/me/notification-preferences", prefs);
   },
 };

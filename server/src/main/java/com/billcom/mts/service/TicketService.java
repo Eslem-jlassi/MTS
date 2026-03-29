@@ -231,6 +231,26 @@ public interface TicketService {
      */
     TicketResponse unassignTicket(Long ticketId, User currentUser, String ipAddress);
 
+    /**
+     * Supprime un ticket côté client avec contrôles de sécurité et règle métier.
+     *
+     * RÈGLES:
+     * - Seul le client propriétaire peut supprimer son ticket
+     * - Le ticket doit être dans un état initial non traité (NEW)
+     * - Le ticket ne doit pas être assigné à un agent
+     *
+     * @param ticketId ID du ticket
+     * @param currentUser Client connecté
+     * @param ipAddress IP pour l'audit
+     */
+    void deleteTicketAsClient(Long ticketId, User currentUser, String ipAddress);
+
+    /**
+     * Supprime dÃ©finitivement un ticket si les dÃ©pendances mÃ©tier rendent
+     * l'opÃ©ration sÃ»re.
+     */
+    void hardDeleteTicketAsAdmin(Long ticketId, User currentUser, String ipAddress);
+
     // =========================================================================
     // COMMENTAIRES
     // =========================================================================
@@ -249,6 +269,18 @@ public interface TicketService {
      * @return Le ticket mis à jour avec le nouveau commentaire
      */
     TicketResponse addComment(Long ticketId, TicketCommentRequest request, User currentUser, String ipAddress);
+
+    /**
+     * Retourne les commentaires visibles par l'utilisateur connecte.
+     * Les notes internes ne sont jamais exposees au client.
+     */
+    List<TicketResponse.CommentInfo> getComments(Long ticketId, User currentUser);
+
+    /**
+     * Retourne l'historique visible par l'utilisateur connecte.
+     * Les evenements lies aux notes internes sont filtres cote client.
+     */
+    List<TicketResponse.HistoryInfo> getHistory(Long ticketId, User currentUser);
 
     // =========================================================================
     // ENDPOINTS SPÉCIFIQUES PAR RÔLE
@@ -312,6 +344,11 @@ public interface TicketService {
      * @return Page des tickets assignés à l'agent
      */
     Page<TicketResponse> getAgentTickets(Long agentId, Pageable pageable);
+
+    /**
+     * Retourne le pool de tickets non assignes visible par le role courant.
+     */
+    Page<TicketResponse> getUnassignedTickets(User currentUser, Pageable pageable);
 
     // =========================================================================
     // SURVEILLANCE SLA (Service Level Agreement)

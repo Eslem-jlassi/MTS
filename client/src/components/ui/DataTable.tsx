@@ -76,12 +76,15 @@ function DataTable<T>({
                 className="border-b border-ds-border last:border-b-0 hover:bg-ds-elevated/30 transition-colors"
               >
                 {columns.map((col) => (
-                  <td key={col.key} className={`px-4 ${paddingY} text-ds-primary ${col.className || ""}`}>
+                  <td
+                    key={col.key}
+                    className={`px-4 ${paddingY} text-ds-primary ${col.className || ""}`}
+                  >
                     {col.render
                       ? col.render(row)
                       : (row as Record<string, unknown>)[col.key] != null
-                      ? String((row as Record<string, unknown>)[col.key])
-                      : "—"}
+                        ? String((row as Record<string, unknown>)[col.key])
+                        : "—"}
                   </td>
                 ))}
               </tr>
@@ -91,9 +94,7 @@ function DataTable<T>({
       </table>
       {totalPages > 1 && onPageChange && (
         <div className="flex items-center justify-between px-4 py-2 border-t border-ds-border bg-ds-elevated/30">
-          <span className="text-xs text-ds-muted">
-            {totalElements} élément(s)
-          </span>
+          <span className="text-xs text-ds-muted">{totalElements} élément(s)</span>
           <div className="flex items-center gap-2">
             <button
               type="button"

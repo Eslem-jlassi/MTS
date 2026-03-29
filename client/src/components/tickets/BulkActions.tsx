@@ -3,31 +3,20 @@
 // =============================================================================
 /**
  * Barre contextuelle flottante affichée quand des tickets sont sélectionnés.
- * 
+ *
  * ACTIONS DISPONIBLES:
  * - Assigner en masse → ticketService.bulkAssign
  * - Changer le statut en masse → ticketService.bulkStatus
  * - Changer la priorité en masse → ticketService.bulkPriority
  * - Exporter la sélection (CSV/Excel/PDF)
- * 
+ *
  * ANIMATION: slide-up depuis le bas, avec un compteur de sélection.
  */
 
 import React, { useState } from "react";
-import {
-  UserPlus,
-  ArrowRightLeft,
-  AlertCircle,
-  X,
-
-} from "lucide-react";
+import { UserPlus, ArrowRightLeft, AlertCircle, X } from "lucide-react";
 import { Button, Badge } from "../ui";
-import {
-  TicketStatus,
-  TicketPriority,
-  StatusLabels,
-  PriorityLabels,
-} from "../../types";
+import { TicketStatus, TicketPriority, StatusLabels, PriorityLabels } from "../../types";
 import { ticketService, BulkResult } from "../../api/ticketService";
 
 interface BulkActionsProps {
@@ -148,7 +137,9 @@ const BulkActions: React.FC<BulkActionsProps> = ({
             >
               <option value={0}>Choisir un agent</option>
               {agents.map((a) => (
-                <option key={a.id} value={a.id}>{a.fullName}</option>
+                <option key={a.id} value={a.id}>
+                  {a.fullName}
+                </option>
               ))}
             </select>
             <Button
@@ -172,7 +163,9 @@ const BulkActions: React.FC<BulkActionsProps> = ({
             >
               <option value="">Choisir un statut</option>
               {Object.values(TicketStatus).map((s) => (
-                <option key={s} value={s}>{StatusLabels[s]}</option>
+                <option key={s} value={s}>
+                  {StatusLabels[s]}
+                </option>
               ))}
             </select>
             <Button
@@ -196,7 +189,9 @@ const BulkActions: React.FC<BulkActionsProps> = ({
             >
               <option value="">Choisir une priorité</option>
               {Object.values(TicketPriority).map((p) => (
-                <option key={p} value={p}>{PriorityLabels[p]}</option>
+                <option key={p} value={p}>
+                  {PriorityLabels[p]}
+                </option>
               ))}
             </select>
             <Button

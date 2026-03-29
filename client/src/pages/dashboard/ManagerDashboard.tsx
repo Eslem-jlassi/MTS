@@ -101,10 +101,14 @@ interface FiltersBarProps {
 
 /** Barre de filtres globaux — appliqués à toute la page */
 const FiltersBar: React.FC<FiltersBarProps> = ({
-  period, setPeriod,
-  serviceId, setServiceId,
-  teamId, setTeamId,
-  clientId, setClientId,
+  period,
+  setPeriod,
+  serviceId,
+  setServiceId,
+  teamId,
+  setTeamId,
+  clientId,
+  setClientId,
   serviceOptions,
   teamOptions,
   clientOptions,
@@ -185,11 +189,15 @@ const KpiCard: React.FC<{
   to?: string;
 }> = ({ icon, iconBg, label, value, suffix, alert, to }) => {
   const inner = (
-    <Card className={`relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300 h-full
+    <Card
+      className={`relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300 h-full
       ${alert ? "ring-2 ring-error/30" : ""} ${to ? "cursor-pointer" : ""}
-    `}>
+    `}
+    >
       <div className="flex items-center gap-4">
-        <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}>
+        <div
+          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}
+        >
           {icon}
         </div>
         <div className="min-w-0 flex-1">
@@ -200,7 +208,10 @@ const KpiCard: React.FC<{
           </p>
         </div>
         {to && (
-          <ArrowRight size={16} className="text-ds-muted opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+          <ArrowRight
+            size={16}
+            className="text-ds-muted opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all"
+          />
         )}
       </div>
       <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500 bg-gradient-to-br from-primary-500 to-accent-500" />
@@ -312,7 +323,7 @@ const StatusChart: React.FC<{
             name="Tickets"
             radius={[6, 6, 0, 0]}
             cursor="pointer"
-            onClick={(_data: unknown, _index: number, e: React.MouseEvent) => {
+            onClick={(_data: unknown, _index: number, _event: React.MouseEvent) => {
               // Drill-down : retrouver la clé de statut originale
               // _data contient { name, value, color, ... }
               const d = _data as { name?: string };
@@ -353,7 +364,9 @@ const PriorityChart: React.FC<{
             outerRadius={90}
             paddingAngle={3}
             dataKey="value"
-            label={({ name, value }: { name?: string; value?: number }) => `${name ?? ""}: ${value ?? 0}`}
+            label={({ name, value }: { name?: string; value?: number }) =>
+              `${name ?? ""}: ${value ?? 0}`
+            }
             cursor="pointer"
             onClick={(d: unknown) => {
               const entry = d as { name?: string };
@@ -374,7 +387,9 @@ const PriorityChart: React.FC<{
 };
 
 /** Chart performance équipe (bar horizontal) */
-const TeamPerformanceChart: React.FC<{ data: ManagerDashboardData["agentPerformance"] }> = ({ data }) => {
+const TeamPerformanceChart: React.FC<{ data: ManagerDashboardData["agentPerformance"] }> = ({
+  data,
+}) => {
   if (data.length === 0) return <ChartEmpty label="Aucune donnée de performance" />;
   return (
     <div className="h-72">
@@ -430,15 +445,35 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
             dataKey="date"
             tick={{ fontSize: 11, fill: "var(--ds-muted, #64748b)" }}
             tickFormatter={(v: string) => {
-              try { return new Date(v).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }); }
-              catch { return v; }
+              try {
+                return new Date(v).toLocaleDateString("fr-FR", {
+                  day: "2-digit",
+                  month: "2-digit",
+                });
+              } catch {
+                return v;
+              }
             }}
           />
           <YAxis tick={{ fontSize: 11, fill: "var(--ds-muted, #64748b)" }} allowDecimals={false} />
           <RTooltip contentStyle={ChartTooltipStyle} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Area type="monotone" dataKey="created" name="Créés" stroke="#f97316" strokeWidth={2} fill="url(#gradCreated)" />
-          <Area type="monotone" dataKey="resolved" name="Résolus" stroke="#10b981" strokeWidth={2} fill="url(#gradResolved)" />
+          <Area
+            type="monotone"
+            dataKey="created"
+            name="Créés"
+            stroke="#f97316"
+            strokeWidth={2}
+            fill="url(#gradCreated)"
+          />
+          <Area
+            type="monotone"
+            dataKey="resolved"
+            name="Résolus"
+            stroke="#10b981"
+            strokeWidth={2}
+            fill="url(#gradResolved)"
+          />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -472,12 +507,24 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
       <table className="w-full">
         <thead className="bg-ds-elevated border-b border-ds-border">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">Service</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">Catégorie</th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">État</th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">Tickets</th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">SLA dépassé</th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">Taux SLA</th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+              Service
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+              Catégorie
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+              État
+            </th>
+            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+              Tickets
+            </th>
+            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+              SLA dépassé
+            </th>
+            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+              Taux SLA
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-ds-border">
@@ -502,23 +549,33 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                 </td>
                 <td className="px-4 py-3 text-sm text-ds-secondary">{s.category}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-flex items-center gap-1 text-xs font-semibold ${ServiceStatusColors[status] || "text-ds-muted"}`}>
+                  <span
+                    className={`inline-flex items-center gap-1 text-xs font-semibold ${ServiceStatusColors[status] || "text-ds-muted"}`}
+                  >
                     {isDown ? <WifiOff size={13} /> : <Wifi size={13} />}
                     {ServiceStatusLabels[status] || s.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-ds-primary tabular-nums">{s.openTickets}</td>
+                <td className="px-4 py-3 text-right text-sm font-semibold text-ds-primary tabular-nums">
+                  {s.openTickets}
+                </td>
                 <td className="px-4 py-3 text-right">
-                  <span className={`text-sm font-semibold tabular-nums ${s.slaBreached > 0 ? "text-error" : "text-ds-muted"}`}>
+                  <span
+                    className={`text-sm font-semibold tabular-nums ${s.slaBreached > 0 ? "text-error" : "text-ds-muted"}`}
+                  >
                     {s.slaBreached}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${
-                    s.slaRate >= 90 ? "bg-success-50 text-success-700 dark:bg-success-900/30 dark:text-success-400"
-                    : s.slaRate >= 75 ? "bg-warning-50 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400"
-                    : "bg-error-50 text-error-700 dark:bg-error-900/30 dark:text-error-400"
-                  }`}>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${
+                      s.slaRate >= 90
+                        ? "bg-success-50 text-success-700 dark:bg-success-900/30 dark:text-success-400"
+                        : s.slaRate >= 75
+                          ? "bg-warning-50 text-warning-700 dark:bg-warning-900/30 dark:text-warning-400"
+                          : "bg-error-50 text-error-700 dark:bg-error-900/30 dark:text-error-400"
+                    }`}
+                  >
                     {s.slaRate}%
                   </span>
                 </td>
@@ -536,15 +593,28 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
 // =============================================================================
 
 const STATUS_LABEL_TO_KEY: Record<string, string> = {
-  "Nouveau": "NEW", "Assigné": "ASSIGNED", "En cours": "IN_PROGRESS",
-  "En attente": "PENDING", "Att. tiers": "PENDING_THIRD_PARTY",
-  "Escaladé": "ESCALATED", "Résolu": "RESOLVED", "Fermé": "CLOSED", "Annulé": "CANCELLED",
+  Nouveau: "NEW",
+  Assigné: "ASSIGNED",
+  "En cours": "IN_PROGRESS",
+  "En attente": "PENDING",
+  "Att. tiers": "PENDING_THIRD_PARTY",
+  Escaladé: "ESCALATED",
+  Résolu: "RESOLVED",
+  Fermé: "CLOSED",
+  Annulé: "CANCELLED",
 };
 const PRIORITY_LABEL_TO_KEY: Record<string, string> = {
-  "Critique": "CRITICAL", "Haute": "HIGH", "Moyenne": "MEDIUM", "Basse": "LOW",
+  Critique: "CRITICAL",
+  Haute: "HIGH",
+  Moyenne: "MEDIUM",
+  Basse: "LOW",
 };
-function statusNameToKey(name: string): string | undefined { return STATUS_LABEL_TO_KEY[name]; }
-function priorityNameToKey(name: string): string | undefined { return PRIORITY_LABEL_TO_KEY[name]; }
+function statusNameToKey(name: string): string | undefined {
+  return STATUS_LABEL_TO_KEY[name];
+}
+function priorityNameToKey(name: string): string | undefined {
+  return PRIORITY_LABEL_TO_KEY[name];
+}
 
 // =============================================================================
 // SKELETON
@@ -554,7 +624,9 @@ const ManagerSkeleton: React.FC = () => (
   <div className="space-y-6">
     <Skeleton height={48} className="rounded-xl" />
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-      {[1, 2, 3, 4, 5].map((i) => <SkeletonCard key={i} />)}
+      {[1, 2, 3, 4, 5].map((i) => (
+        <SkeletonCard key={i} />
+      ))}
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Skeleton height={340} className="rounded-xl" />
@@ -634,7 +706,11 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           {lastUpdated && (
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ {new Date(lastUpdated).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              MAJ{" "}
+              {new Date(lastUpdated).toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           )}
           <button
@@ -652,13 +728,21 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       {/* ─── Filtres globaux ─────────────────────────────────────────── */}
       <FiltersBar
         period={period}
-        setPeriod={(v) => { setPeriod(v); }}
+        setPeriod={(v) => {
+          setPeriod(v);
+        }}
         serviceId={serviceId}
-        setServiceId={(v) => { setServiceId(v); }}
+        setServiceId={(v) => {
+          setServiceId(v);
+        }}
         teamId={teamId}
-        setTeamId={(v) => { setTeamId(v); }}
+        setTeamId={(v) => {
+          setTeamId(v);
+        }}
         clientId={clientId}
-        setClientId={(v) => { setClientId(v); }}
+        setClientId={(v) => {
+          setClientId(v);
+        }}
         serviceOptions={serviceOptions}
         teamOptions={teamOptions}
         clientOptions={clientOptions}
@@ -675,7 +759,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                 Répartition par statut
               </h3>
-              <span className="text-[10px] text-ds-muted font-medium uppercase">Cliquer pour drill-down</span>
+              <span className="text-[10px] text-ds-muted font-medium uppercase">
+                Cliquer pour drill-down
+              </span>
             </div>
             <div className="p-4">
               <StatusChart data={data.statusChartData} navigate={navigate} />
@@ -688,7 +774,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                 Répartition par priorité
               </h3>
-              <span className="text-[10px] text-ds-muted font-medium uppercase">Cliquer pour drill-down</span>
+              <span className="text-[10px] text-ds-muted font-medium uppercase">
+                Cliquer pour drill-down
+              </span>
             </div>
             <div className="p-4">
               <PriorityChart data={data.priorityChartData} navigate={navigate} />

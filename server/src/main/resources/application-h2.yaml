@@ -30,3 +30,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
+
+cookie:
+  secure: ${COOKIE_SECURE:false}

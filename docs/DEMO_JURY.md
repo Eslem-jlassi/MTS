@@ -1,187 +1,159 @@
-# Guide de démonstration — Soutenance PFE
+# Demo Jury - MTS Telecom
 
-> Ce document décrit les scénarios à dérouler devant le jury, rôle par rôle, pour montrer les fonctionnalités clés de MTS.
+Ce guide est aligne sur le code reel du depot et sur les scripts officiels.
 
----
+## 1. Preparation
 
-## 1. Préparation de l'environnement
+### Option recommandee
 
-### Lancement rapide
-
-```bash
-# Terminal 1 — Base de données
-docker-compose up -d
-
-# Terminal 2 — Backend
-cd server
-mvn spring-boot:run
-
-# Terminal 3 — Frontend
-cd client
-npm start
+```bat
+scripts\dev\start-local.bat
 ```
 
-Ouvrir http://localhost:3000 dans le navigateur.
+### Option demo rapide
 
-### Alternative sans backend (mode démo)
-
-Si le backend ne peut pas être lancé le jour de la soutenance :
-
-```
-http://localhost:3000?demo=true
+```bat
+scripts\demo\start-demo-h2.bat
 ```
 
-Ce mode active un intercepteur Axios qui simule toutes les réponses API avec des données réalistes, sans aucune connexion backend. Toutes les fonctionnalités UI sont démontrables.
+### URLs a verifier
 
-### Données nécessaires
+- `http://localhost:3000`
+- `http://localhost:8080/swagger-ui.html`
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8001/health`
+- `http://127.0.0.1:8002/health`
 
-Les migrations Flyway (V1–V2) insèrent automatiquement :
-- **6 utilisateurs** (1 admin, 1 manager, 2 agents, 2 clients)
-- **3 entreprises clientes** (Ericsson, Ooredoo, Tunisie Telecom)
-- **8 services télécom** (BSCS, HLR, OSS, MSC…)
-- **~15 tickets** avec commentaires et historique
-- **Politiques SLA** par priorité
+## 2. Comptes de demo
 
-> Aucune donnée supplémentaire à insérer manuellement.
+### Si vous lancez MySQL + Flyway
 
----
+- mot de passe commun : `Password1!`
+- `admin@mts-telecom.ma`
+- `manager@mts-telecom.ma`
+- `karim.agent@mts-telecom.ma`
+- `layla.agent@mts-telecom.ma`
+- `support@atlas-distribution.ma`
+- `dsi@sahara-connect.ma`
 
-## 2. Scénario 1 — Rôle CLIENT
+### Si vous lancez le profil H2
 
-**Objectif :** montrer le parcours complet d'un utilisateur client qui soumet et suit un ticket.
+- mot de passe commun : `password`
+- memes emails que ci-dessus
 
-### Étapes
+## 3. Parcours a montrer
 
-| # | Action | Ce qu'on montre |
-|---|--------|-----------------|
-| 1 | Se connecter en tant que client | Page de connexion avec design professionnel, validation en temps réel |
-| 2 | Observer le dashboard client | KPI personnalisés : mes tickets, statuts, SLA |
-| 3 | Créer un nouveau ticket | Formulaire avec sélection de service, catégorie (PANNE/DEMANDE/RÉCLAMATION), priorité |
-| 4 | Observer le ticket créé | Numéro auto-généré (TK-xxx), deadline SLA calculée automatiquement |
-| 5 | Ajouter un commentaire | Commentaire visible par l'agent assigné |
-| 6 | Joindre un fichier | Upload de pièce jointe (capture d'écran, log…) |
-| 7 | Recevoir une notification | Notification temps réel quand l'agent change le statut |
-| 8 | Voir l'historique | Timeline complète : création → assignation → en cours → résolu |
+### Parcours CLIENT
 
-### Points à souligner
-- Le client ne voit que **ses propres tickets**
-- Les **commentaires internes** des agents ne sont **pas visibles** pour le client
-- Le SLA est automatiquement calculé à la création
+Montrer :
 
----
+1. dashboard client
+2. creation d'un ticket
+3. detail ticket avec SLA, historique et commentaires
+4. piece jointe
+5. notification lors d'un changement cote support
+6. chatbot pour aide ou brouillon ticket
 
-## 3. Scénario 2 — Rôle AGENT
+Messages a faire passer :
 
-**Objectif :** montrer le traitement quotidien des tickets par un agent.
+- le client ne voit que ses tickets
+- les notes internes restent masquees
+- le SLA et l'historique sont traces automatiquement
 
-### Étapes
+### Parcours AGENT
 
-| # | Action | Ce qu'on montre |
-|---|--------|-----------------|
-| 1 | Se connecter en tant qu'agent | Dashboard agent avec tickets assignés et KPI |
-| 2 | Voir les tickets assignés | Liste filtrée automatiquement |
-| 3 | Vue Kanban | Basculer en vue Kanban — colonnes par statut |
-| 4 | Ouvrir un ticket | Page détail : infos, commentaires, historique, SLA restant |
-| 5 | Changer le statut → IN_PROGRESS | Transition de workflow, entrée dans l'historique |
-| 6 | Ajouter une note interne | Commentaire `isInternal: true` — visible uniquement par l'équipe |
-| 7 | Utiliser une macro / réponse rapide | Application d'un template de réponse |
-| 8 | Résoudre le ticket → RESOLVED | Saisie de la résolution, cause racine |
-| 9 | Observer le SLA | Badge SLA (vert/orange/rouge), pourcentage restant |
+Montrer :
 
-### Points à souligner
-- L'agent ne peut **pas assigner** de tickets (réservé au MANAGER/ADMIN)
-- Le workflow impose des **transitions valides** (OPEN → IN_PROGRESS, pas OPEN → CLOSED)
-- Le SLA est **pausé** en dehors des heures ouvrées
+1. file de tickets assignes
+2. consultation du pool non assigne
+3. ouverture du detail ticket / drawer
+4. commentaire et note interne
+5. transition de statut autorisee
+6. resolution d'un ticket avec historique mis a jour
 
----
+Messages a faire passer :
 
-## 4. Scénario 3 — Rôle MANAGER
+- l'agent ne peut pas assigner
+- il ne traite que les tickets assignes
+- l'historique et les pieces jointes restent coherents
 
-**Objectif :** montrer la supervision d'équipe et la gestion des incidents.
+### Parcours MANAGER
 
-### Étapes
+Montrer :
 
-| # | Action | Ce qu'on montre |
-|---|--------|-----------------|
-| 1 | Se connecter en tant que manager | Dashboard manager avec vue d'ensemble |
-| 2 | Voir le dashboard avec KPI | Total tickets, SLA compliance, tickets critiques, tendances 7/30 jours |
-| 3 | Assigner un ticket à un agent | Sélection d'un agent disponible depuis le détail du ticket |
-| 4 | Actions en masse | Sélectionner plusieurs tickets → assignation/changement statut en bulk |
-| 5 | Exporter en CSV/Excel/PDF | Export des tickets filtrés |
-| 6 | Créer un incident | Formulaire incident lié à un service + tickets associés |
-| 7 | Suivre la timeline incident | Chronologie des événements (détecté → investigation → résolu) |
-| 8 | Rédiger un post-mortem | Analyse de cause racine après résolution |
-| 9 | Générer un rapport | Rapport mensuel avec résumé exécutif |
-| 10 | Voir les SLA en dépassement | Page SLA → tickets breached + approaching |
+1. dashboard manager
+2. assignation d'un ticket a un agent
+3. supervision services / sante / topologie
+4. vue incidents et SLA
+5. exports ou rapports
 
-### Points à souligner
-- Dashboard avec **graphiques interactifs** (Recharts)
-- Les **règles d'escalade** s'appliquent automatiquement
-- Le manager voit les **statistiques par agent** (performance individuelle)
+Messages a faire passer :
 
----
+- le manager supervise sans avoir tous les droits structurels de l'admin
+- il voit les KPI et la priorisation globale
+- les regles d'acces sont fermees cote backend
 
-## 5. Scénario 4 — Rôle ADMIN
+### Parcours ADMIN
 
-**Objectif :** montrer l'administration complète du système.
+Montrer :
 
-### Étapes
+1. gestion des utilisateurs
+2. creation d'utilisateur interne
+3. creation client back-office
+4. audit
+5. politique de suppression professionnelle
+6. parametres sensibles et gestion transverse
 
-| # | Action | Ce qu'on montre |
-|---|--------|-----------------|
-| 1 | Se connecter en tant qu'admin | Dashboard admin complet |
-| 2 | Gérer les utilisateurs | Liste, activation/désactivation, changement de rôle |
-| 3 | Gérer les services télécom | CRUD services, changement de statut (UP/DOWN/DEGRADED) |
-| 4 | Topologie réseau | Arbre de dépendances inter-services |
-| 5 | Configurer les politiques SLA | Créer/modifier des SLA par priorité et service |
-| 6 | Configurer les heures ouvrées | Définir les jours/heures de travail pour le calcul SLA |
-| 7 | Définir les règles d'escalade | Créer des règles automatiques (seuil → action) |
-| 8 | Consulter le journal d'audit | Filtrer par entité, utilisateur, action, période |
-| 9 | Gérer les clients | CRUD entreprises clientes |
-| 10 | Gérer les macros et templates | Créer des modèles de réponse rapide |
+Messages a faire passer :
 
-### Points à souligner
-- L'admin a accès à **toutes les fonctionnalités** de tous les rôles
-- Le journal d'audit est **immuable** — aucune action ne peut être supprimée
-- La topologie montre l'**impact en cascade** des pannes
+- l'admin garde le plein controle
+- les suppressions definitives sont explicites, auditees et bloquees si non sures
+- la tracabilite prime sur la suppression brute
 
----
+### Parcours IA
 
-## 6. Scénario transversal — Fonctionnalités techniques
+Montrer :
 
-| Fonctionnalité | Comment la montrer |
-|----------------|-------------------|
-| **Thème sombre/clair** | Toggle dans la barre supérieure — tout le design system s'adapte |
-| **Responsive** | Redimensionner le navigateur ou ouvrir les DevTools en mode mobile |
-| **Notifications temps réel** | Ouvrir 2 onglets (agent + client), changer un statut → notification instantanée |
-| **Sécurité JWT** | Montrer le token dans les DevTools (Network) — expiration 15 min + refresh automatique |
-| **Google OAuth** | Bouton "Se connecter avec Google" sur la page de login |
-| **Swagger API** | Ouvrir http://localhost:8080/swagger-ui.html — documentation interactive |
-| **Recherche et filtres** | Utiliser la recherche texte + filtres par statut/priorité/service |
-| **Palette de commandes** | Raccourci clavier pour la command palette (recherche rapide) |
-| **Accessibilité** | Navigation au clavier (Tab), indicateurs de focus visibles |
-| **Mode démo** | Ajouter `?demo=true` — fonctionne sans backend |
+1. analyse sentiment / classification
+2. detection de doublons
+3. chatbot IA en francais
+4. cas de faible confiance
+5. brouillon ticket issu du chatbot
 
----
+Messages a faire passer :
 
-## 7. Questions fréquentes du jury
+- les trois briques IA existent reellement dans le depot
+- le backend orchestre les appels aux microservices
+- le chatbot reste prudent quand la confiance est faible
 
-| Question probable | Réponse suggérée |
-|-------------------|------------------|
-| *Pourquoi Spring Boot + React ?* | Stack standard enterprise, séparation claire front/back, écosystème mature, compétences recherchées sur le marché |
-| *Comment gérez-vous la sécurité ?* | JWT stateless avec refresh token rotation (OWASP), `@PreAuthorize` sur chaque endpoint, BCrypt pour les mots de passe |
-| *Comment fonctionne le SLA ?* | Politique configurable par priorité/service, calcul basé sur les heures ouvrées, pause automatique hors horaires, escalade avec règles configurables |
-| *Comment assurez-vous la qualité ?* | 47 tests automatisés (JUnit + RTL), ESLint/Prettier, Spotless, GlobalExceptionHandler RFC 7807, RequestIdFilter pour la corrélation des logs |
-| *Quelle est l'évolution prévue ?* | Microservice chatbot NLP (Python), monitoring temps réel avancé, multi-tenant complet, tableau de bord BI |
+## 4. Mode demo frontend
 
----
+Le mode demo n'est plus active par query param.
 
-## 8. Checklist pré-soutenance
+### Activation
 
-- [ ] Docker lancé (`docker-compose up -d`)
-- [ ] Backend compilé et fonctionnel (`mvn spring-boot:run`)
-- [ ] Frontend démarré (`npm start`)
-- [ ] Swagger accessible (http://localhost:8080/swagger-ui.html)
-- [ ] 4 sessions navigateur prêtes (1 par rôle) ou mode démo activé
-- [ ] Présentation des diagrammes d'architecture (Mermaid → image ou slide)
-- [ ] Ce document imprimé ou accessible sur un second écran
+1. copier `client/.env.demo` vers `client/.env`
+2. lancer `npm start`
+
+### Ce qu'il faut dire au jury
+
+- le mode demo est explicite
+- il ne remplace pas silencieusement un backend casse
+- les routes non mockees continuent a echouer visiblement
+
+## 5. Narratif de soutenance recommande
+
+- presenter le probleme metier : supervision telecom + support client
+- montrer l'architecture modulaire complete
+- enchainer un ticket client puis son traitement support
+- ouvrir la supervision services / incidents / SLA
+- finir par l'administration, l'audit et l'IA
+
+## 6. Checklist avant passage
+
+- verifier les 5 URLs ci-dessus
+- preparer un compte par role
+- verifier que le chatbot et les microservices repondent
+- verifier que le backend affiche Swagger
+- verifier que les menus visibles correspondent bien au role utilise
+- verifier que le mode demo est desactive sauf si vous l'assumez explicitement

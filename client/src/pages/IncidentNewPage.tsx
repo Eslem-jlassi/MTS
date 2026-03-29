@@ -4,23 +4,12 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  ArrowLeft,
-  AlertTriangle,
-  Plus,
-  X,
-  Search,
-} from "lucide-react";
+import { ArrowLeft, AlertTriangle, Plus, X, Search } from "lucide-react";
 import { incidentService } from "../api/incidentService";
 import { telecomServiceService } from "../api/telecomServiceService";
 import { ticketService } from "../api/ticketService";
 import type { IncidentRequest, TelecomService, Ticket } from "../types";
-import {
-  Severity,
-  SeverityLabels,
-  IncidentImpact,
-  ImpactLabels,
-} from "../types";
+import { Severity, SeverityLabels, IncidentImpact, ImpactLabels } from "../types";
 import { Card, Button } from "../components/ui";
 
 export default function IncidentNewPage() {
@@ -60,7 +49,7 @@ export default function IncidentNewPage() {
       ]);
       setServices(svcList);
       // tickets: getAll may return Page or array
-      const tktList = Array.isArray(tktRes) ? tktRes : (tktRes as any)?.content ?? [];
+      const tktList = Array.isArray(tktRes) ? tktRes : ((tktRes as any)?.content ?? []);
       setTickets(tktList);
     } catch {
       // silent
@@ -76,14 +65,14 @@ export default function IncidentNewPage() {
   const filteredServices = services.filter(
     (s) =>
       !affectedServiceIds.includes(s.id) &&
-      s.name.toLowerCase().includes(serviceSearch.toLowerCase())
+      s.name.toLowerCase().includes(serviceSearch.toLowerCase()),
   );
 
   const filteredTickets = tickets.filter(
     (t) =>
       !ticketIds.includes(t.id) &&
       (t.ticketNumber.toLowerCase().includes(ticketSearch.toLowerCase()) ||
-        t.title.toLowerCase().includes(ticketSearch.toLowerCase()))
+        t.title.toLowerCase().includes(ticketSearch.toLowerCase())),
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -187,7 +176,9 @@ export default function IncidentNewPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-ds-primary mb-1">Impact business</label>
+              <label className="block text-sm font-medium text-ds-primary mb-1">
+                Impact business
+              </label>
               <select
                 value={impact}
                 onChange={(e) => setImpact(e.target.value as IncidentImpact)}
@@ -201,7 +192,9 @@ export default function IncidentNewPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-ds-primary mb-1">Date de début *</label>
+              <label className="block text-sm font-medium text-ds-primary mb-1">
+                Date de début *
+              </label>
               <input
                 type="datetime-local"
                 required
@@ -211,7 +204,9 @@ export default function IncidentNewPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-ds-primary mb-1">Cause initiale</label>
+              <label className="block text-sm font-medium text-ds-primary mb-1">
+                Cause initiale
+              </label>
               <input
                 type="text"
                 value={cause}
@@ -276,7 +271,10 @@ export default function IncidentNewPage() {
                 </div>
               )}
               <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-muted" />
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-muted"
+                />
                 <input
                   type="text"
                   value={serviceSearch}

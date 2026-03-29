@@ -4,8 +4,10 @@ import com.billcom.mts.dto.user.UserResponse;
 import com.billcom.mts.dto.user.UserUpdateRequest;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.UserRole;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -40,6 +42,16 @@ public interface UserService {
     UserResponse updateUserRole(Long userId, UserRole role);
 
     /**
+     * Change user password after validating the current password.
+     */
+    void changePassword(Long userId, String currentPassword, String newPassword);
+
+    /**
+     * Set user password directly as admin.
+     */
+    void setPasswordByAdmin(Long userId, String newPassword);
+
+    /**
      * Deactivate user account.
      */
     void deactivateUser(Long userId);
@@ -48,6 +60,18 @@ public interface UserService {
      * Activate user account.
      */
     void activateUser(Long userId);
+
+    /**
+     * Permanently delete an internal user account when business dependencies
+     * make the operation safe.
+     */
+    void hardDeleteUserByAdmin(Long userId);
+
+    /**
+     * Permanently delete a client account when the related client profile is safe
+     * to remove.
+     */
+    void hardDeleteClientAccountByAdmin(Long userId);
 
     /**
      * Get all users with pagination.
@@ -78,4 +102,19 @@ public interface UserService {
      * Get notification preferences (JSON string).
      */
     String getNotificationPreferences(Long userId);
+
+    /**
+     * Upload avatar image for user profile.
+     */
+    UserResponse uploadAvatar(Long userId, MultipartFile file);
+
+    /**
+     * Get avatar as downloadable resource.
+     */
+    Resource getAvatarResource(String filename);
+
+    /**
+     * Detect avatar content type.
+     */
+    String getAvatarContentType(String filename);
 }

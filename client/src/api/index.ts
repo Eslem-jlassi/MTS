@@ -4,6 +4,7 @@
 
 export { default as api, getErrorMessage } from "./client";
 export { default as authService } from "./authService";
+export { default as chatbotService } from "./chatbotService";
 export { default as ticketService } from "./ticketService";
 export { default as dashboardService } from "./dashboardService";
 export { default as userService } from "./userService";

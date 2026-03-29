@@ -73,8 +73,8 @@ public class DashboardServiceImpl implements DashboardService {
         Double avgResolutionHours = ticketRepository.getAverageResolutionTimeHours();
         Double slaComplianceRate = calculateSlaComplianceRate();
 
-        long activeIncidentsCount = incidentRepository.countByStatus(IncidentStatus.OPEN)
-            + incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS);
+        long activeIncidentsCount = countIncidentByStatus(IncidentStatus.OPEN)
+            + countIncidentByStatus(IncidentStatus.IN_PROGRESS);
 
         // Grouped data for charts
         Map<String, Long> ticketsByStatus = statusCounts.entrySet().stream()
@@ -317,5 +317,9 @@ public class DashboardServiceImpl implements DashboardService {
         
         long breached = ticketRepository.countSlaBreachedResolvedTickets();
         return 1.0 - ((double) breached / total);
+    }
+
+    private long countIncidentByStatus(IncidentStatus status) {
+        return incidentRepository != null ? incidentRepository.countByStatus(status) : 0L;
     }
 }

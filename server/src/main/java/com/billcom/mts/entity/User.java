@@ -225,6 +225,10 @@ public class User implements UserDetails {      // Implémente UserDetails pour 
     @Column(name = "email_verification_token")
     private String emailVerificationToken;
 
+    /** Date d'expiration du token de verification d'email. */
+    @Column(name = "email_verification_token_expiry")
+    private LocalDateTime emailVerificationTokenExpiry;
+
     // =========================================================================
     // NOTIFICATION PREFERENCES (JSON)
     // =========================================================================

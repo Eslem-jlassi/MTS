@@ -200,7 +200,7 @@ class DtoValidationTest {
                     .build();
             Set<ConstraintViolation<TicketCreateRequest>> violations = validator.validate(req);
             assertThat(violations).isNotEmpty();
-            assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("serviceId"));
+            assertThat(violations).anyMatch(v -> v.getPropertyPath().toString().equals("serviceTarget"));
         }
 
         @Test

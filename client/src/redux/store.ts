@@ -5,33 +5,33 @@
  * ============================================================================
  * store.ts - Configuration centrale de Redux
  * ============================================================================
- * 
+ *
  * QU'EST-CE QUE REDUX?
  * --------------------
  * Redux est une bibliothèque de gestion d'état (state management).
  * Elle permet de stocker les données de l'application dans un "store" central
  * accessible depuis n'importe quel composant.
- * 
+ *
  * POURQUOI UTILISER REDUX?
  * - Évite le "prop drilling" (passer des props de parent en enfant en enfant...)
  * - État prévisible et débuggable (Redux DevTools)
  * - Séparation des préoccupations (logique métier dans les slices)
  * - Persistance facile (redux-persist)
- * 
+ *
  * CONCEPTS CLÉS:
  * 1. STORE: L'objet qui contient tout l'état de l'application
  * 2. SLICE: Une portion du state avec ses reducers et actions
  * 3. ACTION: Un événement qui décrit ce qui s'est passé
  * 4. REDUCER: Fonction qui calcule le nouvel état basé sur l'action
  * 5. DISPATCH: Méthode pour envoyer une action au store
- * 
+ *
  * FLUX REDUX:
  * Composant → dispatch(action) → Reducer → Nouveau State → Composant re-render
- * 
+ *
  * REDUX TOOLKIT:
  * Redux Toolkit est la méthode officielle recommandée pour écrire du Redux.
  * Elle simplifie la configuration et réduit le boilerplate.
- * 
+ *
  * ============================================================================
  */
 
@@ -66,7 +66,7 @@ import notificationsReducer from "./slices/notificationsSlice";
 
 /**
  * Création du store Redux avec configureStore.
- * 
+ *
  * STRUCTURE DU STATE:
  * {
  *   auth: {
@@ -87,7 +87,7 @@ import notificationsReducer from "./slices/notificationsSlice";
  *     isLoading: false
  *   }
  * }
- * 
+ *
  * ACCÈS AU STATE:
  * Dans un composant: const { user } = useSelector(state => state.auth)
  */
@@ -98,12 +98,12 @@ const store = configureStore({
   // Chaque clé devient un "slice" du state global
   // auth, tickets, dashboard sont les noms des slices
   reducer: {
-    auth: authReducer,             // state.auth
-    tickets: ticketsReducer,       // state.tickets
-    dashboard: dashboardReducer,   // state.dashboard
+    auth: authReducer, // state.auth
+    tickets: ticketsReducer, // state.tickets
+    dashboard: dashboardReducer, // state.dashboard
     notifications: notificationsReducer, // state.notifications
   },
-  
+
   // ==========================================================================
   // MIDDLEWARE
   // ==========================================================================
@@ -112,8 +112,12 @@ const store = configureStore({
     getDefaultMiddleware({
       // Ignore les chemins contenant des objets non-sérialisables (ex: dates)
       serializableCheck: {
-        ignoredActions: ['auth/login/fulfilled', 'auth/googleLogin/fulfilled', 'auth/refreshToken/fulfilled'],
-        ignoredPaths: ['auth.user.createdAt', 'auth.user.lastLoginAt', 'tickets.items'],
+        ignoredActions: [
+          "auth/login/fulfilled",
+          "auth/googleLogin/fulfilled",
+          "auth/refreshToken/fulfilled",
+        ],
+        ignoredPaths: ["auth.user.createdAt", "auth.user.lastLoginAt", "tickets.items"],
       },
     }),
 });
@@ -134,10 +138,10 @@ export default store;
 
 /**
  * RootState: Type représentant la structure complète du state.
- * 
+ *
  * ReturnType<typeof store.getState>: Infère le type automatiquement
  * à partir de la structure du store.
- * 
+ *
  * UTILISATION:
  * const { user } = useSelector((state: RootState) => state.auth);
  */
@@ -145,10 +149,10 @@ export type RootState = ReturnType<typeof store.getState>;
 
 /**
  * AppDispatch: Type pour la fonction dispatch.
- * 
+ *
  * Utilisé pour avoir le bon typage avec useDispatch.
  * Permet de dispatcher des actions normales ET des thunks (async).
- * 
+ *
  * UTILISATION:
  * const dispatch = useDispatch<AppDispatch>();
  * dispatch(loginUser({ email, password })); // thunk async

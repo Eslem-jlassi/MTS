@@ -36,11 +36,31 @@ import { getErrorMessage } from "../api/client";
 // =============================================================================
 
 const reportTypeConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  DAILY: { label: "Journalier", color: "text-primary-700 dark:text-primary-400", bgColor: "bg-primary-100 dark:bg-primary-900/40" },
-  WEEKLY: { label: "Hebdomadaire", color: "text-green-700 dark:text-green-400", bgColor: "bg-green-100 dark:bg-green-900/40" },
-  MONTHLY: { label: "Mensuel", color: "text-purple-700 dark:text-purple-400", bgColor: "bg-purple-100 dark:bg-purple-900/40" },
-  QUARTERLY: { label: "Trimestriel", color: "text-amber-700 dark:text-amber-400", bgColor: "bg-amber-100 dark:bg-amber-900/40" },
-  ANNUAL: { label: "Annuel", color: "text-red-700 dark:text-red-400", bgColor: "bg-red-100 dark:bg-red-900/40" },
+  DAILY: {
+    label: "Journalier",
+    color: "text-primary-700 dark:text-primary-400",
+    bgColor: "bg-primary-100 dark:bg-primary-900/40",
+  },
+  WEEKLY: {
+    label: "Hebdomadaire",
+    color: "text-green-700 dark:text-green-400",
+    bgColor: "bg-green-100 dark:bg-green-900/40",
+  },
+  MONTHLY: {
+    label: "Mensuel",
+    color: "text-purple-700 dark:text-purple-400",
+    bgColor: "bg-purple-100 dark:bg-purple-900/40",
+  },
+  QUARTERLY: {
+    label: "Trimestriel",
+    color: "text-amber-700 dark:text-amber-400",
+    bgColor: "bg-amber-100 dark:bg-amber-900/40",
+  },
+  ANNUAL: {
+    label: "Annuel",
+    color: "text-red-700 dark:text-red-400",
+    bgColor: "bg-red-100 dark:bg-red-900/40",
+  },
   CUSTOM: { label: "Personnalisé", color: "text-ds-primary", bgColor: "bg-ds-elevated" },
 };
 
@@ -54,8 +74,14 @@ const ticketStatusOptions = [
   { value: "CANCELLED", label: "Annulé" },
 ];
 
-interface ServiceOption { id: number; name: string; }
-interface ClientOption { id: number; companyName: string; }
+interface ServiceOption {
+  id: number;
+  name: string;
+}
+interface ClientOption {
+  id: number;
+  companyName: string;
+}
 
 // =============================================================================
 // COMPOSANT PRINCIPAL
@@ -152,7 +178,7 @@ export default function ReportsPage() {
         (svcRes.content || []).map((s: { id: number; name: string }) => ({
           id: s.id,
           name: s.name,
-        }))
+        })),
       );
       setClients(
         (cltRes.content || [])
@@ -160,7 +186,7 @@ export default function ReportsPage() {
           .map((c) => ({
             id: c.id,
             companyName: c.companyName!,
-          }))
+          })),
       );
     } catch (error) {
       console.error("Error fetching filter options:", error);
@@ -199,7 +225,10 @@ export default function ReportsPage() {
 
       const generated = await reportService.generate(body);
       setLastGenerated(generated);
-      setToast({ message: `Rapport ${generated.format || "PDF"} généré avec succès`, type: "success" });
+      setToast({
+        message: `Rapport ${generated.format || "PDF"} généré avec succès`,
+        type: "success",
+      });
       setShowGenerateModal(false);
       resetGenerateForm();
       fetchReports();
@@ -244,7 +273,14 @@ export default function ReportsPage() {
       await reportService.upload(formData);
       setToast({ message: "Rapport uploadé avec succès", type: "success" });
       setShowUploadModal(false);
-      setUploadForm({ title: "", description: "", reportType: "MONTHLY", periodStart: "", periodEnd: "", file: null });
+      setUploadForm({
+        title: "",
+        description: "",
+        reportType: "MONTHLY",
+        periodStart: "",
+        periodEnd: "",
+        file: null,
+      });
       fetchReports();
     } catch (error: unknown) {
       setToast({ message: getErrorMessage(error), type: "error" });
@@ -348,17 +384,17 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
-            variant="outline" 
-            icon={<Sparkles size={20} />} 
+          <Button
+            variant="outline"
+            icon={<Sparkles size={20} />}
             onClick={() => setShowGenerateModal(true)}
             className="shadow-sm hover:shadow-md transition-shadow"
           >
             Générer un rapport
           </Button>
-          <Button 
-            variant="primary" 
-            icon={<Upload size={22} />} 
+          <Button
+            variant="primary"
+            icon={<Upload size={22} />}
             onClick={() => setShowUploadModal(true)}
             className="shadow-lg hover:shadow-xl transition-all font-semibold text-base px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
           >
@@ -379,7 +415,11 @@ export default function ReportsPage() {
               <h2 className="text-lg font-semibold text-ds-primary">Résumé Exécutif</h2>
               <span className="text-xs text-ds-muted">— {selectedReport.title}</span>
             </div>
-            <button type="button" onClick={() => setShowSummaryPanel(false)} className="p-1 rounded hover:bg-ds-elevated">
+            <button
+              type="button"
+              onClick={() => setShowSummaryPanel(false)}
+              className="p-1 rounded hover:bg-ds-elevated"
+            >
               <X size={20} className="text-ds-muted" />
             </button>
           </div>
@@ -389,8 +429,8 @@ export default function ReportsPage() {
             </pre>
           ) : (
             <p className="text-sm text-ds-muted italic">
-              Aucun résumé exécutif disponible pour ce rapport.
-              Les rapports uploadés manuellement n'incluent pas de résumé automatique.
+              Aucun résumé exécutif disponible pour ce rapport. Les rapports uploadés manuellement
+              n'incluent pas de résumé automatique.
             </p>
           )}
         </Card>
@@ -416,10 +456,17 @@ export default function ReportsPage() {
           >
             <option value="ALL">Tous les types</option>
             {Object.entries(reportTypeConfig).map(([type, config]) => (
-              <option key={type} value={type}>{config.label}</option>
+              <option key={type} value={type}>
+                {config.label}
+              </option>
             ))}
           </select>
-          <Button variant="ghost" onClick={fetchReports} loading={loading} icon={<RefreshCw size={18} />}>
+          <Button
+            variant="ghost"
+            onClick={fetchReports}
+            loading={loading}
+            icon={<RefreshCw size={18} />}
+          >
             Actualiser
           </Button>
         </div>
@@ -447,14 +494,30 @@ export default function ReportsPage() {
             <table className="w-full">
               <thead className="bg-ds-card">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">Rapport</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">Type</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">Format</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">Période</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">Source</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">Auteur</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-ds-muted uppercase">DL</th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase">Actions</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                    Rapport
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                    Type
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                    Format
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                    Période
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                    Source
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                    Auteur
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-ds-muted uppercase">
+                    DL
+                  </th>
+                  <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ds-border">
@@ -465,11 +528,13 @@ export default function ReportsPage() {
                     <tr key={report.id} className="hover:bg-ds-elevated">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            isCSV
-                              ? "bg-green-100 dark:bg-green-900/40"
-                              : "bg-red-100 dark:bg-red-900/40"
-                          }`}>
+                          <div
+                            className={`h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              isCSV
+                                ? "bg-green-100 dark:bg-green-900/40"
+                                : "bg-red-100 dark:bg-red-900/40"
+                            }`}
+                          >
                             {isCSV ? (
                               <FileSpreadsheet className="w-5 h-5 text-green-600 dark:text-green-400" />
                             ) : (
@@ -478,21 +543,27 @@ export default function ReportsPage() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-ds-primary truncate">{report.title}</p>
-                            <p className="text-xs text-ds-muted">{report.formattedFileSize || report.fileName}</p>
+                            <p className="text-xs text-ds-muted">
+                              {report.formattedFileSize || report.fileName}
+                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${typeConfig.bgColor} ${typeConfig.color}`}>
+                        <span
+                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${typeConfig.bgColor} ${typeConfig.color}`}
+                        >
                           {typeConfig.label}
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                          isCSV
-                            ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400"
-                            : "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
-                        }`}>
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            isCSV
+                              ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400"
+                              : "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400"
+                          }`}
+                        >
                           {isCSV ? "CSV" : "PDF"}
                         </span>
                       </td>
@@ -500,11 +571,13 @@ export default function ReportsPage() {
                         {report.formattedPeriod || `${report.periodStart} – ${report.periodEnd}`}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                          report.source === "GENERATED"
-                            ? "bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400"
-                            : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400"
-                        }`}>
+                        <span
+                          className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
+                            report.source === "GENERATED"
+                              ? "bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-400"
+                              : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400"
+                          }`}
+                        >
                           {report.sourceLabel || report.source || "Uploadé"}
                         </span>
                       </td>
@@ -568,7 +641,10 @@ export default function ReportsPage() {
           setForm={setGenerateForm}
           generating={generating}
           onSubmit={handleGenerate}
-          onClose={() => { setShowGenerateModal(false); resetGenerateForm(); }}
+          onClose={() => {
+            setShowGenerateModal(false);
+            resetGenerateForm();
+          }}
           services={services}
           clients={clients}
         />
@@ -634,10 +710,16 @@ function KpiCards({ reports, lastGenerated }: { reports: Report[]; lastGenerated
           <KpiCard label="Inc. critiques" value={kpi.incidentsCritical ?? 0} color="red" />
           <KpiCard
             label="SLA %"
-            value={kpi.slaCompliancePct !== undefined ? `${kpi.slaCompliancePct.toFixed(1)}%` : "N/A"}
+            value={
+              kpi.slaCompliancePct !== undefined ? `${kpi.slaCompliancePct.toFixed(1)}%` : "N/A"
+            }
             color={
               kpi.slaCompliancePct !== undefined
-                ? kpi.slaCompliancePct >= 95 ? "green" : kpi.slaCompliancePct >= 90 ? "amber" : "red"
+                ? kpi.slaCompliancePct >= 95
+                  ? "green"
+                  : kpi.slaCompliancePct >= 90
+                    ? "amber"
+                    : "red"
                 : "gray"
             }
           />
@@ -685,7 +767,9 @@ function KpiCards({ reports, lastGenerated }: { reports: Report[]; lastGenerated
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-ds-muted">Ce mois</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{thisMonth}</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+              {thisMonth}
+            </p>
           </div>
           <div className="p-3 bg-green-100 dark:bg-green-900/40 rounded-lg">
             <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -696,7 +780,9 @@ function KpiCards({ reports, lastGenerated }: { reports: Report[]; lastGenerated
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-ds-muted">Téléchargements</p>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">{totalDownloads}</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-1">
+              {totalDownloads}
+            </p>
           </div>
           <div className="p-3 bg-amber-100 dark:bg-amber-900/40 rounded-lg">
             <Download className="w-6 h-6 text-amber-600 dark:text-amber-400" />
@@ -708,7 +794,15 @@ function KpiCards({ reports, lastGenerated }: { reports: Report[]; lastGenerated
 }
 
 /** Mini KPI card (8-column grid quand des KPIs existent). */
-function KpiCard({ label, value, color }: { label: string; value: number | string; color: string }) {
+function KpiCard({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number | string;
+  color: string;
+}) {
   const colorMap: Record<string, string> = {
     primary: "text-primary-600 dark:text-primary-400",
     green: "text-green-600 dark:text-green-400",
@@ -764,7 +858,9 @@ function GenerateModal({
         <form onSubmit={onSubmit} className="space-y-4">
           {/* Type */}
           <div>
-            <label className="block text-sm font-medium text-ds-primary mb-1">Type de rapport</label>
+            <label className="block text-sm font-medium text-ds-primary mb-1">
+              Type de rapport
+            </label>
             <select
               value={form.reportType}
               onChange={(e) => setForm((f) => ({ ...f, reportType: e.target.value }))}
@@ -805,7 +901,9 @@ function GenerateModal({
 
           {/* Format PDF / CSV */}
           <div>
-            <label className="block text-sm font-medium text-ds-primary mb-2">Format de sortie</label>
+            <label className="block text-sm font-medium text-ds-primary mb-2">
+              Format de sortie
+            </label>
             <div className="flex gap-3">
               <label
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border cursor-pointer transition-colors ${
@@ -866,12 +964,19 @@ function GenerateModal({
                   <label className="block text-xs font-medium text-ds-muted mb-1">Service</label>
                   <select
                     value={form.serviceId ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, serviceId: e.target.value ? Number(e.target.value) : undefined }))}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        serviceId: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
                     className="w-full px-3 py-2 text-sm border border-ds-border rounded-lg bg-ds-card text-ds-primary"
                   >
                     <option value="">Tous les services</option>
                     {services.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -880,18 +985,27 @@ function GenerateModal({
                   <label className="block text-xs font-medium text-ds-muted mb-1">Client</label>
                   <select
                     value={form.clientId ?? ""}
-                    onChange={(e) => setForm((f) => ({ ...f, clientId: e.target.value ? Number(e.target.value) : undefined }))}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        clientId: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
                     className="w-full px-3 py-2 text-sm border border-ds-border rounded-lg bg-ds-card text-ds-primary"
                   >
                     <option value="">Tous les clients</option>
                     {clients.map((c) => (
-                      <option key={c.id} value={c.id}>{c.companyName}</option>
+                      <option key={c.id} value={c.id}>
+                        {c.companyName}
+                      </option>
                     ))}
                   </select>
                 </div>
                 {/* Équipe */}
                 <div>
-                  <label className="block text-xs font-medium text-ds-muted mb-1">Équipe (nom de l'agent)</label>
+                  <label className="block text-xs font-medium text-ds-muted mb-1">
+                    Équipe (nom de l'agent)
+                  </label>
                   <input
                     type="text"
                     value={form.team || ""}
@@ -902,14 +1016,18 @@ function GenerateModal({
                 </div>
                 {/* Statut ticket */}
                 <div>
-                  <label className="block text-xs font-medium text-ds-muted mb-1">Statut ticket</label>
+                  <label className="block text-xs font-medium text-ds-muted mb-1">
+                    Statut ticket
+                  </label>
                   <select
                     value={form.ticketStatus || ""}
                     onChange={(e) => setForm((f) => ({ ...f, ticketStatus: e.target.value }))}
                     className="w-full px-3 py-2 text-sm border border-ds-border rounded-lg bg-ds-card text-ds-primary"
                   >
                     {ticketStatusOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -933,7 +1051,12 @@ function GenerateModal({
             <Button type="button" variant="ghost" onClick={onClose}>
               Annuler
             </Button>
-            <Button type="submit" variant="primary" loading={generating} icon={<Sparkles size={18} />}>
+            <Button
+              type="submit"
+              variant="primary"
+              loading={generating}
+              icon={<Sparkles size={18} />}
+            >
               Générer
             </Button>
           </div>
@@ -953,7 +1076,14 @@ function UploadModal({
   onSubmit,
   onClose,
 }: {
-  form: { title: string; description: string; reportType: string; periodStart: string; periodEnd: string; file: File | null };
+  form: {
+    title: string;
+    description: string;
+    reportType: string;
+    periodStart: string;
+    periodEnd: string;
+    file: File | null;
+  };
   setForm: React.Dispatch<React.SetStateAction<typeof form>>;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
@@ -971,7 +1101,11 @@ function UploadModal({
               <p className="text-sm text-ds-muted mt-0.5">Uploadez un rapport PDF existant</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -982,12 +1116,12 @@ function UploadModal({
               <FileText className="w-5 h-5 text-primary-600" />
               Fichier PDF *
             </label>
-            <input 
-              type="file" 
-              required 
-              accept=".pdf" 
-              onChange={(e) => setForm((f) => ({ ...f, file: e.target.files?.[0] || null }))} 
-              className="w-full px-4 py-3 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-600 file:text-white hover:file:bg-primary-700 cursor-pointer transition-all" 
+            <input
+              type="file"
+              required
+              accept=".pdf"
+              onChange={(e) => setForm((f) => ({ ...f, file: e.target.files?.[0] || null }))}
+              className="w-full px-4 py-3 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary-600 file:text-white hover:file:bg-primary-700 cursor-pointer transition-all"
             />
             {form.file && (
               <p className="text-sm text-green-600 dark:text-green-400 mt-2 font-medium flex items-center gap-1">
@@ -999,65 +1133,73 @@ function UploadModal({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-ds-primary mb-2">Titre du rapport *</label>
-              <input 
-                type="text" 
-                required 
-                value={form.title} 
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} 
-                className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all" 
-                placeholder="Ex: Rapport mensuel - Février 2026" 
+              <label className="block text-sm font-semibold text-ds-primary mb-2">
+                Titre du rapport *
+              </label>
+              <input
+                type="text"
+                required
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                placeholder="Ex: Rapport mensuel - Février 2026"
               />
             </div>
-            
+
             <div>
-              <label className="block text-sm font-semibold text-ds-primary mb-2">Type de rapport *</label>
-              <select 
-                required 
-                value={form.reportType} 
-                onChange={(e) => setForm((f) => ({ ...f, reportType: e.target.value }))} 
+              <label className="block text-sm font-semibold text-ds-primary mb-2">
+                Type de rapport *
+              </label>
+              <select
+                required
+                value={form.reportType}
+                onChange={(e) => setForm((f) => ({ ...f, reportType: e.target.value }))}
                 className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 transition-all"
               >
                 {Object.entries(reportTypeConfig).map(([type, config]) => (
-                  <option key={type} value={type}>{config.label}</option>
+                  <option key={type} value={type}>
+                    {config.label}
+                  </option>
                 ))}
               </select>
             </div>
 
-            <div className="md:col-span-1">
-              {/* Spacer pour alignement */}
+            <div className="md:col-span-1">{/* Spacer pour alignement */}</div>
+
+            <div>
+              <label className="block text-sm font-semibold text-ds-primary mb-2">
+                Date début *
+              </label>
+              <input
+                type="date"
+                required
+                value={form.periodStart}
+                onChange={(e) => setForm((f) => ({ ...f, periodStart: e.target.value }))}
+                className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 transition-all"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-ds-primary mb-2">Date début *</label>
-              <input 
-                type="date" 
-                required 
-                value={form.periodStart} 
-                onChange={(e) => setForm((f) => ({ ...f, periodStart: e.target.value }))} 
-                className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 transition-all" 
-              />
-            </div>
-            
-            <div>
               <label className="block text-sm font-semibold text-ds-primary mb-2">Date fin *</label>
-              <input 
-                type="date" 
-                required 
-                value={form.periodEnd} 
-                onChange={(e) => setForm((f) => ({ ...f, periodEnd: e.target.value }))} 
-                className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 transition-all" 
+              <input
+                type="date"
+                required
+                value={form.periodEnd}
+                onChange={(e) => setForm((f) => ({ ...f, periodEnd: e.target.value }))}
+                className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 transition-all"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-ds-primary mb-2">Description (optionnel)</label>
-            <textarea 
-              rows={3} 
-              value={form.description} 
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} 
-              className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 transition-all resize-none" 
+            <label className="block text-sm font-semibold text-ds-primary mb-2">
+              Description (optionnel)
+            </label>
+            <textarea
+              rows={3}
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              className="w-full px-4 py-2.5 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500 transition-all resize-none"
               placeholder="Ajoutez des détails supplémentaires sur ce rapport..."
             />
           </div>
@@ -1066,9 +1208,9 @@ function UploadModal({
             <Button type="button" variant="secondary" onClick={onClose} className="px-6">
               Annuler
             </Button>
-            <Button 
-              type="submit" 
-              variant="primary" 
+            <Button
+              type="submit"
+              variant="primary"
               icon={<Upload className="w-4 h-4" />}
               className="px-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg font-semibold"
             >
@@ -1110,7 +1252,11 @@ function ReuploadModal({
               <p className="text-sm text-ds-muted mt-0.5">Remplacer le PDF du rapport</p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary transition-colors">
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1135,12 +1281,12 @@ function ReuploadModal({
               <Upload className="w-5 h-5 text-green-600" />
               Nouveau Fichier PDF *
             </label>
-            <input 
-              type="file" 
-              required 
-              accept=".pdf" 
-              onChange={(e) => setFile(e.target.files?.[0] || null)} 
-              className="w-full px-4 py-3 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer transition-all" 
+            <input
+              type="file"
+              required
+              accept=".pdf"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="w-full px-4 py-3 border-2 border-ds-border rounded-lg bg-ds-card text-ds-primary file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-green-600 file:text-white hover:file:bg-green-700 cursor-pointer transition-all"
             />
             {file && (
               <p className="text-sm text-green-600 dark:text-green-400 mt-2 font-medium flex items-center gap-1">
@@ -1160,7 +1306,8 @@ function ReuploadModal({
               <div>
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Attention</p>
                 <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                  Le fichier actuel sera remplacé de manière permanente. Cette action ne peut pas être annulée.
+                  Le fichier actuel sera remplacé de manière permanente. Cette action ne peut pas
+                  être annulée.
                 </p>
               </div>
             </div>
@@ -1170,9 +1317,9 @@ function ReuploadModal({
             <Button type="button" variant="secondary" onClick={onClose} className="px-6">
               Annuler
             </Button>
-            <Button 
-              type="submit" 
-              variant="primary" 
+            <Button
+              type="submit"
+              variant="primary"
               icon={<Upload className="w-4 h-4" />}
               className="px-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg font-semibold"
             >

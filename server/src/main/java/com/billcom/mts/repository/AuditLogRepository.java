@@ -61,6 +61,8 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
         Pageable pageable
     );
 
+    long countByUserId(Long userId);
+
     /**
      * Get all actions of a specific type (e.g., all TICKET_CREATED)
      */
@@ -87,17 +89,15 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     );
 
     /**
-     * Advanced search with multiple filters (used by AuditLogPage)
-     * 
-     * @param userId Filter by user (optional: pass null to ignore)
-     * @param entityType Filter by entity type (optional)
-     * @param action Filter by action type (optional)
-     * @param startDate Filter by start date (optional)
-     * @param endDate Filter by end date (optional)
-     * @param ipAddress Filter by IP address (optional)
+     * Advanced search with multiple filters (used by AuditLogPage).
+     *
+     * NOTE: we join-fetch the associated user to avoid LazyInitializationException
+     * when mapping AuditLog -> AuditLogResponse outside of the persistence context.
      */
-    @Query("SELECT a FROM AuditLog a WHERE " +
-           "(:userId IS NULL OR a.user.id = :userId) AND " +
+    @Query("SELECT a FROM AuditLog a " +
+           "LEFT JOIN FETCH a.user u " +
+           "WHERE " +
+           "(:userId IS NULL OR u.id = :userId) AND " +
            "(:entityType IS NULL OR a.entityType = :entityType) AND " +
            "(:action IS NULL OR a.action = :action) AND " +
            "(:startDate IS NULL OR a.timestamp >= :startDate) AND " +

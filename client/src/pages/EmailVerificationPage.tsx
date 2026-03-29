@@ -1,64 +1,93 @@
-// =============================================================================
-// MTS TELECOM - Email Verification Page (mock)
-// Shown after registration — "Vérifiez votre email" screen
-// Billcom Consulting - PFE 2026
-// =============================================================================
-
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Mail, RefreshCw, CheckCircle, ArrowRight, Inbox } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle, MailCheck, RefreshCw } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
 import { useToast } from "../context/ToastContext";
 import { authFlowService } from "../api/authFlowService";
+import { getErrorMessage } from "../api/client";
 
-// =============================================================================
-// TYPES
-// =============================================================================
-type PageState = "pending" | "resending" | "resent" | "verified";
+type PageState = "loading" | "verified" | "pending" | "invalid" | "error";
 
-// =============================================================================
-// COMPOSANT PRINCIPAL
-// =============================================================================
 const EmailVerificationPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const email = searchParams.get("email") || "";
+  const token = searchParams.get("token");
+  const pendingEmail = searchParams.get("email");
   const toast = useToast();
 
-  const [pageState, setPageState] = useState<PageState>("pending");
-  const [cooldown, setCooldown] = useState(0);
+  const normalizedEmail = useMemo(() => pendingEmail?.trim() ?? "", [pendingEmail]);
+  const [pageState, setPageState] = useState<PageState>(
+    token ? "loading" : normalizedEmail ? "pending" : "invalid",
+  );
+  const [resendLoading, setResendLoading] = useState(false);
 
-  // Cooldown timer for "Renvoyer" button
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => setCooldown((c) => c - 1), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
-
-  // ---------------------------------------------------------------------------
-  // Resend verification email (mock)
-  // ---------------------------------------------------------------------------
-  const handleResend = useCallback(async () => {
-    if (cooldown > 0) return;
-    setPageState("resending");
-    try {
-      // TODO: Remplacer par l'appel API réel POST /api/auth/resend-verification
-      await authFlowService.resendVerificationEmail(email);
-      setPageState("resent");
-      setCooldown(60); // 60 secondes avant de pouvoir renvoyer
-      toast.success("Un nouvel email de vérification a été envoyé.");
-    } catch {
-      setPageState("pending");
-      toast.error("Impossible d'envoyer l'email. Réessayez plus tard.");
+    if (!token) {
+      setPageState(normalizedEmail ? "pending" : "invalid");
+      return;
     }
-  }, [email, cooldown, toast]);
 
-  // ---------------------------------------------------------------------------
-  // Mask email for display
-  // ---------------------------------------------------------------------------
-  const maskedEmail = email
-    ? email.replace(/^(.{2})(.*)(@.*)$/, (_, a, b, c) => a + "*".repeat(Math.min(b.length, 5)) + c)
-    : "votre adresse";
+    let active = true;
+
+    const verify = async () => {
+      try {
+        await authFlowService.verifyEmail(token);
+        if (!active) return;
+        setPageState("verified");
+        toast.success("Votre adresse email a ete verifiee.");
+      } catch (error) {
+        if (!active) return;
+        setPageState("error");
+        toast.error(getErrorMessage(error));
+      }
+    };
+
+    verify();
+
+    return () => {
+      active = false;
+    };
+  }, [normalizedEmail, token, toast]);
+
+  const handleResend = async () => {
+    if (!normalizedEmail) {
+      toast.addToast("warning", "Renseignez un email valide pour recevoir un nouveau lien.");
+      return;
+    }
+
+    setResendLoading(true);
+    try {
+      await authFlowService.resendVerificationEmail(normalizedEmail);
+      setPageState("pending");
+      toast.success("Un nouvel email de verification a ete envoye.");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const title =
+    pageState === "verified"
+      ? "Email verifie"
+      : pageState === "pending"
+        ? "Verification en attente"
+        : pageState === "loading"
+          ? "Verification en cours"
+          : "Verification de l'email";
+
+  const description =
+    pageState === "loading"
+      ? "Verification du lien en cours..."
+      : pageState === "verified"
+        ? "Votre compte est maintenant confirme. Vous pouvez vous connecter a la plateforme."
+        : pageState === "pending"
+          ? normalizedEmail
+            ? `Un email de verification a ete envoye a ${normalizedEmail}. Consultez votre boite mail puis cliquez sur le lien recu.`
+            : "Un email de verification a ete envoye. Consultez votre boite mail."
+          : pageState === "error"
+            ? "Le lien de verification est invalide, expire ou deja utilise."
+            : "Ce lien n'est pas exploitable sans jeton de verification ou adresse email.";
 
   return (
     <AuthLayout>
@@ -68,103 +97,87 @@ const EmailVerificationPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
       >
-        {/* ---- Animated inbox icon ---- */}
         <motion.div
-          className="mx-auto mb-6 flex items-center justify-center w-20 h-20 rounded-full bg-primary-50 dark:bg-primary-900/30"
+          className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary-50 dark:bg-primary-900/30"
           initial={{ scale: 0.6, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.3, type: "spring", stiffness: 150 }}
         >
-          <Inbox size={36} className="text-primary-500" />
+          {pageState === "verified" ? (
+            <CheckCircle size={36} className="text-success-500" />
+          ) : pageState === "loading" || pageState === "pending" ? (
+            <MailCheck size={36} className="text-primary-500" />
+          ) : (
+            <AlertCircle size={36} className="text-warning" />
+          )}
         </motion.div>
 
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-ds-primary tracking-tight">
-          Vérifiez votre email
+        <h2 className="text-2xl font-extrabold tracking-tight text-ds-primary sm:text-3xl">
+          {title}
         </h2>
-        <p className="text-ds-muted mt-3 text-sm max-w-xs mx-auto">
-          Nous avons envoyé un lien de vérification à{" "}
-          <span className="font-semibold text-ds-secondary">{maskedEmail}</span>.
-        </p>
+        <p className="mx-auto mt-3 max-w-sm text-sm text-ds-muted">{description}</p>
       </motion.div>
 
-      {/* ---- Instructions card ---- */}
       <motion.div
-        className="mt-8 p-5 rounded-2xl bg-ds-elevated/50 border border-ds-border space-y-4"
+        className="mt-8 space-y-4 rounded-2xl border border-ds-border bg-ds-elevated/50 p-5"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45 }}
       >
         <div className="flex items-start gap-3">
-          <Mail size={18} className="text-primary-500 mt-0.5 flex-shrink-0" />
+          <MailCheck size={18} className="mt-0.5 flex-shrink-0 text-primary-500" />
           <div>
-            <p className="text-sm font-medium text-ds-primary">Consultez votre boîte de réception</p>
-            <p className="text-xs text-ds-muted mt-0.5">
-              Cliquez sur le lien dans l'email pour activer votre compte.
+            <p className="text-sm font-medium text-ds-primary">Lien de verification</p>
+            <p className="mt-0.5 text-xs text-ds-muted">
+              Le lien d'activation est limite dans le temps pour proteger le compte.
             </p>
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <RefreshCw size={18} className="text-ds-muted mt-0.5 flex-shrink-0" />
+          <AlertCircle size={18} className="mt-0.5 flex-shrink-0 text-ds-muted" />
           <div>
-            <p className="text-sm font-medium text-ds-primary">Pas reçu ?</p>
-            <p className="text-xs text-ds-muted mt-0.5">
-              Vérifiez vos spams ou renvoyez l'email ci-dessous.
+            <p className="text-sm font-medium text-ds-primary">Besoin d'assistance</p>
+            <p className="mt-0.5 text-xs text-ds-muted">
+              Verifiez egalement le dossier spam. Si le lien a expire, vous pouvez en demander un
+              nouveau.
             </p>
           </div>
         </div>
+
+        {(pageState === "pending" || pageState === "error") && normalizedEmail && (
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendLoading}
+            className="auth-btn-secondary inline-flex w-full items-center justify-center gap-2"
+          >
+            {resendLoading ? (
+              <>
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Renvoi en cours...
+              </>
+            ) : (
+              <>
+                <RefreshCw size={16} />
+                Renvoyer l'email de verification
+              </>
+            )}
+          </button>
+        )}
       </motion.div>
 
-      {/* ---- Resend button ---- */}
       <motion.div
         className="mt-6 space-y-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
       >
-        <button
-          type="button"
-          onClick={handleResend}
-          disabled={pageState === "resending" || cooldown > 0}
-          className="auth-btn-primary"
-        >
-          {pageState === "resending" ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-              Envoi en cours…
-            </>
-          ) : cooldown > 0 ? (
-            <>
-              <RefreshCw size={18} />
-              Renvoyer dans {cooldown}s
-            </>
-          ) : (
-            <>
-              <RefreshCw size={18} />
-              Renvoyer l'email de vérification
-            </>
-          )}
-        </button>
-
-        {/* Success feedback after resend */}
-        {pageState === "resent" && cooldown > 0 && (
-          <motion.div
-            className="flex items-center gap-2 justify-center text-sm text-success-600 dark:text-success-400"
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <CheckCircle size={16} />
-            Email renvoyé avec succès
-          </motion.div>
-        )}
-
-        {/* Link to login */}
         <p className="text-center text-sm text-ds-muted">
-          Déjà vérifié ?{" "}
           <Link
             to="/login"
-            className="inline-flex items-center gap-1 font-semibold text-accent-500 hover:text-accent-600 transition-colors"
+            className="inline-flex items-center gap-1 font-semibold text-accent-500 transition-colors hover:text-accent-600"
           >
-            Se connecter
+            Retour a la connexion
             <ArrowRight size={14} />
           </Link>
         </p>

@@ -185,38 +185,36 @@ function SlaTrendCard({ trend7 }: { trend7: DashboardStats["trendLast7Days"] }) 
         Respect SLA (7 derniers jours)
       </h3>
       <div className="flex flex-wrap gap-3">
-        {trend7 && trend7.length > 0 ? (
-          trend7.map((day, i) => {
-            const total = (day.created ?? 0) + (day.resolved ?? 0) || 1;
-            const rate = total ? Math.round(((day.resolved ?? 0) / total) * 100) : 0;
-            return (
+        {trend7 && trend7.length > 0
+          ? trend7.map((day, i) => {
+              const total = (day.created ?? 0) + (day.resolved ?? 0) || 1;
+              const rate = total ? Math.round(((day.resolved ?? 0) / total) * 100) : 0;
+              return (
+                <div
+                  key={day.date ?? i}
+                  className={`flex flex-col items-center justify-center w-20 h-20 rounded-xl ${COMPLIANCE_COLOR(rate)}/20 border border-ds-border`}
+                >
+                  <span className="text-lg font-bold text-ds-primary">{rate}%</span>
+                  <span className="text-xs text-ds-secondary">
+                    {day.date
+                      ? new Date(day.date).toLocaleDateString("fr-FR", {
+                          day: "2-digit",
+                          month: "short",
+                        })
+                      : `J${i + 1}`}
+                  </span>
+                </div>
+              );
+            })
+          : Array.from({ length: 7 }, (_, i) => (
               <div
-                key={day.date ?? i}
-                className={`flex flex-col items-center justify-center w-20 h-20 rounded-xl ${COMPLIANCE_COLOR(rate)}/20 border border-ds-border`}
+                key={i}
+                className="flex flex-col items-center justify-center w-20 h-20 rounded-xl bg-amber-500/10 border border-amber-500/30"
               >
-                <span className="text-lg font-bold text-ds-primary">{rate}%</span>
-                <span className="text-xs text-ds-secondary">
-                  {day.date
-                    ? new Date(day.date).toLocaleDateString("fr-FR", {
-                        day: "2-digit",
-                        month: "short",
-                      })
-                    : `J${i + 1}`}
-                </span>
+                <span className="text-lg font-bold text-ds-primary">—</span>
+                <span className="text-xs text-ds-secondary">J{7 - i}</span>
               </div>
-            );
-          })
-        ) : (
-          Array.from({ length: 7 }, (_, i) => (
-            <div
-              key={i}
-              className="flex flex-col items-center justify-center w-20 h-20 rounded-xl bg-amber-500/10 border border-amber-500/30"
-            >
-              <span className="text-lg font-bold text-ds-primary">—</span>
-              <span className="text-xs text-ds-secondary">J{7 - i}</span>
-            </div>
-          ))
-        )}
+            ))}
       </div>
       <div className="mt-4 flex flex-wrap gap-4 text-sm text-ds-secondary">
         <span className="flex items-center gap-1.5">
@@ -439,7 +437,9 @@ function EscalationRulesPanel() {
                       <Badge variant="default">Niveau {rule.escalationLevel}</Badge>
                     </div>
                     {rule.description && (
-                      <p className="text-sm text-ds-secondary mt-0.5 truncate">{rule.description}</p>
+                      <p className="text-sm text-ds-secondary mt-0.5 truncate">
+                        {rule.description}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -481,7 +481,9 @@ function EscalationRulesPanel() {
                   </div>
                   <div>
                     <span className="text-ds-secondary">Priorité cible</span>
-                    <p className="font-medium text-ds-primary">{rule.changePriority || "Inchangée"}</p>
+                    <p className="font-medium text-ds-primary">
+                      {rule.changePriority || "Inchangée"}
+                    </p>
                   </div>
                   <div>
                     <span className="text-ds-secondary">Filtre priorité</span>
@@ -543,9 +545,7 @@ function EscalationRulesPanel() {
               label="Niveau d'escalade"
               type="number"
               value={String(form.escalationLevel)}
-              onChange={(e) =>
-                setForm({ ...form, escalationLevel: parseInt(e.target.value) || 1 })
-              }
+              onChange={(e) => setForm({ ...form, escalationLevel: parseInt(e.target.value) || 1 })}
               min={1}
               max={5}
             />
@@ -560,9 +560,7 @@ function EscalationRulesPanel() {
             <Select
               label="Changer la priorité en"
               value={form.changePriority ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, changePriority: e.target.value || undefined })
-              }
+              onChange={(e) => setForm({ ...form, changePriority: e.target.value || undefined })}
               options={[
                 { value: "", label: "Ne pas changer" },
                 { value: "CRITICAL", label: "Critique" },
@@ -574,9 +572,7 @@ function EscalationRulesPanel() {
             <Select
               label="Filtre priorité"
               value={form.priorityFilter ?? ""}
-              onChange={(e) =>
-                setForm({ ...form, priorityFilter: e.target.value || undefined })
-              }
+              onChange={(e) => setForm({ ...form, priorityFilter: e.target.value || undefined })}
               options={[
                 { value: "", label: "Toutes les priorités" },
                 { value: "CRITICAL", label: "Critique uniquement" },
@@ -671,13 +667,12 @@ function BusinessHoursPanel() {
                       </Badge>
                     </div>
                     <p className="text-sm text-ds-secondary mt-0.5">
-                      {bh.startHour}h — {bh.endHour}h · {formatWorkDays(bh.workDays)} · {bh.timezone}
+                      {bh.startHour}h — {bh.endHour}h · {formatWorkDays(bh.workDays)} ·{" "}
+                      {bh.timezone}
                     </p>
                   </div>
                 </div>
-                <div className="text-sm text-ds-secondary">
-                  {bh.endHour - bh.startHour}h/jour
-                </div>
+                <div className="text-sm text-ds-secondary">{bh.endHour - bh.startHour}h/jour</div>
               </div>
             </Card>
           ))}
@@ -712,7 +707,7 @@ function SlaPoliciesList() {
   const sorted = [...policies].sort(
     (a, b) =>
       (priorityOrder[a.priority as keyof typeof priorityOrder] ?? 9) -
-      (priorityOrder[b.priority as keyof typeof priorityOrder] ?? 9)
+      (priorityOrder[b.priority as keyof typeof priorityOrder] ?? 9),
   );
 
   return (
@@ -746,10 +741,10 @@ function SlaPoliciesList() {
                         p.priority === "CRITICAL"
                           ? "danger"
                           : p.priority === "HIGH"
-                          ? "warning"
-                          : p.priority === "MEDIUM"
-                          ? "info"
-                          : "default"
+                            ? "warning"
+                            : p.priority === "MEDIUM"
+                              ? "info"
+                              : "default"
                       }
                     >
                       {p.priority}
@@ -757,9 +752,7 @@ function SlaPoliciesList() {
                   </td>
                   <td className="py-2.5 pr-4 text-ds-secondary">{p.responseTimeHours ?? "—"}h</td>
                   <td className="py-2.5 pr-4 text-ds-secondary">{p.resolutionTimeHours}h</td>
-                  <td className="py-2.5 pr-4 text-ds-secondary">
-                    {p.businessHoursName ?? "24/7"}
-                  </td>
+                  <td className="py-2.5 pr-4 text-ds-secondary">{p.businessHoursName ?? "24/7"}</td>
                   <td className="py-2.5">
                     <Badge variant={p.active ? "success" : "default"}>
                       {p.active ? "Active" : "Inactive"}
@@ -845,9 +838,7 @@ export default function SlaPage() {
                 <p className="text-xs text-ds-secondary uppercase tracking-wider mb-1">
                   Règles actives
                 </p>
-                <p className="text-3xl font-bold text-ds-primary">
-                  {escalation.activeRulesCount}
-                </p>
+                <p className="text-3xl font-bold text-ds-primary">{escalation.activeRulesCount}</p>
               </Card>
               <Card padding="md" className="text-center">
                 <p className="text-xs text-ds-secondary uppercase tracking-wider mb-1">

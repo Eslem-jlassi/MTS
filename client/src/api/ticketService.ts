@@ -6,7 +6,6 @@ import api from "./client";
 import {
   Ticket,
   CreateTicketRequest,
-  UpdateTicketRequest,
   TicketStatusChangeRequest,
   TicketAssignRequest,
   TicketComment,
@@ -26,16 +25,22 @@ export interface BulkResult {
 
 const TICKETS_PREFIX = "/tickets";
 
+const mapTicketComments = (ticket: Ticket): TicketComment[] =>
+  (ticket.comments ?? []).map((comment) => ({
+    ...comment,
+    ticketId: ticket.id,
+  }));
+
 export const ticketService = {
   /**
    * Get all tickets with optional filters and pagination
    */
   getTickets: async (
     filters?: TicketFilterParams,
-    page?: PageRequest
+    page?: PageRequest,
   ): Promise<PageResponse<Ticket>> => {
     const params = new URLSearchParams();
-    
+
     if (filters) {
       Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== "") {
@@ -43,14 +48,14 @@ export const ticketService = {
         }
       });
     }
-    
+
     if (page) {
       if (page.page !== undefined) params.append("page", String(page.page));
       if (page.size !== undefined) params.append("size", String(page.size));
       if (page.sort) params.append("sort", page.sort);
       if (page.direction) params.append("direction", page.direction);
     }
-    
+
     const response = await api.get<PageResponse<Ticket>>(TICKETS_PREFIX, { params });
     return response.data;
   },
@@ -80,11 +85,17 @@ export const ticketService = {
   },
 
   /**
-   * Update ticket
+   * Cancel ticket logically (client-owned, backend validates business rules)
    */
-  updateTicket: async (id: number, request: UpdateTicketRequest): Promise<Ticket> => {
-    const response = await api.put<Ticket>(`${TICKETS_PREFIX}/${id}`, request);
-    return response.data;
+  deleteTicket: async (id: number): Promise<void> => {
+    await api.delete(`${TICKETS_PREFIX}/${id}`);
+  },
+
+  /**
+   * Permanently delete ticket (admin only, strict backend safety checks)
+   */
+  hardDeleteTicket: async (id: number): Promise<void> => {
+    await api.delete(`${TICKETS_PREFIX}/${id}/hard-delete`);
   },
 
   /**
@@ -120,7 +131,9 @@ export const ticketService = {
       if (page.page !== undefined) params.append("page", String(page.page));
       if (page.size !== undefined) params.append("size", String(page.size));
     }
-    const response = await api.get<PageResponse<Ticket>>(`${TICKETS_PREFIX}/my-tickets`, { params });
+    const response = await api.get<PageResponse<Ticket>>(`${TICKETS_PREFIX}/my-tickets`, {
+      params,
+    });
     return response.data;
   },
 
@@ -138,28 +151,25 @@ export const ticketService = {
   },
 
   /**
-   * Get unassigned tickets
+   * Get unassigned tickets for staff supervision
    */
-  getUnassignedTickets: async (page?: PageRequest): Promise<PageResponse<Ticket>> => {
+  getUnassigned: async (page?: PageRequest): Promise<PageResponse<Ticket>> => {
     const params = new URLSearchParams();
     if (page) {
       if (page.page !== undefined) params.append("page", String(page.page));
       if (page.size !== undefined) params.append("size", String(page.size));
     }
-    const response = await api.get<PageResponse<Ticket>>(`${TICKETS_PREFIX}/unassigned`, { params });
+    const response = await api.get<PageResponse<Ticket>>(`${TICKETS_PREFIX}/unassigned`, {
+      params,
+    });
     return response.data;
   },
 
   /**
    * Get SLA breached tickets
    */
-  getSlaBreachedTickets: async (page?: PageRequest): Promise<PageResponse<Ticket>> => {
-    const params = new URLSearchParams();
-    if (page) {
-      if (page.page !== undefined) params.append("page", String(page.page));
-      if (page.size !== undefined) params.append("size", String(page.size));
-    }
-    const response = await api.get<PageResponse<Ticket>>(`${TICKETS_PREFIX}/sla-breached`, { params });
+  getSlaBreachedTickets: async (): Promise<Ticket[]> => {
+    const response = await api.get<Ticket[]>(`${TICKETS_PREFIX}/sla-breached`);
     return response.data;
   },
 
@@ -172,15 +182,34 @@ export const ticketService = {
    */
   getComments: async (ticketId: number): Promise<TicketComment[]> => {
     const response = await api.get<TicketComment[]>(`${TICKETS_PREFIX}/${ticketId}/comments`);
-    return response.data;
+    return response.data.map((comment) => ({
+      ...comment,
+      ticketId,
+    }));
   },
 
   /**
    * Add comment to ticket
    */
   addComment: async (ticketId: number, request: CreateCommentRequest): Promise<TicketComment> => {
-    const response = await api.post<TicketComment>(`${TICKETS_PREFIX}/${ticketId}/comments`, request);
-    return response.data;
+    const response = await api.post<Ticket>(`${TICKETS_PREFIX}/${ticketId}/comments`, request);
+    const comments = mapTicketComments(response.data).sort((left, right) => {
+      const leftTime = new Date(left.createdAt).getTime();
+      const rightTime = new Date(right.createdAt).getTime();
+
+      if (leftTime !== rightTime) {
+        return leftTime - rightTime;
+      }
+
+      return left.id - right.id;
+    });
+
+    const latestComment = comments.at(-1);
+    if (!latestComment) {
+      throw new Error("Le commentaire a ete cree mais la reponse ne contient aucun commentaire.");
+    }
+
+    return latestComment;
   },
 
   // =========================================================================
@@ -203,9 +232,12 @@ export const ticketService = {
    * Download attachment (returns blob; caller can create object URL or trigger save)
    */
   downloadAttachment: async (ticketId: number, attachmentId: number): Promise<Blob> => {
-    const response = await api.get(`${TICKETS_PREFIX}/${ticketId}/attachments/${attachmentId}/download`, {
-      responseType: "blob",
-    });
+    const response = await api.get(
+      `${TICKETS_PREFIX}/${ticketId}/attachments/${attachmentId}/download`,
+      {
+        responseType: "blob",
+      },
+    );
     return response.data as Blob;
   },
 
@@ -218,14 +250,21 @@ export const ticketService = {
    */
   getHistory: async (ticketId: number): Promise<TicketHistory[]> => {
     const response = await api.get<TicketHistory[]>(`${TICKETS_PREFIX}/${ticketId}/history`);
-    return response.data;
+    return response.data.map((entry) => ({
+      ...entry,
+      ticketId,
+    }));
   },
 
   // =========================================================================
   // BULK & EXPORT & MACROS
   // =========================================================================
 
-  bulkAssign: async (ticketIds: number[], agentId: number, comment?: string): Promise<BulkResult> => {
+  bulkAssign: async (
+    ticketIds: number[],
+    agentId: number,
+    comment?: string,
+  ): Promise<BulkResult> => {
     const response = await api.post<BulkResult>(`${TICKETS_PREFIX}/bulk/assign`, {
       ticketIds,
       agentId,
@@ -237,7 +276,7 @@ export const ticketService = {
   bulkStatus: async (
     ticketIds: number[],
     newStatus: string,
-    comment?: string
+    comment?: string,
   ): Promise<BulkResult> => {
     const response = await api.post<BulkResult>(`${TICKETS_PREFIX}/bulk/status`, {
       ticketIds,
@@ -307,7 +346,7 @@ export const ticketService = {
     ticketId: number,
     macroId: number,
     targetField?: "solution" | "comment",
-    isInternal?: boolean
+    isInternal?: boolean,
   ): Promise<Ticket> => {
     const response = await api.post<Ticket>(`${TICKETS_PREFIX}/${ticketId}/apply-macro`, {
       macroId,

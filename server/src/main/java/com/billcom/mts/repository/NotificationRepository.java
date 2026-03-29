@@ -162,4 +162,16 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
            "AND n.isRead = true AND n.createdAt < :olderThan")
     int deleteOldReadNotifications(@Param("userId") Long userId, 
                                     @Param("olderThan") LocalDateTime olderThan);
+
+    /**
+     * Supprime toutes les notifications d'un utilisateur.
+     */
+    @Modifying
+    @Query("DELETE FROM Notification n WHERE n.user.id = :userId")
+    int deleteByUserId(@Param("userId") Long userId);
+
+    /**
+     * Supprime toutes les notifications liees a une reference metier.
+     */
+    long deleteByReferenceTypeAndReferenceId(String referenceType, Long referenceId);
 }

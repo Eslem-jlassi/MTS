@@ -46,11 +46,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const openIncidents = stats.activeTickets;
 
   useEffect(() => {
-    slaService.count().then(setSlaPolicyCount).catch(() => setSlaPolicyCount(0));
+    slaService
+      .count()
+      .then(setSlaPolicyCount)
+      .catch(() => setSlaPolicyCount(0));
   }, []);
 
   useEffect(() => {
-    api.get<{ count: number }>("/users/count")
+    api
+      .get<{ count: number }>("/users/count")
       .then((res) => setUsersCount(res.data.count))
       .catch(() => setUsersCount(0));
   }, []);
@@ -64,7 +68,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       .finally(() => setLoadingAudit(false));
   }, []);
 
-  const operationalCount = services.filter((s) => s.status === "OPERATIONNEL" || s.status === "UP").length;
+  const operationalCount = services.filter(
+    (s) => s.status === "OPERATIONNEL" || s.status === "UP",
+  ).length;
   const degradedOrDown = services.length - operationalCount;
 
   /**
@@ -99,7 +105,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       CLIENT: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
       CATEGORY: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
     };
-    const color = colors[entityType] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
+    const color =
+      colors[entityType] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
     return <span className={`px-2 py-0.5 rounded text-xs font-medium ${color}`}>{entityType}</span>;
   };
 
@@ -206,7 +213,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Utilisateurs */}
           <Link to="/users">
-            <Card padding="md" className="h-full border-primary/20 hover:shadow-card-hover transition-all group">
+            <Card
+              padding="md"
+              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -217,14 +227,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-lg font-bold text-ds-primary">Utilisateurs</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-ds-muted group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={18}
+                  className="text-ds-muted group-hover:translate-x-1 transition-transform"
+                />
               </div>
             </Card>
           </Link>
 
           {/* Rôles */}
           <Link to="/users?tab=roles">
-            <Card padding="md" className="h-full border-primary/20 hover:shadow-card-hover transition-all group">
+            <Card
+              padding="md"
+              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -235,14 +251,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-lg font-bold text-ds-primary">Rôles</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-ds-muted group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={18}
+                  className="text-ds-muted group-hover:translate-x-1 transition-transform"
+                />
               </div>
             </Card>
           </Link>
 
           {/* Services */}
           <Link to="/services">
-            <Card padding="md" className="h-full border-primary/20 hover:shadow-card-hover transition-all group">
+            <Card
+              padding="md"
+              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -253,14 +275,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-lg font-bold text-ds-primary">Services</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-ds-muted group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={18}
+                  className="text-ds-muted group-hover:translate-x-1 transition-transform"
+                />
               </div>
             </Card>
           </Link>
 
           {/* SLA Policies */}
           <Link to="/sla-policies">
-            <Card padding="md" className="h-full border-primary/20 hover:shadow-card-hover transition-all group">
+            <Card
+              padding="md"
+              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -271,14 +299,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-lg font-bold text-ds-primary">SLA</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-ds-muted group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={18}
+                  className="text-ds-muted group-hover:translate-x-1 transition-transform"
+                />
               </div>
             </Card>
           </Link>
 
           {/* Catégories */}
           <Link to="/categories">
-            <Card padding="md" className="h-full border-primary/20 hover:shadow-card-hover transition-all group">
+            <Card
+              padding="md"
+              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -289,14 +323,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-lg font-bold text-ds-primary">Catégories</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-ds-muted group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={18}
+                  className="text-ds-muted group-hover:translate-x-1 transition-transform"
+                />
               </div>
             </Card>
           </Link>
 
           {/* Settings */}
           <Link to="/settings">
-            <Card padding="md" className="h-full border-ds-border hover:shadow-card-hover transition-all group">
+            <Card
+              padding="md"
+              className="h-full border-ds-border hover:shadow-card-hover transition-all group"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-ds-elevated text-ds-secondary">
@@ -307,7 +347,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <p className="text-lg font-bold text-ds-primary">Paramètres</p>
                   </div>
                 </div>
-                <ArrowRight size={18} className="text-ds-muted group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={18}
+                  className="text-ds-muted group-hover:translate-x-1 transition-transform"
+                />
               </div>
             </Card>
           </Link>
@@ -376,10 +419,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     {getEntityBadge(entry.entityType)}
-                    <span className="text-xs text-ds-muted">{formatRelativeTime(entry.timestamp)}</span>
+                    <span className="text-xs text-ds-muted">
+                      {formatRelativeTime(entry.timestamp)}
+                    </span>
                   </div>
-                  <p className="text-sm text-ds-primary font-medium">{entry.actionLabel || entry.action}</p>
-                  {entry.description && <p className="text-xs text-ds-secondary mt-1">{entry.description}</p>}
+                  <p className="text-sm text-ds-primary font-medium">
+                    {entry.actionLabel || entry.action}
+                  </p>
+                  {entry.description && (
+                    <p className="text-xs text-ds-secondary mt-1">{entry.description}</p>
+                  )}
                   {entry.userEmail && (
                     <p className="text-xs text-ds-muted mt-1">
                       Par : <span className="font-medium">{entry.userEmail}</span>

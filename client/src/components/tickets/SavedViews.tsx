@@ -3,7 +3,7 @@
 // =============================================================================
 /**
  * Barre de vues rapides en tabs au-dessus de la liste des tickets.
- * 
+ *
  * VUES DISPONIBLES:
  * - Tous: aucun filtre
  * - Non assignés: status = NEW, pas d'assigné
@@ -11,26 +11,13 @@
  * - Critiques: priority = CRITICAL
  * - En attente client: status = PENDING
  * - Escaladés: status = ESCALATED
- * 
+ *
  * Chaque vue peut afficher un badge de compteur.
  */
 
 import React from "react";
-import {
-  Inbox,
-  AlertTriangle,
-  Clock,
-  Flame,
-  UserX,
-  ArrowUpRight,
-  List,
-} from "lucide-react";
-import {
-  TicketFilterParams,
-  TicketStatus,
-  TicketPriority,
-  SavedView,
-} from "../../types";
+import { Inbox, AlertTriangle, Clock, Flame, UserX, ArrowUpRight, List } from "lucide-react";
+import { TicketFilterParams, TicketStatus, TicketPriority, SavedView } from "../../types";
 
 // =============================================================================
 // VUES PRÉDÉFINIES
@@ -92,11 +79,7 @@ interface SavedViewsProps {
   viewCounts?: Record<string, number>;
 }
 
-const SavedViews: React.FC<SavedViewsProps> = ({
-  activeView,
-  onViewChange,
-  viewCounts,
-}) => {
+const SavedViews: React.FC<SavedViewsProps> = ({ activeView, onViewChange, viewCounts }) => {
   return (
     <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin" role="tablist">
       {SAVED_VIEWS.map((view) => {
@@ -113,9 +96,10 @@ const SavedViews: React.FC<SavedViewsProps> = ({
             className={`
               flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg
               whitespace-nowrap transition-all duration-200
-              ${isActive
-                ? "bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 shadow-sm"
-                : "text-ds-muted hover:text-ds-primary hover:bg-ds-elevated"
+              ${
+                isActive
+                  ? "bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 shadow-sm"
+                  : "text-ds-muted hover:text-ds-primary hover:bg-ds-elevated"
               }
             `}
           >
@@ -128,9 +112,10 @@ const SavedViews: React.FC<SavedViewsProps> = ({
                 className={`
                   ml-1 min-w-[18px] h-[18px] px-1 inline-flex items-center justify-center
                   text-[10px] font-bold rounded-full
-                  ${isActive
-                    ? "bg-primary-200 text-primary-800 dark:bg-primary-800 dark:text-primary-200"
-                    : "bg-ds-elevated text-ds-muted"
+                  ${
+                    isActive
+                      ? "bg-primary-200 text-primary-800 dark:bg-primary-800 dark:text-primary-200"
+                      : "bg-ds-elevated text-ds-muted"
                   }
                 `}
               >

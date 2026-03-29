@@ -29,10 +29,7 @@ const Input: React.FC<InputProps> = ({
   return (
     <div className={fullWidth ? "w-full" : ""}>
       {label && (
-        <label
-          htmlFor={inputId}
-          className="block text-sm font-medium text-ds-primary mb-1.5"
-        >
+        <label htmlFor={inputId} className="block text-sm font-medium text-ds-primary mb-1.5">
           {label}
         </label>
       )}

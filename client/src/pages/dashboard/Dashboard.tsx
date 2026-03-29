@@ -44,54 +44,68 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string>();
 
-  const fetchData = useCallback(async (isRefresh = false, filters?: DashboardFilters) => {
-    try {
-      if (isRefresh) setRefreshing(true);
-      setError(null);
-      const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
-      const statsData = isAdmin
-        ? await dashboardService.getStats(filters)
-        : await dashboardService.getMyStats();
-      setStats(statsData);
+  const fetchData = useCallback(
+    async (isRefresh = false, filters?: DashboardFilters) => {
+      try {
+        if (isRefresh) setRefreshing(true);
+        setError(null);
+        const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER;
+        const statsData = isAdmin
+          ? await dashboardService.getStats(filters)
+          : await dashboardService.getMyStats();
+        setStats(statsData);
 
-      // CLIENT → /my-tickets, AGENT → /assigned, ADMIN/MANAGER → /tickets (all)
-      if (user?.role === UserRole.CLIENT) {
-        const ticketsRes = await ticketService.getMyTickets({ page: 0, size: 10 });
-        setRecentTickets(ticketsRes.content ?? []);
-      } else if (user?.role === UserRole.AGENT) {
-        const ticketsRes = await ticketService.getAssignedToMe({ page: 0, size: 10 });
-        setRecentTickets(ticketsRes.content ?? []);
-      } else if (user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER) {
-        const ticketsRes = await ticketService.getTickets({}, { page: 0, size: 10 });
-        setRecentTickets(ticketsRes.content ?? []);
-      }
+        // CLIENT → /my-tickets, AGENT → /assigned, ADMIN/MANAGER → /tickets (all)
+        if (user?.role === UserRole.CLIENT) {
+          const ticketsRes = await ticketService.getMyTickets({ page: 0, size: 10 });
+          setRecentTickets(ticketsRes.content ?? []);
+        } else if (user?.role === UserRole.AGENT) {
+          const ticketsRes = await ticketService.getAssignedToMe({ page: 0, size: 10 });
+          setRecentTickets(ticketsRes.content ?? []);
+        } else if (user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER) {
+          const ticketsRes = await ticketService.getTickets({}, { page: 0, size: 10 });
+          setRecentTickets(ticketsRes.content ?? []);
+        }
 
-      // Fetch services for ADMIN, MANAGER, and CLIENT dashboards
-      if (user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER || user?.role === UserRole.CLIENT) {
-        try {
-          const svcRes = (user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER)
-            ? await telecomServiceService.getServices({ page: 0, size: 100 })
-            : await telecomServiceService.getActiveServices();
-          setServices(Array.isArray(svcRes) ? svcRes : svcRes.content ?? []);
-        } catch { /* services are optional for dashboard */ }
-      }
+        // Fetch services for ADMIN, MANAGER, and CLIENT dashboards
+        if (
+          user?.role === UserRole.ADMIN ||
+          user?.role === UserRole.MANAGER ||
+          user?.role === UserRole.CLIENT
+        ) {
+          try {
+            const svcRes =
+              user?.role === UserRole.ADMIN || user?.role === UserRole.MANAGER
+                ? await telecomServiceService.getServices({ page: 0, size: 100 })
+                : await telecomServiceService.getActiveServices();
+            setServices(Array.isArray(svcRes) ? svcRes : (svcRes.content ?? []));
+          } catch {
+            /* services are optional for dashboard */
+          }
+        }
 
-      // Fetch clients for MANAGER dashboard filters
-      if (user?.role === UserRole.MANAGER || user?.role === UserRole.ADMIN) {
-        try {
-          const clientsRes = await clientService.getClients({ page: 0, size: 100 });
-          setClients((clientsRes.content ?? []).map((c) => ({ id: c.id, companyName: c.companyName })));
-        } catch { /* clients are optional */ }
+        // Fetch clients for MANAGER dashboard filters
+        if (user?.role === UserRole.MANAGER || user?.role === UserRole.ADMIN) {
+          try {
+            const clientsRes = await clientService.getClients({ page: 0, size: 100 });
+            setClients(
+              (clientsRes.content ?? []).map((c) => ({ id: c.id, companyName: c.companyName })),
+            );
+          } catch {
+            /* clients are optional */
+          }
+        }
+        setLastUpdated(new Date().toISOString());
+      } catch (err) {
+        console.error("Failed to load dashboard data:", err);
+        setError("Impossible de charger le tableau de bord. Vérifiez votre connexion.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-      setLastUpdated(new Date().toISOString());
-    } catch (err) {
-      console.error("Failed to load dashboard data:", err);
-      setError("Impossible de charger le tableau de bord. Vérifiez votre connexion.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user?.role]);
+    },
+    [user?.role],
+  );
 
   useEffect(() => {
     fetchData();
@@ -110,11 +124,7 @@ const Dashboard: React.FC = () => {
   if (error) {
     return (
       <div className="p-6">
-        <ErrorState
-          title="Erreur de chargement"
-          message={error}
-          onRetry={() => fetchData()}
-        />
+        <ErrorState title="Erreur de chargement" message={error} onRetry={() => fetchData()} />
       </div>
     );
   }

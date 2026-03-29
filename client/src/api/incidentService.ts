@@ -11,7 +11,12 @@ const PREFIX = "/incidents";
 /** Backend may return Incident[] or PageResponse<Incident>. Normalize to array. */
 function toList(data: unknown): Incident[] {
   if (Array.isArray(data)) return data;
-  if (data && typeof data === "object" && "content" in data && Array.isArray((data as PageResponse<Incident>).content)) {
+  if (
+    data &&
+    typeof data === "object" &&
+    "content" in data &&
+    Array.isArray((data as PageResponse<Incident>).content)
+  ) {
     return (data as PageResponse<Incident>).content;
   }
   return [];
@@ -162,6 +167,14 @@ export const incidentService = {
 
   unlinkService: async (id: number, serviceId: number): Promise<Incident> => {
     const response = await api.delete<Incident>(`${PREFIX}/${id}/services/${serviceId}`);
+    return response.data;
+  },
+
+  /**
+   * Delete critically an incident (ADMIN only)
+   */
+  hardDeleteIncident: async (id: number): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(`${PREFIX}/${id}/hard-delete`);
     return response.data;
   },
 };

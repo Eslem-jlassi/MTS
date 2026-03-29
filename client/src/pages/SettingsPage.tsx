@@ -1,10 +1,8 @@
 // =============================================================================
-// MTS TELECOM - Settings Page Entreprise (4 sections)
-// Sections: Profil, Préférences, Notifications, Sécurité
-// Billcom Consulting - PFE 2026
+// MTS TELECOM - Settings Page
 // =============================================================================
 
-import React, { useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   User as UserIcon,
   Sun,
@@ -18,44 +16,32 @@ import {
   Mail,
   Key,
   Monitor,
-  Clock,
   Check,
 } from "lucide-react";
+import { useDispatch } from "react-redux";
 import { Card, Button, Tabs, Input } from "../components/ui";
 import type { Tab } from "../components/ui";
 import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 import { useToast } from "../context/ToastContext";
 import { userService } from "../api/userService";
-import type { User } from "../types";
+import { authStorage } from "../api/authStorage";
+import { setUser } from "../redux/slices/authSlice";
+import type { NotificationPreferences, User } from "../types";
 import { getErrorMessage } from "../api/client";
-
-// =============================================================================
-// TYPES
-// =============================================================================
+import {
+  getPasswordConfirmationError,
+  getPasswordValidationError,
+} from "../utils/passwordValidation";
 
 interface ProfileForm {
   fullName: string;
   phone: string;
-  supportSignature: string;
 }
 
 interface PreferencesForm {
   language: "fr" | "en";
   theme: "light" | "dark";
-  timezone: string;
-}
-
-interface NotificationPrefs {
-  emailTicketAssigned: boolean;
-  emailTicketEscalation: boolean;
-  emailSlaWarning: boolean;
-  emailIncident: boolean;
-  emailReport: boolean;
-  pushTicketAssigned: boolean;
-  pushTicketEscalation: boolean;
-  pushSlaWarning: boolean;
-  pushIncident: boolean;
-  pushReport: boolean;
 }
 
 interface PasswordForm {
@@ -64,230 +50,225 @@ interface PasswordForm {
   confirmPassword: string;
 }
 
-// =============================================================================
-// COMPOSANT PRINCIPAL
-// =============================================================================
+const defaultNotificationPrefs: NotificationPreferences = {
+  emailTicketAssigned: true,
+  emailTicketEscalation: true,
+  emailSlaWarning: true,
+  emailIncident: true,
+  emailReport: false,
+  pushTicketAssigned: true,
+  pushTicketEscalation: true,
+  pushSlaWarning: true,
+  pushIncident: true,
+  pushReport: false,
+};
 
-/**
- * SettingsPage - Page de paramètres utilisateur professionnelle.
- *
- * 4 SECTIONS :
- * 1. Profil : avatar, nom, téléphone, signature support (selon rôle)
- * 2. Préférences : langue, thème, fuseau horaire
- * 3. Notifications : granularité email/push par type d'événement
- * 4. Sécurité : changement mot de passe, sessions actives (mock)
- *
- * FONCTIONNALITÉS :
- * - Save states par section (bouton Sauvegarder + toasts)
- * - Validation formulaire propre
- * - Chargement des données utilisateur au mount
- * - Avatar upload placeholder
- */
 export default function SettingsPage() {
+  const dispatch = useDispatch();
   const { theme, setTheme } = useTheme();
-  const { addToast } = useToast();
+  const { language, setLanguage } = useLanguage();
+  const toast = useToast();
 
-  // ---- Tabs ----
   const [activeTab, setActiveTab] = useState("profile");
-
-  // ---- Profil ----
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileForm>({
     fullName: "",
     phone: "",
-    supportSignature: "",
   });
-  const [profileSaving, setProfileSaving] = useState(false);
-
-  // ---- Préférences ----
   const [prefsForm, setPrefsForm] = useState<PreferencesForm>({
-    language: "fr",
-    theme: "light",
-    timezone: "Europe/Paris",
+    language,
+    theme,
   });
-  const [prefsSaving, setPrefsSaving] = useState(false);
-
-  // ---- Notifications ----
-  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>({
-    emailTicketAssigned: true,
-    emailTicketEscalation: true,
-    emailSlaWarning: true,
-    emailIncident: true,
-    emailReport: false,
-    pushTicketAssigned: true,
-    pushTicketEscalation: true,
-    pushSlaWarning: true,
-    pushIncident: true,
-    pushReport: false,
-  });
-  const [notifSaving, setNotifSaving] = useState(false);
-
-  // ---- Sécurité ----
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>(defaultNotificationPrefs);
   const [passwordForm, setPasswordForm] = useState<PasswordForm>({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [prefsSaving, setPrefsSaving] = useState(false);
+  const [notifSaving, setNotifSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
-  // ==========================================================================
-  // CHARGEMENT INITIAL
-  // ==========================================================================
+  const syncAuthenticatedUser = useCallback(
+    (user: User) => {
+      setCurrentUser(user);
+      authStorage.updateStoredUser(user);
+      dispatch(setUser(user));
+    },
+    [dispatch],
+  );
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
-      const user = await userService.getProfile();
+      const [user, notificationPreferences] = await Promise.all([
+        userService.getProfile(),
+        userService.getNotificationPreferences().catch(() => defaultNotificationPrefs),
+      ]);
+
       setCurrentUser(user);
       setProfileForm({
         fullName: user.fullName || "",
         phone: user.phone || "",
-        supportSignature: user.supportSignature || "",
       });
       setPrefsForm({
-        language: (user.preferredLanguage as "fr" | "en") || "fr",
-        theme: theme,
-        timezone: "Europe/Paris",
+        language,
+        theme,
+      });
+      setNotifPrefs({
+        ...defaultNotificationPrefs,
+        ...notificationPreferences,
       });
     } catch (error) {
-      addToast("error", getErrorMessage(error));
+      toast.error(getErrorMessage(error));
     }
-  };
+  }, [language, theme, toast]);
 
-  // ==========================================================================
-  // HANDLERS PROFIL
-  // ==========================================================================
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   const handleProfileSave = async () => {
     if (!profileForm.fullName.trim()) {
-      addToast("warning", "Le nom complet est requis");
+      toast.addToast("warning", "Le nom complet est requis.");
       return;
     }
+
     setProfileSaving(true);
     try {
-      await userService.updateProfile({
+      const updatedUser = await userService.updateProfile({
         fullName: profileForm.fullName,
         phone: profileForm.phone || undefined,
-        supportSignature: profileForm.supportSignature || undefined,
       });
-      addToast("success", "Profil mis à jour avec succès");
-      loadUserData();
+      syncAuthenticatedUser(updatedUser);
+      toast.success("Profil mis a jour avec succes.");
     } catch (error) {
-      addToast("error", getErrorMessage(error));
+      toast.error(getErrorMessage(error));
     } finally {
       setProfileSaving(false);
     }
   };
 
   const handleAvatarUpload = () => {
-    addToast("info", "Upload avatar – fonctionnalité à venir");
+    avatarInputRef.current?.click();
   };
 
-  // ==========================================================================
-  // HANDLERS PRÉFÉRENCES
-  // ==========================================================================
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.addToast("warning", "Format invalide. Utilisez JPG, PNG, WEBP ou GIF.");
+      e.target.value = "";
+      return;
+    }
+
+    const maxSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      toast.addToast("warning", "La taille maximale de l'avatar est 5 MB.");
+      e.target.value = "";
+      return;
+    }
+
+    setAvatarUploading(true);
+    try {
+      const updatedUser = await userService.uploadAvatar(file);
+      syncAuthenticatedUser(updatedUser);
+      toast.success("Avatar mis a jour avec succes.");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const handlePrefsSave = async () => {
     setPrefsSaving(true);
     try {
-      // Update theme localement
       if (prefsForm.theme !== theme) {
         setTheme(prefsForm.theme);
       }
-      // Update backend preferences
-      await userService.updateProfile({
-        preferredLanguage: prefsForm.language,
-      });
-      addToast("success", "Préférences sauvegardées");
-    } catch (error) {
-      addToast("error", getErrorMessage(error));
+      if (prefsForm.language !== language) {
+        setLanguage(prefsForm.language);
+      }
+      toast.success("Preferences enregistrees sur ce navigateur.");
     } finally {
       setPrefsSaving(false);
     }
   };
 
-  // ==========================================================================
-  // HANDLERS NOTIFICATIONS
-  // ==========================================================================
-
   const handleNotifSave = async () => {
     setNotifSaving(true);
     try {
-      await userService.updateNotificationPreferences(
-        notifPrefs as unknown as Record<string, boolean>,
-      );
-      addToast("success", "Préférences de notification sauvegardées");
+      await userService.updateNotificationPreferences(notifPrefs);
+      toast.success("Preferences de notification enregistrees.");
     } catch (error) {
-      addToast("error", getErrorMessage(error));
+      toast.error(getErrorMessage(error));
     } finally {
       setNotifSaving(false);
     }
   };
 
-  // ==========================================================================
-  // HANDLERS SÉCURITÉ
-  // ==========================================================================
-
   const handlePasswordChange = async () => {
-    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      addToast("warning", "Tous les champs sont requis");
+    if (!passwordForm.currentPassword.trim()) {
+      toast.addToast("warning", "Le mot de passe actuel est obligatoire.");
       return;
     }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      addToast("warning", "Les mots de passe ne correspondent pas");
+
+    const passwordError = getPasswordValidationError(passwordForm.newPassword);
+    if (passwordError) {
+      toast.addToast("warning", passwordError);
       return;
     }
-    if (passwordForm.newPassword.length < 8) {
-      addToast("warning", "Le mot de passe doit contenir au moins 8 caractères");
+
+    const confirmationError = getPasswordConfirmationError(
+      passwordForm.newPassword,
+      passwordForm.confirmPassword,
+    );
+    if (confirmationError) {
+      toast.addToast("warning", confirmationError);
       return;
     }
+
     setPasswordSaving(true);
     try {
       await userService.changePassword({
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
-      addToast("success", "Mot de passe modifié avec succès");
+      toast.success("Mot de passe modifie avec succes.");
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error) {
-      addToast("error", getErrorMessage(error));
+      toast.error(getErrorMessage(error));
     } finally {
       setPasswordSaving(false);
     }
   };
 
-  // ==========================================================================
-  // TABS CONFIGURATION
-  // ==========================================================================
-
   const tabs: Tab[] = [
     { key: "profile", label: "Profil", icon: <UserIcon size={18} /> },
-    { key: "preferences", label: "Préférences", icon: <Globe size={18} /> },
+    { key: "preferences", label: "Preferences", icon: <Globe size={18} /> },
     { key: "notifications", label: "Notifications", icon: <Bell size={18} /> },
-    { key: "security", label: "Sécurité", icon: <Shield size={18} /> },
+    { key: "security", label: "Securite", icon: <Shield size={18} /> },
   ];
-
-  // ==========================================================================
-  // RENDER
-  // ==========================================================================
 
   return (
     <div className="space-y-6 max-w-4xl">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-ds-primary">Paramètres</h1>
+        <h1 className="text-2xl font-bold text-ds-primary">Parametres</h1>
         <p className="text-ds-muted mt-1">
-          Gérez votre profil, vos préférences et la sécurité de votre compte
+          Gere votre profil, vos preferences locales et la securite de votre compte.
         </p>
       </div>
 
-      {/* Tabs */}
       <Tabs tabs={tabs} activeKey={activeTab} onChange={setActiveTab} />
 
-      {/* SECTION 1 : PROFIL */}
       {activeTab === "profile" && (
         <div className="space-y-6">
           <Card padding="lg">
@@ -296,26 +277,42 @@ export default function SettingsPage() {
               Informations personnelles
             </h2>
             <div className="space-y-6">
-              {/* Avatar */}
               <div>
                 <label className="block text-sm font-medium text-ds-primary mb-2">
                   Photo de profil
                 </label>
                 <div className="flex items-center gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-2xl font-bold">
-                    {profileForm.fullName.charAt(0).toUpperCase() || "U"}
-                  </div>
+                  {currentUser?.profilePhotoUrl ? (
+                    <img
+                      src={currentUser.profilePhotoUrl}
+                      alt={profileForm.fullName || "Avatar"}
+                      className="w-20 h-20 rounded-full object-cover border border-ds-border"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-2xl font-bold">
+                      {profileForm.fullName.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
+
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarFileChange}
+                  />
+
                   <Button
                     variant="outline"
                     icon={<Upload size={18} />}
                     onClick={handleAvatarUpload}
+                    loading={avatarUploading}
                   >
                     Changer l'avatar
                   </Button>
                 </div>
               </div>
 
-              {/* Nom complet */}
               <div>
                 <label className="block text-sm font-medium text-ds-primary mb-1">
                   Nom complet *
@@ -323,13 +320,14 @@ export default function SettingsPage() {
                 <Input
                   type="text"
                   value={profileForm.fullName}
-                  onChange={(e) => setProfileForm((f) => ({ ...f, fullName: e.target.value }))}
+                  onChange={(e) =>
+                    setProfileForm((prev) => ({ ...prev, fullName: e.target.value }))
+                  }
                   placeholder="Jean Dupont"
                   icon={<UserIcon size={18} />}
                 />
               </div>
 
-              {/* Email (lecture seule) */}
               <div>
                 <label className="block text-sm font-medium text-ds-primary mb-1">
                   Adresse email
@@ -341,44 +339,21 @@ export default function SettingsPage() {
                   icon={<Mail size={18} />}
                 />
                 <p className="text-xs text-ds-muted mt-1">
-                  L'email ne peut pas être modifié. Contactez un administrateur si nécessaire.
+                  L'email ne peut pas etre modifie depuis cet ecran.
                 </p>
               </div>
 
-              {/* Téléphone */}
               <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Téléphone</label>
+                <label className="block text-sm font-medium text-ds-primary mb-1">Telephone</label>
                 <Input
                   type="tel"
                   value={profileForm.phone}
-                  onChange={(e) => setProfileForm((f) => ({ ...f, phone: e.target.value }))}
+                  onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
                   placeholder="+216 XX XXX XXX"
                   icon={<Phone size={18} />}
                 />
               </div>
 
-              {/* Signature support (pour AGENT/MANAGER/ADMIN) */}
-              {currentUser && ["AGENT", "MANAGER", "ADMIN"].includes(currentUser.role) && (
-                <div>
-                  <label className="block text-sm font-medium text-ds-primary mb-1">
-                    Signature support
-                  </label>
-                  <textarea
-                    value={profileForm.supportSignature}
-                    onChange={(e) =>
-                      setProfileForm((f) => ({ ...f, supportSignature: e.target.value }))
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500"
-                    placeholder="Cordialement,&#10;Jean Dupont&#10;Agent Support - MTS Telecom"
-                  />
-                  <p className="text-xs text-ds-muted mt-1">
-                    Cette signature sera ajoutée automatiquement à vos réponses tickets.
-                  </p>
-                </div>
-              )}
-
-              {/* Action */}
               <div className="flex justify-end pt-2">
                 <Button
                   variant="primary"
@@ -394,10 +369,8 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* SECTION 2 : PRÉFÉRENCES */}
       {activeTab === "preferences" && (
         <div className="space-y-6">
-          {/* Apparence */}
           <Card padding="lg">
             <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
               {prefsForm.theme === "dark" ? (
@@ -408,7 +381,7 @@ export default function SettingsPage() {
               Apparence
             </h2>
             <p className="text-sm text-ds-secondary mb-4">
-              Choisissez le thème d'affichage de l'interface.
+              Ces preferences sont appliquees et conservees sur ce navigateur.
             </p>
             <div className="flex gap-3">
               <label
@@ -423,7 +396,7 @@ export default function SettingsPage() {
                   name="theme"
                   value="light"
                   checked={prefsForm.theme === "light"}
-                  onChange={() => setPrefsForm((f) => ({ ...f, theme: "light" }))}
+                  onChange={() => setPrefsForm((prev) => ({ ...prev, theme: "light" }))}
                   className="sr-only"
                 />
                 <Sun size={20} />
@@ -441,7 +414,7 @@ export default function SettingsPage() {
                   name="theme"
                   value="dark"
                   checked={prefsForm.theme === "dark"}
-                  onChange={() => setPrefsForm((f) => ({ ...f, theme: "dark" }))}
+                  onChange={() => setPrefsForm((prev) => ({ ...prev, theme: "dark" }))}
                   className="sr-only"
                 />
                 <Moon size={20} />
@@ -450,46 +423,26 @@ export default function SettingsPage() {
             </div>
           </Card>
 
-          {/* Langue */}
           <Card padding="lg">
             <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
               <Globe className="w-5 h-5" />
               Langue
             </h2>
-            <p className="text-sm text-ds-secondary mb-4">Langue de l'interface utilisateur.</p>
+            <p className="text-sm text-ds-secondary mb-4">
+              Langue de l'interface pour ce navigateur.
+            </p>
             <select
               value={prefsForm.language}
               onChange={(e) =>
-                setPrefsForm((f) => ({ ...f, language: e.target.value as "fr" | "en" }))
+                setPrefsForm((prev) => ({ ...prev, language: e.target.value as "fr" | "en" }))
               }
               className="w-full max-w-xs px-3 py-2 border border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500"
             >
-              <option value="fr">Français</option>
+              <option value="fr">Francais</option>
               <option value="en">English</option>
             </select>
           </Card>
 
-          {/* Fuseau horaire */}
-          <Card padding="lg">
-            <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Fuseau horaire
-            </h2>
-            <p className="text-sm text-ds-secondary mb-4">
-              Fuseau horaire pour l'affichage des dates et heures.
-            </p>
-            <select
-              value={prefsForm.timezone}
-              onChange={(e) => setPrefsForm((f) => ({ ...f, timezone: e.target.value }))}
-              className="w-full max-w-xs px-3 py-2 border border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-500"
-            >
-              <option value="Europe/Paris">Europe/Paris (GMT+1)</option>
-              <option value="Africa/Tunis">Africa/Tunis (GMT+1)</option>
-              <option value="UTC">UTC (GMT+0)</option>
-            </select>
-          </Card>
-
-          {/* Action */}
           <div className="flex justify-end">
             <Button
               variant="primary"
@@ -497,27 +450,24 @@ export default function SettingsPage() {
               onClick={handlePrefsSave}
               loading={prefsSaving}
             >
-              Sauvegarder les préférences
+              Sauvegarder les preferences
             </Button>
           </div>
         </div>
       )}
 
-      {/* SECTION 3 : NOTIFICATIONS */}
       {activeTab === "notifications" && (
         <div className="space-y-6">
           <Card padding="lg">
             <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
               <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-              Préférences de notification
+              Preferences de notification
             </h2>
             <p className="text-sm text-ds-secondary mb-6">
-              Choisissez comment vous souhaitez recevoir les notifications pour chaque type
-              d'événement.
+              Choisissez comment recevoir les notifications de support.
             </p>
 
             <div className="space-y-6">
-              {/* Email */}
               <div>
                 <h3 className="text-sm font-semibold text-ds-primary mb-3 flex items-center gap-2">
                   <Mail size={16} />
@@ -525,82 +475,88 @@ export default function SettingsPage() {
                 </h3>
                 <div className="space-y-2 pl-6">
                   <NotifCheckbox
-                    label="Ticket assigné"
+                    label="Ticket assigne"
                     checked={notifPrefs.emailTicketAssigned}
                     onChange={(checked) =>
-                      setNotifPrefs((p) => ({ ...p, emailTicketAssigned: checked }))
+                      setNotifPrefs((prev) => ({ ...prev, emailTicketAssigned: checked }))
                     }
                   />
                   <NotifCheckbox
-                    label="Ticket escaladé"
+                    label="Ticket escalade"
                     checked={notifPrefs.emailTicketEscalation}
                     onChange={(checked) =>
-                      setNotifPrefs((p) => ({ ...p, emailTicketEscalation: checked }))
+                      setNotifPrefs((prev) => ({ ...prev, emailTicketEscalation: checked }))
                     }
                   />
                   <NotifCheckbox
-                    label="SLA à risque"
+                    label="SLA a risque"
                     checked={notifPrefs.emailSlaWarning}
                     onChange={(checked) =>
-                      setNotifPrefs((p) => ({ ...p, emailSlaWarning: checked }))
+                      setNotifPrefs((prev) => ({ ...prev, emailSlaWarning: checked }))
                     }
                   />
                   <NotifCheckbox
-                    label="Incident déclaré"
+                    label="Incident declare"
                     checked={notifPrefs.emailIncident}
-                    onChange={(checked) => setNotifPrefs((p) => ({ ...p, emailIncident: checked }))}
+                    onChange={(checked) =>
+                      setNotifPrefs((prev) => ({ ...prev, emailIncident: checked }))
+                    }
                   />
                   <NotifCheckbox
-                    label="Rapport généré"
+                    label="Rapport genere"
                     checked={notifPrefs.emailReport}
-                    onChange={(checked) => setNotifPrefs((p) => ({ ...p, emailReport: checked }))}
+                    onChange={(checked) =>
+                      setNotifPrefs((prev) => ({ ...prev, emailReport: checked }))
+                    }
                   />
                 </div>
               </div>
 
-              {/* Push */}
               <div>
                 <h3 className="text-sm font-semibold text-ds-primary mb-3 flex items-center gap-2">
                   <Monitor size={16} />
-                  Notifications push (navigateur)
+                  Notifications navigateur
                 </h3>
                 <div className="space-y-2 pl-6">
                   <NotifCheckbox
-                    label="Ticket assigné"
+                    label="Ticket assigne"
                     checked={notifPrefs.pushTicketAssigned}
                     onChange={(checked) =>
-                      setNotifPrefs((p) => ({ ...p, pushTicketAssigned: checked }))
+                      setNotifPrefs((prev) => ({ ...prev, pushTicketAssigned: checked }))
                     }
                   />
                   <NotifCheckbox
-                    label="Ticket escaladé"
+                    label="Ticket escalade"
                     checked={notifPrefs.pushTicketEscalation}
                     onChange={(checked) =>
-                      setNotifPrefs((p) => ({ ...p, pushTicketEscalation: checked }))
+                      setNotifPrefs((prev) => ({ ...prev, pushTicketEscalation: checked }))
                     }
                   />
                   <NotifCheckbox
-                    label="SLA à risque"
+                    label="SLA a risque"
                     checked={notifPrefs.pushSlaWarning}
                     onChange={(checked) =>
-                      setNotifPrefs((p) => ({ ...p, pushSlaWarning: checked }))
+                      setNotifPrefs((prev) => ({ ...prev, pushSlaWarning: checked }))
                     }
                   />
                   <NotifCheckbox
-                    label="Incident déclaré"
+                    label="Incident declare"
                     checked={notifPrefs.pushIncident}
-                    onChange={(checked) => setNotifPrefs((p) => ({ ...p, pushIncident: checked }))}
+                    onChange={(checked) =>
+                      setNotifPrefs((prev) => ({ ...prev, pushIncident: checked }))
+                    }
                   />
                   <NotifCheckbox
-                    label="Rapport généré"
+                    label="Rapport genere"
                     checked={notifPrefs.pushReport}
-                    onChange={(checked) => setNotifPrefs((p) => ({ ...p, pushReport: checked }))}
+                    onChange={(checked) =>
+                      setNotifPrefs((prev) => ({ ...prev, pushReport: checked }))
+                    }
                   />
                 </div>
               </div>
             </div>
 
-            {/* Action */}
             <div className="flex justify-end pt-6">
               <Button
                 variant="primary"
@@ -615,64 +571,76 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* SECTION 4 : SÉCURITÉ */}
       {activeTab === "security" && (
         <div className="space-y-6">
-          {/* Changement mot de passe */}
-          <Card padding="lg">
-            <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
-              <Key className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-              Changer le mot de passe
-            </h2>
-            <div className="space-y-4">
-              <Input
-                type="password"
-                label="Mot de passe actuel"
-                value={passwordForm.currentPassword}
-                onChange={(e) =>
-                  setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }))
-                }
-                placeholder="••••••••"
-              />
-              <Input
-                type="password"
-                label="Nouveau mot de passe"
-                value={passwordForm.newPassword}
-                onChange={(e) => setPasswordForm((f) => ({ ...f, newPassword: e.target.value }))}
-                placeholder="••••••••"
-              />
-              <Input
-                type="password"
-                label="Confirmer le mot de passe"
-                value={passwordForm.confirmPassword}
-                onChange={(e) =>
-                  setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))
-                }
-                placeholder="••••••••"
-              />
-              <p className="text-xs text-ds-muted">
-                Le mot de passe doit contenir au moins 8 caractères.
+          {currentUser?.oauthProvider ? (
+            <Card padding="lg">
+              <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                Authentification externe
+              </h2>
+              <p className="text-sm text-ds-secondary">
+                Ce compte utilise {currentUser.oauthProvider}. La gestion du mot de passe se fait
+                depuis ce fournisseur d'authentification.
               </p>
-              <div className="flex justify-end pt-2">
-                <Button
-                  variant="primary"
-                  icon={<Key size={18} />}
-                  onClick={handlePasswordChange}
-                  loading={passwordSaving}
-                >
-                  Modifier le mot de passe
-                </Button>
+            </Card>
+          ) : (
+            <Card padding="lg">
+              <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
+                <Key className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                Changer le mot de passe
+              </h2>
+              <div className="space-y-4">
+                <Input
+                  type="password"
+                  label="Mot de passe actuel"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) =>
+                    setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+                  }
+                  placeholder="********"
+                />
+                <Input
+                  type="password"
+                  label="Nouveau mot de passe"
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                  }
+                  placeholder="********"
+                />
+                <Input
+                  type="password"
+                  label="Confirmation du mot de passe"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                  }
+                  placeholder="********"
+                />
+                <p className="text-xs text-ds-muted">
+                  Minimum 8 caracteres, avec une majuscule, une minuscule et un chiffre.
+                </p>
+                <div className="flex justify-end pt-2">
+                  <Button
+                    variant="primary"
+                    icon={<Key size={18} />}
+                    onClick={handlePasswordChange}
+                    loading={passwordSaving}
+                  >
+                    Modifier le mot de passe
+                  </Button>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          )}
 
-          {/* Session actuelle (dérivée du navigateur) */}
           <Card padding="lg">
             <h2 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
               <Monitor className="w-5 h-5 text-primary-600 dark:text-primary-400" />
               Session actuelle
             </h2>
-            <p className="text-sm text-ds-secondary mb-4">Votre session connectée actuellement.</p>
+            <p className="text-sm text-ds-secondary mb-4">Session active sur ce navigateur.</p>
             <div className="flex items-center justify-between p-3 border border-ds-border rounded-lg bg-ds-elevated">
               <div className="flex items-center gap-3">
                 <Monitor className="w-5 h-5 text-primary-600 dark:text-primary-400" />
@@ -693,7 +661,7 @@ export default function SettingsPage() {
                       Actuelle
                     </span>
                   </p>
-                  <p className="text-xs text-ds-muted">Connecté maintenant</p>
+                  <p className="text-xs text-ds-muted">Connecte maintenant</p>
                 </div>
               </div>
             </div>
@@ -703,10 +671,6 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-// =============================================================================
-// SOUS-COMPOSANTS
-// =============================================================================
 
 function NotifCheckbox({
   label,

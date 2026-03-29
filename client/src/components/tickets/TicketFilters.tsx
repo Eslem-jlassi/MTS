@@ -3,14 +3,14 @@
 // =============================================================================
 /**
  * Composant de filtrage avancé pour la liste des tickets.
- * 
+ *
  * FILTRES DISPONIBLES:
  * - Statut (9 valeurs)
  * - Priorité (4 valeurs)
  * - Catégorie (4 valeurs)
  * - SLA (OK / À risque / Dépassé)
  * - Plage de dates (du / au)
- * 
+ *
  * CARACTÉRISTIQUES:
  * - Collapsible (toggle show/hide)
  * - Compteur de filtres actifs dans le badge
@@ -119,7 +119,9 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
               >
                 <option value="">Tous</option>
                 {Object.values(TicketStatus).map((s) => (
-                  <option key={s} value={s}>{StatusLabels[s]}</option>
+                  <option key={s} value={s}>
+                    {StatusLabels[s]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -136,7 +138,9 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
               >
                 <option value="">Toutes</option>
                 {Object.values(TicketPriority).map((p) => (
-                  <option key={p} value={p}>{PriorityLabels[p]}</option>
+                  <option key={p} value={p}>
+                    {PriorityLabels[p]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -153,7 +157,9 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
               >
                 <option value="">Toutes</option>
                 {Object.values(TicketCategory).map((c) => (
-                  <option key={c} value={c}>{CategoryLabels[c]}</option>
+                  <option key={c} value={c}>
+                    {CategoryLabels[c]}
+                  </option>
                 ))}
               </select>
             </div>
@@ -169,7 +175,9 @@ const TicketFilters: React.FC<TicketFiltersProps> = ({
                 className={selectClass}
               >
                 {SLA_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>

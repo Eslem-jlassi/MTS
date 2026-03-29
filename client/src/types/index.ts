@@ -6,7 +6,7 @@
  * ============================================================================
  * types/index.ts - Définitions de tous les types TypeScript
  * ============================================================================
- * 
+ *
  * POURQUOI TYPESCRIPT?
  * --------------------
  * TypeScript ajoute le typage statique à JavaScript.
@@ -15,17 +15,17 @@
  * - Auto-complétion intelligente dans l'éditeur
  * - Documentation intégrée au code
  * - Refactoring sécurisé
- * 
+ *
  * TYPES VS INTERFACES:
  * - interface: Pour les objets, peut être étendue (extends)
  * - type: Plus flexible, pour les unions, tuples, etc.
  * - enum: Pour les valeurs fixes prédéfinies
- * 
+ *
  * CE FICHIER CONTIENT:
  * - Enums: Valeurs prédéfinies (rôles, statuts, priorités)
  * - Interfaces: Structure des objets (User, Ticket, Client)
  * - Types de requêtes/réponses: Pour les appels API
- * 
+ *
  * ============================================================================
  */
 
@@ -40,14 +40,14 @@ import { Dispatch, SetStateAction } from "react";
  * - Auto-complétion dans l'éditeur
  * - Évite les fautes de frappe
  * - Documentation implicite des valeurs possibles
- * 
+ *
  * Les valeurs STRING (ex: "CLIENT") correspondent aux enums Java du backend.
  * Cela garantit la compatibilité entre frontend et backend.
  */
 
 /**
  * Rôles des utilisateurs dans le système.
- * 
+ *
  * - CLIENT: Utilisateur client qui crée des tickets
  * - AGENT: Agent de support qui traite les tickets
  * - MANAGER: Superviseur qui gère l'équipe
@@ -62,7 +62,7 @@ export enum UserRole {
 
 /**
  * Statuts possibles d'un ticket.
- * 
+ *
  * CYCLE DE VIE:
  * NEW → IN_PROGRESS → PENDING (optionnel) → RESOLVED → CLOSED
  *           ↓
@@ -71,20 +71,20 @@ export enum UserRole {
  *       CANCELLED (si annulé par le client)
  */
 export enum TicketStatus {
-  NEW = "NEW",                         // Vient d'être créé
-  ASSIGNED = "ASSIGNED",               // Assigné à un agent
-  IN_PROGRESS = "IN_PROGRESS",         // En cours de traitement
-  PENDING = "PENDING",                 // En attente client
+  NEW = "NEW", // Vient d'être créé
+  ASSIGNED = "ASSIGNED", // Assigné à un agent
+  IN_PROGRESS = "IN_PROGRESS", // En cours de traitement
+  PENDING = "PENDING", // En attente client
   PENDING_THIRD_PARTY = "PENDING_THIRD_PARTY", // En attente tiers
-  ESCALATED = "ESCALATED",             // Escaladé
-  RESOLVED = "RESOLVED",               // Solution trouvée
-  CLOSED = "CLOSED",                   // Terminé et archivé
-  CANCELLED = "CANCELLED",             // Annulé
+  ESCALATED = "ESCALATED", // Escaladé
+  RESOLVED = "RESOLVED", // Solution trouvée
+  CLOSED = "CLOSED", // Terminé et archivé
+  CANCELLED = "CANCELLED", // Annulé
 }
 
 /**
  * Niveaux de priorité des tickets.
- * 
+ *
  * La priorité détermine le SLA (temps de résolution):
  * - CRITICAL: 4 heures (urgence maximale)
  * - HIGH: 8 heures
@@ -100,7 +100,7 @@ export enum TicketPriority {
 
 /**
  * Catégories de tickets.
- * 
+ *
  * - PANNE: Problème technique (service en panne)
  * - DEMANDE: Demande d'information ou d'assistance
  * - EVOLUTION: Demande d'évolution du service
@@ -115,7 +115,7 @@ export enum TicketCategory {
 
 /**
  * Catégories de services télécom.
- * 
+ *
  * - BILLING: Facturation
  * - CRM: Gestion de la relation client
  * - NETWORK: Réseau (fibre, 4G, etc.)
@@ -147,35 +147,49 @@ export enum ServiceStatus {
 
 /**
  * Interface de base pour un utilisateur.
- * 
+ *
  * Les "?" indiquent des champs optionnels (peuvent être undefined).
  */
 export interface User {
-  id: number;                    // Identifiant unique
-  email: string;                 // Email (identifiant de connexion)
-  firstName: string;             // Prénom
-  lastName: string;              // Nom
-  fullName: string;              // Nom complet (calculé)
-  role: UserRole;                // Rôle (enum)
-  phone?: string;                // Téléphone (optionnel)
-  profilePhotoUrl?: string;      // URL photo de profil (optionnel)
-  isActive: boolean;             // Compte actif ou désactivé
-  createdAt: string;             // Date de création (ISO string)
-  lastLoginAt?: string;          // Dernière connexion (optionnel)
-  oauthProvider?: string;        // Fournisseur OAuth (GOOGLE, etc.) ou null
+  id: number; // Identifiant unique
+  email: string; // Email (identifiant de connexion)
+  firstName: string; // Prénom
+  lastName: string; // Nom
+  fullName: string; // Nom complet (calculé)
+  role: UserRole; // Rôle (enum)
+  phone?: string; // Téléphone (optionnel)
+  profilePhotoUrl?: string; // URL photo de profil (optionnel)
+  isActive: boolean; // Compte actif ou désactivé
+  createdAt: string; // Date de création (ISO string)
+  lastLoginAt?: string; // Dernière connexion (optionnel)
+  oauthProvider?: string; // Fournisseur OAuth (GOOGLE, etc.) ou null
+  emailVerified?: boolean; // Adresse email vérifiée
 }
 
 /**
  * Réponse utilisateur enrichie.
- * 
+ *
  * "extends User": Hérite de tous les champs de User
  * + ajoute des champs supplémentaires
  */
 export interface UserResponse extends User {
-  clientInfo?: ClientInfo;       // Infos client (si rôle CLIENT)
-  ticketStats?: TicketStats;     // Statistiques de tickets
-  supportSignature?: string;     // Signature support (pour agents/managers)
-  preferredLanguage?: string;    // Langue préférée (fr, en)
+  clientInfo?: ClientInfo; // Infos client (si rôle CLIENT)
+  ticketStats?: TicketStats; // Statistiques de tickets
+  supportSignature?: string; // Signature support (pour agents/managers)
+  preferredLanguage?: string; // Langue préférée (fr, en)
+}
+
+export interface NotificationPreferences {
+  emailTicketAssigned: boolean;
+  emailTicketEscalation: boolean;
+  emailSlaWarning: boolean;
+  emailIncident: boolean;
+  emailReport: boolean;
+  pushTicketAssigned: boolean;
+  pushTicketEscalation: boolean;
+  pushSlaWarning: boolean;
+  pushIncident: boolean;
+  pushReport: boolean;
 }
 
 /**
@@ -183,19 +197,19 @@ export interface UserResponse extends User {
  */
 export interface ClientInfo {
   id: number;
-  clientCode: string;            // Code client (ex: CLI-2024-001)
-  companyName?: string;          // Nom de l'entreprise
-  address?: string;              // Adresse
+  clientCode: string; // Code client (ex: CLI-2024-001)
+  companyName?: string; // Nom de l'entreprise
+  address?: string; // Adresse
 }
 
 /**
  * Statistiques de tickets pour un utilisateur.
  */
 export interface TicketStats {
-  totalTickets: number;          // Nombre total de tickets
-  openTickets: number;           // Tickets en cours
-  resolvedTickets: number;       // Tickets résolus
-  averageResolutionTime?: number;// Temps moyen de résolution (heures)
+  totalTickets: number; // Nombre total de tickets
+  openTickets: number; // Tickets en cours
+  resolvedTickets: number; // Tickets résolus
+  averageResolutionTime?: number; // Temps moyen de résolution (heures)
 }
 
 // =============================================================================
@@ -216,24 +230,36 @@ export interface LoginRequest {
 export interface RegisterRequest {
   email: string;
   password: string;
-  confirmPassword: string;       // Confirmation du mot de passe
+  confirmPassword: string; // Confirmation du mot de passe
   firstName: string;
   lastName: string;
   phone?: string;
-  companyName?: string;          // Pour les clients
-  address?: string;              // Pour les clients
-  role?: UserRole;               // Rôle de l'utilisateur (CLIENT par défaut)
+  companyName?: string; // Pour les clients
+  address?: string; // Pour les clients
+  role?: UserRole; // Rôle de l'utilisateur (CLIENT par défaut)
+}
+
+export interface CreateInternalUserRequest {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: UserRole;
 }
 
 /**
  * Réponse après connexion/inscription réussie.
  */
 export interface AuthResponse {
-  accessToken: string;           // Token JWT (access)
-  refreshToken?: string;         // Refresh token (for rotation)
-  tokenType?: string;            // Type de token (Bearer)
-  expiresIn?: number;            // Durée de validité en ms
-  user: UserResponse;            // Infos de l'utilisateur
+  accessToken?: string | null; // Null en mode cookie-first navigateur
+  refreshToken?: string | null; // Null en mode cookie-first navigateur
+  tokenType?: string; // Type de token (Cookie, Bearer, etc.)
+  expiresIn?: number; // Durée de validité en ms
+  user: UserResponse; // Infos de l'utilisateur
+  emailVerificationRequired?: boolean;
+  emailVerificationSent?: boolean;
 }
 
 // =============================================================================
@@ -248,12 +274,13 @@ export interface Client {
   clientCode: string;
   companyName?: string;
   address?: string;
-  userId: number;                // ID de l'utilisateur associé
-  userEmail: string;             // Email de l'utilisateur
-  userFullName: string;          // Nom complet
-  userPhone?: string;            // Téléphone de l'utilisateur
+  userId: number; // ID de l'utilisateur associé
+  userEmail: string; // Email de l'utilisateur
+  userFullName: string; // Nom complet
+  userPhone?: string; // Téléphone de l'utilisateur
+  userEmailVerified?: boolean;
   isActive: boolean;
-  ticketCount: number;           // Nombre de tickets créés
+  ticketCount: number; // Nombre de tickets créés
   createdAt: string;
   updatedAt?: string;
 }
@@ -274,6 +301,7 @@ export interface CreateClientRequest {
 export interface CreateClientFormData {
   email: string;
   password: string;
+  confirmPassword?: string;
   firstName: string;
   lastName: string;
   phone: string;
@@ -366,7 +394,7 @@ export interface Ticket {
   priorityColor?: string;
   category: TicketCategory;
   categoryLabel?: string;
-  
+
   // Relationships (flattened)
   clientId: number;
   clientName?: string;
@@ -379,7 +407,7 @@ export interface Ticket {
   createdByName?: string;
   assignedToId?: number;
   assignedToName?: string;
-  
+
   // SLA Information
   slaHours: number;
   deadline: string;
@@ -388,20 +416,20 @@ export interface Ticket {
   slaWarning?: boolean;
   overdue?: boolean;
   slaRemainingMinutes?: number;
-  
+
   // Resolution
   resolution?: string;
   rootCause?: string;
   finalCategory?: TicketCategory;
   timeSpentMinutes?: number;
   impact?: string;
-  
+
   // Timestamps
   createdAt: string;
   updatedAt?: string;
   resolvedAt?: string;
   closedAt?: string;
-  
+
   // Related data
   comments?: TicketComment[];
   history?: TicketHistory[];
@@ -424,7 +452,6 @@ export interface CreateTicketRequest {
   description?: string;
   priority: TicketPriority;
   category: TicketCategory;
-  clientId: number;
   serviceId: number;
   assignedToId?: number;
 }
@@ -449,6 +476,7 @@ export interface TicketStatusChangeRequest {
 
 export interface TicketAssignRequest {
   agentId: number;
+  comment?: string;
 }
 
 // =============================================================================
@@ -728,7 +756,7 @@ export const CriticalityLabels: Record<string, string> = {
 
 /**
  * AuditLog - Enhanced audit log entry with old/new values, metadata, user-agent.
- * 
+ *
  * Used in:
  * - AuditLogPage (admin full audit table)
  * - TicketDetailPage "Historique" tab
@@ -786,9 +814,8 @@ export interface AuditLogSearchParams {
   page?: number;
   size?: number;
   sortBy?: string;
-  sortDir?: 'ASC' | 'DESC';
+  sortDir?: "ASC" | "DESC";
 }
-
 
 // =============================================================================
 // SLA HEATMAP / KPI (frontend display)
@@ -866,7 +893,7 @@ export interface ProblemDetail {
   detail: string;
   instance?: string;
   timestamp?: string;
-  properties?: { 
+  properties?: {
     validationErrors?: Record<string, string>;
     traceId?: string;
     retryAfterSeconds?: number;
@@ -908,7 +935,13 @@ export interface TicketFilterParams {
 // =============================================================================
 
 /** Catégorie de template de réponse rapide */
-export type QuickReplyCategory = "accuse" | "info" | "resolution" | "cloture" | "escalade" | "custom";
+export type QuickReplyCategory =
+  | "accuse"
+  | "info"
+  | "resolution"
+  | "cloture"
+  | "escalade"
+  | "custom";
 
 /** Template de réponse rapide (macro) pour les agents */
 export interface QuickReplyTemplate {

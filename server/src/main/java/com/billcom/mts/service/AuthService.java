@@ -18,7 +18,7 @@ public interface AuthService {
      * Register a new user.
      * If role is not specified, defaults to CLIENT.
      */
-    AuthResponse register(RegisterRequest request);
+    AuthResponse register(RegisterRequest request, String clientIp);
 
     /**
      * Register a new user by admin with specific role.

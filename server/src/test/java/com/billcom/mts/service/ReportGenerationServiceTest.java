@@ -20,6 +20,7 @@ import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,9 +39,9 @@ class ReportGenerationServiceTest {
     @Test
     void generateReport_createsReportWithCorrectSource() {
         ReflectionTestUtils.setField(reportGenerationService, "uploadDir", "target/test-reports");
-        when(ticketRepository.countCreatedBetween(any(), any())).thenReturn(10L);
-        when(ticketRepository.countResolvedBetween(any(), any())).thenReturn(5L);
-        when(incidentRepository.countByPeriod(any(), any())).thenReturn(2L);
+        lenient().when(ticketRepository.countCreatedBetween(any(), any())).thenReturn(10L);
+        lenient().when(ticketRepository.countResolvedBetween(any(), any())).thenReturn(5L);
+        lenient().when(incidentRepository.countByPeriod(any(), any())).thenReturn(2L);
         when(ticketRepository.findByCreatedAtBetween(any(), any())).thenReturn(Collections.emptyList());
         when(reportRepository.save(any())).thenAnswer(inv -> {
             Report r = inv.getArgument(0);

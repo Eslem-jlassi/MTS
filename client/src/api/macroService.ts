@@ -72,10 +72,7 @@ export const QuickReplyCategoryLabels: Record<QuickReplyCategory, string> = {
  * Substitue les variables d'un template par leurs valeurs.
  * Ex: "{client}" → "Acme Corp", "{ticketId}" → "TK-00123"
  */
-export function substituteVariables(
-  content: string,
-  context: Record<string, string>
-): string {
+export function substituteVariables(content: string, context: Record<string, string>): string {
   let result = content;
   Object.entries(context).forEach(([key, value]) => {
     // Supporte à la fois {client} et client comme clés

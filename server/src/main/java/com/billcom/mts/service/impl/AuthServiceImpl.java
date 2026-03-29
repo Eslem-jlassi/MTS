@@ -14,8 +14,8 @@ import com.billcom.mts.repository.ClientRepository;
 import com.billcom.mts.repository.UserRepository;
 import com.billcom.mts.security.JwtService;
 import com.billcom.mts.service.AuthService;
-import com.billcom.mts.service.RefreshTokenService;
 import com.billcom.mts.service.EmailService;
+import com.billcom.mts.service.RefreshTokenService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -30,22 +30,16 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.Year;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Implémentation du service d'authentification.
- * 
- * Gère: login, register (avec contrôle des rôles), refresh token, logout.
- * La propriété mts.allow-internal-signup contrôle si les rôles internes
- * (AGENT, MANAGER, ADMIN) peuvent être créés via l'inscription publique.
- * 
- * @author Billcom Consulting - PFE 2026
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -59,73 +53,73 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
 
-    /** Contrôle si l'inscription multi-rôle est autorisée (dev uniquement) */
+    private final SecureRandom secureRandom = new SecureRandom();
+
     @Value("${mts.allow-internal-signup:false}")
     private boolean allowInternalSignup;
 
-    /** Google OAuth Client ID (same as frontend) for ID token verification */
     @Value("${app.google.client-id:}")
     private String googleClientId;
 
-    // =========================================================================
-    // LOGIN
-    // =========================================================================
+    @Value("${app.auth.require-email-verification:false}")
+    private boolean requireEmailVerification;
+
+    @Value("${app.auth.email-verification.expiration-hours:24}")
+    private long emailVerificationExpirationHours;
+
+    @Value("${app.auth.password-reset.expiration-hours:1}")
+    private long passwordResetExpirationHours;
+
     @Override
     public AuthResponse login(LoginRequest request, String clientIp) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
             );
 
             User user = (User) authentication.getPrincipal();
+            ensureEmailVerifiedForPasswordLogin(user);
+
             user.setLastLoginAt(LocalDateTime.now());
             userRepository.save(user);
 
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(
-                user, clientIp, "web-client"
+                    user,
+                    sanitizeClientIp(clientIp),
+                    "web-client"
             );
 
-            log.info("Login réussi: {} ({})", user.getEmail(), user.getRole());
+            log.info("Login reussi: {} ({})", user.getEmail(), user.getRole());
             return createAuthResponse(user, refreshToken.getToken());
-
-        } catch (AuthenticationException e) {
-            log.warn("Tentative de connexion échouée pour: {}", request.getEmail());
+        } catch (AuthenticationException ex) {
+            log.warn("Tentative de connexion echouee pour: {}", request.getEmail());
             throw new UnauthorizedException("Email ou mot de passe incorrect");
         }
     }
 
-    // =========================================================================
-    // REGISTER - Inscription publique (contrôle des rôles)
-    // =========================================================================
     @Override
     @Transactional
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String clientIp) {
         UserRole role = request.getRole() != null ? request.getRole() : UserRole.CLIENT;
 
         if (role != UserRole.CLIENT && !allowInternalSignup) {
             throw new ForbiddenException(
-                "L'inscription avec le rôle " + role + " n'est pas autorisée. " +
-                "Contactez un administrateur pour créer votre compte."
+                    "L'inscription avec le role " + role + " n'est pas autorisee. "
+                            + "Contactez un administrateur pour creer votre compte."
             );
         }
 
-        return registerUser(request, role);
+        return registerUser(request, role, clientIp, true);
     }
 
-    // =========================================================================
-    // REGISTER BY ADMIN
-    // =========================================================================
     @Override
     @Transactional
     public AuthResponse registerByAdmin(RegisterRequest request, Long adminId) {
         UserRole role = request.getRole() != null ? request.getRole() : UserRole.CLIENT;
-        log.info("Création de compte par admin {}: {} avec rôle {}", adminId, request.getEmail(), role);
-        return registerUser(request, role);
+        log.info("Creation de compte par admin {}: {} avec role {}", adminId, request.getEmail(), role);
+        return registerUser(request, role, null, false);
     }
 
-    // =========================================================================
-    // REFRESH TOKEN - Rotation sécurisée
-    // =========================================================================
     @Override
     @Transactional
     public AuthResponse refreshToken(String refreshToken, String clientIp) {
@@ -133,114 +127,110 @@ public class AuthServiceImpl implements AuthService {
         User user = validToken.getUser();
 
         RefreshToken newToken = refreshTokenService.rotateRefreshToken(
-            refreshToken, clientIp, "web-client"
+                refreshToken,
+                sanitizeClientIp(clientIp),
+                "web-client"
         );
 
-        log.debug("Refresh token renouvelé pour: {}", user.getEmail());
+        log.debug("Refresh token renouvele pour: {}", user.getEmail());
         return createAuthResponse(user, newToken.getToken());
     }
 
-    // =========================================================================
-    // LOGOUT - Révocation du refresh token
-    // =========================================================================
     @Override
     @Transactional
     public void logout(String refreshToken) {
-        if (refreshToken != null && !refreshToken.isBlank()) {
+        if (StringUtils.hasText(refreshToken)) {
             refreshTokenService.revokeToken(refreshToken);
-            log.info("Utilisateur déconnecté, refresh token révoqué");
+            log.info("Utilisateur deconnecte, refresh token revoque");
         }
     }
 
-    // =========================================================================
-    // GOOGLE LOGIN / REGISTER
-    // =========================================================================
     @Override
     @Transactional
     public AuthResponse googleLogin(String idToken, String clientIp) {
-        if (googleClientId == null || googleClientId.isBlank()) {
+        if (!StringUtils.hasText(googleClientId)) {
             log.warn("Google Client ID not configured - cannot verify Google token");
-            throw new BadRequestException("Connexion Google non configurée. Contactez l'administrateur.");
+            throw new BadRequestException("Connexion Google non configuree. Contactez l'administrateur.");
         }
 
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
-                new NetHttpTransport(), GsonFactory.getDefaultInstance())
+                new NetHttpTransport(),
+                GsonFactory.getDefaultInstance()
+        )
                 .setAudience(Collections.singletonList(googleClientId))
                 .build();
 
         GoogleIdToken googleIdToken;
         try {
             googleIdToken = verifier.verify(idToken);
-        } catch (Exception e) {
-            log.warn("Invalid Google ID token: {}", e.getMessage());
-            throw new UnauthorizedException("Token Google invalide ou expiré");
+        } catch (Exception ex) {
+            log.warn("Invalid Google ID token: {}", ex.getMessage());
+            throw new UnauthorizedException("Token Google invalide ou expire");
         }
 
         if (googleIdToken == null) {
-            throw new UnauthorizedException("Token Google invalide ou expiré");
+            throw new UnauthorizedException("Token Google invalide ou expire");
         }
 
         GoogleIdToken.Payload payload = googleIdToken.getPayload();
         String email = payload.getEmail();
-        String googleSub = payload.getSubject(); // Identifiant unique stable chez Google
-        boolean emailVerified = Boolean.TRUE.equals(payload.getEmailVerified());
-        if (email == null || email.isBlank()) {
+        String googleSub = payload.getSubject();
+        boolean googleEmailVerified = Boolean.TRUE.equals(payload.getEmailVerified());
+
+        if (!StringUtils.hasText(email)) {
             throw new BadRequestException("Email non fourni par Google");
         }
-        if (!emailVerified) {
-            throw new BadRequestException("L'email Google n'est pas vérifié");
+        if (!googleEmailVerified) {
+            throw new BadRequestException("L'email Google n'est pas verifie");
         }
 
         String givenName = (String) payload.get("given_name");
         String familyName = (String) payload.get("family_name");
-        String name = (String) payload.get("name");
+        String displayName = (String) payload.get("name");
         String pictureUrl = (String) payload.get("picture");
 
-        // 1) Lookup par provider + providerId (le plus fiable)
         Optional<User> byProvider = userRepository.findByOauthProviderAndOauthProviderId("GOOGLE", googleSub);
-        // 2) Fallback par email (pour lier un compte existant)
         Optional<User> byEmail = byProvider.isPresent() ? Optional.empty() : userRepository.findByEmail(email);
 
         User user;
 
         if (byProvider.isPresent()) {
-            // Utilisateur déjà lié à ce compte Google
             user = byProvider.get();
-            if (!user.getIsActive()) {
-                throw new ForbiddenException("Compte désactivé. Contactez l'administrateur.");
+            if (!Boolean.TRUE.equals(user.getIsActive())) {
+                throw new ForbiddenException("Compte desactive. Contactez l'administrateur.");
             }
-            // Sync photo si changée
-            if (pictureUrl != null && !pictureUrl.equals(user.getProfilePhotoUrl())) {
+            if (StringUtils.hasText(pictureUrl) && !pictureUrl.equals(user.getProfilePhotoUrl())) {
                 user.setProfilePhotoUrl(pictureUrl);
             }
-            log.info("Connexion Google réussie (providerId match): {}", email);
-
+            markUserAsVerified(user);
+            log.info("Connexion Google reussie (providerId match): {}", email);
         } else if (byEmail.isPresent()) {
-            // Compte existant (email/password ou autre) → liaison automatique au provider Google
             user = byEmail.get();
-            if (!user.getIsActive()) {
-                throw new ForbiddenException("Compte désactivé. Contactez l'administrateur.");
+            if (!Boolean.TRUE.equals(user.getIsActive())) {
+                throw new ForbiddenException("Compte desactive. Contactez l'administrateur.");
             }
             user.setOauthProvider("GOOGLE");
             user.setOauthProviderId(googleSub);
-            if (pictureUrl != null && user.getProfilePhotoUrl() == null) {
+            if (StringUtils.hasText(pictureUrl) && !StringUtils.hasText(user.getProfilePhotoUrl())) {
                 user.setProfilePhotoUrl(pictureUrl);
             }
-            log.info("Connexion Google réussie - compte existant lié: {}", email);
-
+            markUserAsVerified(user);
+            log.info("Connexion Google reussie - compte existant lie: {}", email);
         } else {
-            // Inscription automatique en tant que CLIENT
-            String firstName = (givenName != null && !givenName.isBlank()) ? givenName : (name != null ? name : "Prénom");
-            String lastName = (familyName != null && !familyName.isBlank()) ? familyName : "";
-            if (lastName.isEmpty() && name != null && name.contains(" ")) {
-                String[] parts = name.split(" ", 2);
+            String firstName = StringUtils.hasText(givenName)
+                    ? givenName
+                    : (StringUtils.hasText(displayName) ? displayName : "Client");
+            String lastName = StringUtils.hasText(familyName) ? familyName : "";
+
+            if (!StringUtils.hasText(lastName) && StringUtils.hasText(displayName) && displayName.contains(" ")) {
+                String[] parts = displayName.split(" ", 2);
                 if (parts.length == 2) {
                     firstName = parts[0];
                     lastName = parts[1];
                 }
             }
-            // Mot de passe aléatoire — l'utilisateur ne pourra se connecter que via Google
-            String randomPassword = java.util.UUID.randomUUID().toString().replace("-", "") + "A1!";
+
+            String randomPassword = UUID.randomUUID().toString().replace("-", "") + "A1!";
             user = User.builder()
                     .email(email)
                     .password(passwordEncoder.encode(randomPassword))
@@ -251,29 +241,131 @@ public class AuthServiceImpl implements AuthService {
                     .profilePhotoUrl(pictureUrl)
                     .oauthProvider("GOOGLE")
                     .oauthProviderId(googleSub)
+                    .emailVerified(true)
                     .build();
             user = userRepository.save(user);
-            createClientProfile(user, RegisterRequest.builder()
-                    .companyName(null)
-                    .address(null)
-                    .build());
-            log.info("Inscription Google réussie (nouveau client): {} [sub={}]", email, googleSub);
+            createClientProfile(user, RegisterRequest.builder().build());
+            log.info("Inscription Google reussie (nouveau client): {} [sub={}]", email, googleSub);
         }
 
         user.setLastLoginAt(LocalDateTime.now());
         userRepository.save(user);
 
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user, clientIp, "web-client");
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(
+                user,
+                sanitizeClientIp(clientIp),
+                "web-client"
+        );
         return createAuthResponse(user, refreshToken.getToken());
     }
 
-    // =========================================================================
-    // MÉTHODES PRIVÉES
-    // =========================================================================
+    @Override
+    @Transactional
+    public void forgotPassword(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (!StringUtils.hasText(normalizedEmail)) {
+            return;
+        }
 
-    private AuthResponse registerUser(RegisterRequest request, UserRole role) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new BadRequestException("Cet email est déjà utilisé: " + request.getEmail());
+        Optional<User> optUser = userRepository.findByEmail(normalizedEmail);
+        if (optUser.isEmpty()) {
+            log.info("Forgot password requested for unknown email: {}", normalizedEmail);
+            return;
+        }
+
+        User user = optUser.get();
+        String token = generateSecureToken();
+        user.setPasswordResetToken(token);
+        user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(passwordResetExpirationHours));
+        userRepository.save(user);
+
+        emailService.sendPasswordResetEmail(normalizedEmail, token);
+        log.info("Password reset token generated for user: {}", normalizedEmail);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByPasswordResetToken(token)
+                .orElseThrow(() -> new BadRequestException("Token invalide ou expire"));
+
+        if (user.getPasswordResetTokenExpiry() == null
+                || user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Token expire. Veuillez refaire une demande.");
+        }
+
+        validatePasswordStrength(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiry(null);
+        userRepository.save(user);
+        log.info("Password reset successfully for user: {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void verifyEmail(String token) {
+        User user = userRepository.findByEmailVerificationToken(token)
+                .orElseThrow(() -> new BadRequestException("Token de verification invalide"));
+
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            return;
+        }
+
+        if (user.getEmailVerificationTokenExpiry() == null
+                || user.getEmailVerificationTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Le lien de verification a expire. Demandez un nouvel email.");
+        }
+
+        markUserAsVerified(user);
+        userRepository.save(user);
+        log.info("Email verified for user: {}", user.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void resendVerificationEmail(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        if (!StringUtils.hasText(normalizedEmail)) {
+            return;
+        }
+
+        Optional<User> optUser = userRepository.findByEmail(normalizedEmail);
+        if (optUser.isEmpty()) {
+            log.info("Resend verification requested for unknown email: {}", normalizedEmail);
+            return;
+        }
+
+        User user = optUser.get();
+        if (Boolean.TRUE.equals(user.getEmailVerified())) {
+            log.info("Email already verified for user: {}", normalizedEmail);
+            return;
+        }
+
+        prepareEmailVerification(user);
+        userRepository.save(user);
+
+        emailService.sendEmailVerificationEmail(
+                user.getEmail(),
+                resolveRecipientName(user),
+                user.getEmailVerificationToken(),
+                user.getEmailVerificationTokenExpiry()
+        );
+        log.info("Verification email resent for user: {}", normalizedEmail);
+    }
+
+    private AuthResponse registerUser(
+            RegisterRequest request,
+            UserRole role,
+            String clientIp,
+            boolean issueSessionTokens) {
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        if (!StringUtils.hasText(normalizedEmail)) {
+            throw new BadRequestException("L'email est obligatoire");
+        }
+
+        if (userRepository.existsByEmail(normalizedEmail)) {
+            throw new BadRequestException("Cet email est deja utilise: " + normalizedEmail);
         }
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
@@ -282,33 +374,102 @@ public class AuthServiceImpl implements AuthService {
 
         validatePasswordStrength(request.getPassword());
 
+        boolean verificationRequired = requireEmailVerification;
+
         User user = User.builder()
-            .email(request.getEmail())
-            .password(passwordEncoder.encode(request.getPassword()))
-            .firstName(request.getFirstName())
-            .lastName(request.getLastName())
-            .phone(request.getPhone())
-            .role(role)
-            .isActive(true)
-            .build();
+                .email(normalizedEmail)
+                .password(passwordEncoder.encode(request.getPassword()))
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .phone(request.getPhone())
+                .role(role)
+                .isActive(true)
+                .emailVerified(!verificationRequired)
+                .build();
+
+        if (verificationRequired) {
+            prepareEmailVerification(user);
+        } else {
+            markUserAsVerified(user);
+        }
 
         user = userRepository.save(user);
-        log.info("Utilisateur créé: {} avec rôle {}", user.getEmail(), role);
+        log.info("Utilisateur cree: {} avec role {}", user.getEmail(), role);
 
         if (role == UserRole.CLIENT) {
             createClientProfile(user, request);
         }
 
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(
-            user, "127.0.0.1", "web-client"
-        );
+        if (verificationRequired) {
+            emailService.sendEmailVerificationEmail(
+                    user.getEmail(),
+                    resolveRecipientName(user),
+                    user.getEmailVerificationToken(),
+                    user.getEmailVerificationTokenExpiry()
+            );
+        }
 
-        return createAuthResponse(user, refreshToken.getToken());
+        String refreshTokenValue = null;
+        if (issueSessionTokens && !verificationRequired) {
+            RefreshToken refreshToken = refreshTokenService.createRefreshToken(
+                    user,
+                    sanitizeClientIp(clientIp),
+                    "web-client"
+            );
+            refreshTokenValue = refreshToken.getToken();
+        }
+
+        AuthResponse response = createAuthResponse(user, refreshTokenValue);
+        response.setEmailVerificationRequired(verificationRequired);
+        response.setEmailVerificationSent(verificationRequired);
+        return response;
+    }
+
+    private void ensureEmailVerifiedForPasswordLogin(User user) {
+        if (!Boolean.TRUE.equals(user.getEmailVerified())) {
+            throw new ForbiddenException(
+                    "Votre adresse email n'est pas encore verifiee. Consultez votre boite mail ou renvoyez le lien de verification."
+            );
+        }
+    }
+
+    private void prepareEmailVerification(User user) {
+        user.setEmailVerified(false);
+        user.setEmailVerificationToken(generateSecureToken());
+        user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusHours(emailVerificationExpirationHours));
+    }
+
+    private void markUserAsVerified(User user) {
+        user.setEmailVerified(true);
+        user.setEmailVerificationToken(null);
+        user.setEmailVerificationTokenExpiry(null);
+    }
+
+    private String resolveRecipientName(User user) {
+        String fullName = user.getFullName();
+        return StringUtils.hasText(fullName) ? fullName : user.getEmail();
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase();
+    }
+
+    private String sanitizeClientIp(String clientIp) {
+        if (!StringUtils.hasText(clientIp)) {
+            return "unknown";
+        }
+        return clientIp.trim();
+    }
+
+    private String generateSecureToken() {
+        byte[] buffer = new byte[32];
+        secureRandom.nextBytes(buffer);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(buffer);
     }
 
     private void validatePasswordStrength(String password) {
-        if (password.length() < 8) {
-            throw new BadRequestException("Le mot de passe doit contenir au moins 8 caractères");
+        if (password == null || password.length() < 8) {
+            throw new BadRequestException("Le mot de passe doit contenir au moins 8 caracteres");
         }
         if (!password.matches(".*[A-Z].*")) {
             throw new BadRequestException("Le mot de passe doit contenir au moins une majuscule");
@@ -324,13 +485,13 @@ public class AuthServiceImpl implements AuthService {
     private void createClientProfile(User user, RegisterRequest request) {
         String clientCode = generateClientCode();
         Client client = Client.builder()
-            .user(user)
-            .clientCode(clientCode)
-            .companyName(request.getCompanyName())
-            .address(request.getAddress())
-            .build();
+                .user(user)
+                .clientCode(clientCode)
+                .companyName(request.getCompanyName())
+                .address(request.getAddress())
+                .build();
         clientRepository.save(client);
-        log.info("Profil client créé: {}", clientCode);
+        log.info("Profil client cree: {}", clientCode);
     }
 
     private String generateClientCode() {
@@ -342,97 +503,22 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthResponse createAuthResponse(User user, String refreshTokenValue) {
-        String accessToken = jwtService.generateAccessToken(user);
+        String accessToken = StringUtils.hasText(refreshTokenValue)
+                ? jwtService.generateAccessToken(user)
+                : null;
+        Long expiresIn = accessToken != null ? jwtService.getAccessTokenExpiration() : null;
 
         AuthResponse.UserInfo userInfo = AuthResponse.UserInfo.builder()
-            .id(user.getId())
-            .email(user.getEmail())
-            .firstName(user.getFirstName())
-            .lastName(user.getLastName())
-            .role(user.getRole())
-            .profilePhotoUrl(user.getProfilePhotoUrl())
-            .oauthProvider(user.getOauthProvider())
-            .build();
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .role(user.getRole())
+                .profilePhotoUrl(user.getProfilePhotoUrl())
+                .oauthProvider(user.getOauthProvider())
+                .emailVerified(user.getEmailVerified())
+                .build();
 
-        return AuthResponse.of(accessToken, refreshTokenValue, jwtService.getAccessTokenExpiration(), userInfo);
-    }
-
-    // =========================================================================
-    // FORGOT PASSWORD
-    // =========================================================================
-    @Override
-    @Transactional
-    public void forgotPassword(String email) {
-        // Security: always succeed (don't reveal if email exists)
-        Optional<User> optUser = userRepository.findByEmail(email);
-        if (optUser.isEmpty()) {
-            log.info("Forgot password requested for unknown email: {}", email);
-            return;
-        }
-        User user = optUser.get();
-        String token = UUID.randomUUID().toString();
-        user.setPasswordResetToken(token);
-        user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
-        userRepository.save(user);
-        emailService.sendPasswordResetEmail(email, token);
-        log.info("Password reset token generated for user: {}", email);
-    }
-
-    // =========================================================================
-    // RESET PASSWORD
-    // =========================================================================
-    @Override
-    @Transactional
-    public void resetPassword(String token, String newPassword) {
-        User user = userRepository.findByPasswordResetToken(token)
-                .orElseThrow(() -> new BadRequestException("Token invalide ou expiré"));
-        if (user.getPasswordResetTokenExpiry() == null ||
-            user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            throw new BadRequestException("Token expiré. Veuillez refaire une demande.");
-        }
-        validatePasswordStrength(newPassword);
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setPasswordResetToken(null);
-        user.setPasswordResetTokenExpiry(null);
-        userRepository.save(user);
-        log.info("Password reset successfully for user: {}", user.getEmail());
-    }
-
-    // =========================================================================
-    // VERIFY EMAIL
-    // =========================================================================
-    @Override
-    @Transactional
-    public void verifyEmail(String token) {
-        User user = userRepository.findByEmailVerificationToken(token)
-                .orElseThrow(() -> new BadRequestException("Token de vérification invalide"));
-        user.setEmailVerified(true);
-        user.setEmailVerificationToken(null);
-        userRepository.save(user);
-        log.info("Email verified for user: {}", user.getEmail());
-    }
-
-    // =========================================================================
-    // RESEND VERIFICATION EMAIL
-    // =========================================================================
-    @Override
-    @Transactional
-    public void resendVerificationEmail(String email) {
-        Optional<User> optUser = userRepository.findByEmail(email);
-        if (optUser.isEmpty()) {
-            log.info("Resend verification requested for unknown email: {}", email);
-            return; // Security: don't reveal if email exists
-        }
-        User user = optUser.get();
-        if (Boolean.TRUE.equals(user.getEmailVerified())) {
-            log.info("Email already verified for user: {}", email);
-            return;
-        }
-        String token = UUID.randomUUID().toString();
-        user.setEmailVerificationToken(token);
-        userRepository.save(user);
-        // TODO: Implement sendEmailVerification in EmailService
-        log.info("[EMAIL PLACEHOLDER] Resend verification → {} | Token: {}...",
-                email, token.substring(0, 8));
+        return AuthResponse.of(accessToken, refreshTokenValue, expiresIn, userInfo);
     }
 }

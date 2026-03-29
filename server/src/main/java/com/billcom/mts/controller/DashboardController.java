@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -25,14 +25,14 @@ public class DashboardController {
 
     @GetMapping("/stats")
     @Operation(summary = "Get dashboard statistics for current user based on role")
-    public DashboardStats getDashboardStats(@AuthenticationPrincipal User user) {
-        return dashboardService.getMyDashboardStats(user);
+    public DashboardStats getDashboardStats(Authentication authentication) {
+        return dashboardService.getMyDashboardStats(extractUser(authentication));
     }
 
     @GetMapping("/my-stats")
     @Operation(summary = "Get role-appropriate statistics for current user")
-    public DashboardStats getMyStats(@AuthenticationPrincipal User user) {
-        return dashboardService.getMyDashboardStats(user);
+    public DashboardStats getMyStats(Authentication authentication) {
+        return dashboardService.getMyDashboardStats(extractUser(authentication));
     }
 
     @GetMapping("/agent/{agentId}")
@@ -47,5 +47,12 @@ public class DashboardController {
     @Operation(summary = "Get statistics for a specific client")
     public DashboardStats getClientStats(@PathVariable Long clientId) {
         return dashboardService.getClientDashboardStats(clientId);
+    }
+
+    private User extractUser(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof User user) {
+            return user;
+        }
+        return new User();
     }
 }

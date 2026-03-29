@@ -24,12 +24,21 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     Optional<Client> findByUserEmail(String email);
 
-    @Query("SELECT c FROM Client c WHERE " +
+    @Query("SELECT c FROM Client c JOIN FETCH c.user WHERE " +
            "(LOWER(c.companyName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(c.clientCode) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(c.user.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
            "LOWER(c.user.lastName) LIKE LOWER(CONCAT('%', :search, '%')))")
     Page<Client> searchClients(@Param("search") String search, Pageable pageable);
+
+    @Query("SELECT c FROM Client c JOIN FETCH c.user")
+    Page<Client> findAllWithUser(Pageable pageable);
+
+    @Query("SELECT c FROM Client c JOIN FETCH c.user WHERE c.id = :id")
+    Optional<Client> findByIdWithUser(@Param("id") Long id);
+
+    @Query("SELECT c FROM Client c JOIN FETCH c.user WHERE c.clientCode = :code")
+    Optional<Client> findByClientCodeWithUser(@Param("code") String code);
 
     @Query("SELECT MAX(CAST(SUBSTRING(c.clientCode, 10) AS integer)) FROM Client c WHERE c.clientCode LIKE :prefix%")
     Integer findMaxClientCodeNumber(@Param("prefix") String prefix);

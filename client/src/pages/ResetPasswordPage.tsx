@@ -1,25 +1,18 @@
-// =============================================================================
-// MTS TELECOM - Reset Password Page
-// Token-based password reset flow (mock front-side)
-// Billcom Consulting - PFE 2026
-// =============================================================================
-
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, ArrowLeft, ShieldCheck } from "lucide-react";
 import AuthLayout from "../components/auth/AuthLayout";
 import { useToast } from "../context/ToastContext";
 import { authFlowService } from "../api/authFlowService";
+import { getErrorMessage } from "../api/client";
+import {
+  getPasswordConfirmationError,
+  getPasswordValidationError,
+} from "../utils/passwordValidation";
 
-// =============================================================================
-// TYPES
-// =============================================================================
 type PageState = "form" | "loading" | "success" | "error";
 
-// =============================================================================
-// COMPOSANT PRINCIPAL
-// =============================================================================
 const ResetPasswordPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token");
@@ -32,53 +25,41 @@ const ResetPasswordPage: React.FC = () => {
   const [pageState, setPageState] = useState<PageState>(token ? "form" : "error");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
-  // ---------------------------------------------------------------------------
-  // Validation
-  // ---------------------------------------------------------------------------
   const validate = useCallback((): boolean => {
     const errors: Record<string, string> = {};
-    if (!password) {
-      errors.password = "Le mot de passe est requis";
-    } else if (password.length < 8) {
-      errors.password = "Au moins 8 caractères requis";
-    } else if (!/[A-Z]/.test(password)) {
-      errors.password = "Doit contenir au moins une majuscule";
-    } else if (!/[0-9]/.test(password)) {
-      errors.password = "Doit contenir au moins un chiffre";
+
+    const passwordError = getPasswordValidationError(password);
+    if (passwordError) {
+      errors.password = passwordError;
     }
-    if (!confirmPassword) {
-      errors.confirmPassword = "Veuillez confirmer le mot de passe";
-    } else if (password !== confirmPassword) {
-      errors.confirmPassword = "Les mots de passe ne correspondent pas";
+
+    const confirmationError = getPasswordConfirmationError(password, confirmPassword);
+    if (confirmationError) {
+      errors.confirmPassword = confirmationError;
     }
+
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [password, confirmPassword]);
+  }, [confirmPassword, password]);
 
-  // ---------------------------------------------------------------------------
-  // Submit
-  // ---------------------------------------------------------------------------
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!validate()) return;
+      if (!token || !validate()) return;
+
       setPageState("loading");
       try {
-        // TODO: Remplacer par l'appel API réel POST /api/auth/reset-password
-        await authFlowService.resetPassword(token!, password);
+        await authFlowService.resetPassword(token, password);
         setPageState("success");
-        toast.success("Votre mot de passe a été réinitialisé avec succès.");
-      } catch {
+        toast.success("Votre mot de passe a ete reinitialise avec succes.");
+      } catch (error) {
         setPageState("error");
-        toast.error("Le lien de réinitialisation est invalide ou expiré.");
+        toast.error(getErrorMessage(error));
       }
     },
     [password, token, toast, validate],
   );
 
-  // ---------------------------------------------------------------------------
-  // Render helpers
-  // ---------------------------------------------------------------------------
   const renderPasswordField = (
     label: string,
     value: string,
@@ -99,11 +80,13 @@ const ResetPasswordPage: React.FC = () => {
           value={value}
           onChange={(e) => {
             onChange(e.target.value);
-            if (validationErrors[name]) setValidationErrors((p) => ({ ...p, [name]: "" }));
+            if (validationErrors[name]) {
+              setValidationErrors((prev) => ({ ...prev, [name]: "" }));
+            }
           }}
           autoComplete="new-password"
           className="w-full bg-ds-elevated text-ds-primary placeholder:text-ds-muted border border-transparent focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 rounded-xl py-3 pl-11 pr-12 text-sm outline-none transition-all duration-200"
-          placeholder="••••••••"
+          placeholder="********"
         />
         <button
           type="button"
@@ -129,14 +112,13 @@ const ResetPasswordPage: React.FC = () => {
         transition={{ delay: 0.25 }}
       >
         <h2 className="text-3xl font-extrabold text-ds-primary tracking-tight">
-          Réinitialiser le mot de passe
+          Reinitialiser le mot de passe
         </h2>
         <p className="text-ds-muted mt-2 text-sm">
-          Choisissez un nouveau mot de passe sécurisé
+          Definissez un nouveau mot de passe pour votre compte.
         </p>
       </motion.div>
 
-      {/* ---- Success state ---- */}
       {pageState === "success" && (
         <motion.div
           className="p-6 rounded-2xl text-center bg-success-50 dark:bg-success/10 border border-success-200 dark:border-success/20"
@@ -145,7 +127,7 @@ const ResetPasswordPage: React.FC = () => {
         >
           <CheckCircle size={40} className="mx-auto text-success-500 mb-3" />
           <p className="text-sm text-success-700 dark:text-success-200 font-medium">
-            Mot de passe modifié avec succès !
+            Mot de passe modifie avec succes.
           </p>
           <p className="text-xs text-ds-muted mt-2">
             Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
@@ -155,12 +137,11 @@ const ResetPasswordPage: React.FC = () => {
             className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-500 hover:text-accent-600 transition-colors"
           >
             <ArrowLeft size={16} />
-            Retour à la connexion
+            Retour a la connexion
           </Link>
         </motion.div>
       )}
 
-      {/* ---- Error state (invalid/expired token) ---- */}
       {pageState === "error" && (
         <motion.div
           className="p-6 rounded-2xl text-center bg-error-50 dark:bg-error/10 border border-error-200 dark:border-error/20"
@@ -169,21 +150,20 @@ const ResetPasswordPage: React.FC = () => {
         >
           <AlertCircle size={40} className="mx-auto text-error-500 mb-3" />
           <p className="text-sm text-error-700 dark:text-error-200 font-medium">
-            Lien invalide ou expiré
+            Lien invalide ou expire
           </p>
           <p className="text-xs text-ds-muted mt-2">
-            Veuillez demander un nouveau lien de réinitialisation.
+            Demandez un nouveau lien depuis la page de reinitialisation ou utilisez un lien plus recent.
           </p>
           <Link
             to="/forgot-password"
             className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-500 hover:text-accent-600 transition-colors"
           >
-            Demander un nouveau lien
+            Aide a la reinitialisation
           </Link>
         </motion.div>
       )}
 
-      {/* ---- Form state ---- */}
       {(pageState === "form" || pageState === "loading") && (
         <form onSubmit={handleSubmit} className="space-y-5" aria-busy={pageState === "loading"}>
           {renderPasswordField(
@@ -191,11 +171,11 @@ const ResetPasswordPage: React.FC = () => {
             password,
             setPassword,
             showPassword,
-            () => setShowPassword(!showPassword),
+            () => setShowPassword((prev) => !prev),
             "password",
           )}
           <p className="text-xs text-ds-muted -mt-3">
-            Minimum 8 caractères, 1 majuscule et 1 chiffre
+            Minimum 8 caracteres, avec une majuscule, une minuscule et un chiffre
           </p>
 
           {renderPasswordField(
@@ -203,24 +183,20 @@ const ResetPasswordPage: React.FC = () => {
             confirmPassword,
             setConfirmPassword,
             showConfirmPassword,
-            () => setShowConfirmPassword(!showConfirmPassword),
+            () => setShowConfirmPassword((prev) => !prev),
             "confirmPassword",
           )}
 
-          <button
-            type="submit"
-            disabled={pageState === "loading"}
-            className="auth-btn-primary"
-          >
+          <button type="submit" disabled={pageState === "loading"} className="auth-btn-primary">
             {pageState === "loading" ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                Réinitialisation…
+                Reinitialisation...
               </>
             ) : (
               <>
                 <ShieldCheck size={18} />
-                Réinitialiser le mot de passe
+                Reinitialiser le mot de passe
               </>
             )}
           </button>
@@ -231,7 +207,7 @@ const ResetPasswordPage: React.FC = () => {
               className="inline-flex items-center gap-1.5 font-semibold text-accent-500 hover:text-accent-600 transition-colors"
             >
               <ArrowLeft size={16} />
-              Retour à la connexion
+              Retour a la connexion
             </Link>
           </p>
         </form>

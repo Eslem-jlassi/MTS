@@ -66,15 +66,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const addToast = useCallback((type: ToastType, message: string, title?: string) => {
-    const id = nextId();
-    setToasts((prev) => [...prev.slice(-4), { id, type, message, title }]);
-    setTimeout(() => removeToast(id), 5000);
-  }, [removeToast]);
+  const addToast = useCallback(
+    (type: ToastType, message: string, title?: string) => {
+      const id = nextId();
+      setToasts((prev) => [...prev.slice(-4), { id, type, message, title }]);
+      setTimeout(() => removeToast(id), 5000);
+    },
+    [removeToast],
+  );
 
-  const success = useCallback((message: string, title?: string) => addToast("success", message, title), [addToast]);
-  const error = useCallback((message: string, title?: string) => addToast("error", message, title), [addToast]);
-  const info = useCallback((message: string, title?: string) => addToast("info", message, title), [addToast]);
+  const success = useCallback(
+    (message: string, title?: string) => addToast("success", message, title),
+    [addToast],
+  );
+  const error = useCallback(
+    (message: string, title?: string) => addToast("error", message, title),
+    [addToast],
+  );
+  const info = useCallback(
+    (message: string, title?: string) => addToast("info", message, title),
+    [addToast],
+  );
 
   const value: ToastContextValue = {
     toasts,
@@ -107,9 +119,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 transition={{ duration: 0.2 }}
                 className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-soft-lg ${config.bgClass}`}
               >
-                <Icon size={20} className={`flex-shrink-0 mt-0.5 ${config.iconClass}`} aria-hidden />
+                <Icon
+                  size={20}
+                  className={`flex-shrink-0 mt-0.5 ${config.iconClass}`}
+                  aria-hidden
+                />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-ds-primary text-sm">{t.title ?? config.titleDefault}</p>
+                  <p className="font-medium text-ds-primary text-sm">
+                    {t.title ?? config.titleDefault}
+                  </p>
                   <p className="text-sm text-ds-secondary mt-0.5">{t.message}</p>
                 </div>
                 <button

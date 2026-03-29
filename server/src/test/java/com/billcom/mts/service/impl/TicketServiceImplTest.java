@@ -1,12 +1,14 @@
 package com.billcom.mts.service.impl;
 
 import com.billcom.mts.dto.ticket.TicketAssignRequest;
+import com.billcom.mts.dto.ticket.TicketCommentRequest;
 import com.billcom.mts.dto.ticket.TicketCreateRequest;
 import com.billcom.mts.dto.ticket.TicketResponse;
 import com.billcom.mts.dto.ticket.TicketStatusChangeRequest;
 import com.billcom.mts.entity.*;
 import com.billcom.mts.enums.*;
 import com.billcom.mts.exception.BadRequestException;
+import com.billcom.mts.exception.ForbiddenException;
 import com.billcom.mts.exception.ResourceNotFoundException;
 import com.billcom.mts.repository.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,11 +16,16 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,15 +44,24 @@ class TicketServiceImplTest {
     @Mock private TicketRepository ticketRepository;
     @Mock private TicketCommentRepository commentRepository;
     @Mock private TicketHistoryRepository historyRepository;
+    @Mock private TicketAttachmentRepository attachmentRepository;
     @Mock private TelecomServiceRepository serviceRepository;
     @Mock private ClientRepository clientRepository;
     @Mock private UserRepository userRepository;
+    @Mock private NotificationRepository notificationRepository;
+    @Mock private IncidentRepository incidentRepository;
+    @Mock private SlaTimelineRepository slaTimelineRepository;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
 
+    @TempDir
+    Path tempDir;
+
     private User clientUser;
     private User agentUser;
+    private User adminUser;
+    private User otherAgentUser;
     private Client testClient;
     private TelecomService testService;
     private Ticket testTicket;
@@ -57,6 +73,15 @@ class TicketServiceImplTest {
         ReflectionTestUtils.setField(ticketService, "slaHighHours", 4);
         ReflectionTestUtils.setField(ticketService, "slaMediumHours", 24);
         ReflectionTestUtils.setField(ticketService, "slaLowHours", 72);
+
+        lenient().when(commentRepository.findByTicketIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(List.of());
+        lenient().when(historyRepository.findByTicketIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(List.of());
+        lenient().when(attachmentRepository.findByTicketIdOrderByCreatedAtDesc(anyLong()))
+                .thenReturn(List.of());
+        lenient().when(historyRepository.save(any())).thenReturn(null);
+        lenient().when(commentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         clientUser = User.builder()
                 .id(5L)
@@ -72,6 +97,24 @@ class TicketServiceImplTest {
                 .email("agent@billcom.tn")
                 .firstName("Agent")
                 .lastName("Support")
+                .role(UserRole.AGENT)
+                .isActive(true)
+                .build();
+
+        adminUser = User.builder()
+                .id(1L)
+                .email("admin@billcom.tn")
+                .firstName("Admin")
+                .lastName("Root")
+                .role(UserRole.ADMIN)
+                .isActive(true)
+                .build();
+
+        otherAgentUser = User.builder()
+                .id(8L)
+                .email("agent2@billcom.tn")
+                .firstName("Autre")
+                .lastName("Agent")
                 .role(UserRole.AGENT)
                 .isActive(true)
                 .build();
@@ -238,6 +281,89 @@ class TicketServiceImplTest {
     }
 
     // =========================================================================
+    // ACCESS CONTROL
+    // =========================================================================
+    @Nested
+    @DisplayName("getTicketByIdSecured()")
+    class AccessControlTests {
+
+        @Test
+        @DisplayName("AGENT peut voir un ticket non assigne")
+        void agentCanViewUnassignedTicket() {
+            testTicket.setAssignedTo(null);
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+
+            TicketResponse response = ticketService.getTicketByIdSecured(100L, agentUser);
+
+            assertThat(response).isNotNull();
+            assertThat(response.getId()).isEqualTo(100L);
+        }
+
+        @Test
+        @DisplayName("AGENT ne peut pas voir un ticket assigne a un autre agent")
+        void agentCannotViewOtherAgentsTicket() {
+            testTicket.setAssignedTo(otherAgentUser);
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.getTicketByIdSecured(100L, agentUser))
+                    .isInstanceOf(ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("CLIENT ne voit pas les notes internes ni l'historique interne")
+        void clientCannotSeeInternalNotesOrHistory() {
+            TicketComment publicComment = TicketComment.builder()
+                    .id(1L)
+                    .ticket(testTicket)
+                    .author(agentUser)
+                    .content("Reponse publique")
+                    .isInternal(false)
+                    .build();
+            TicketComment internalComment = TicketComment.builder()
+                    .id(2L)
+                    .ticket(testTicket)
+                    .author(agentUser)
+                    .content("Diagnostic interne")
+                    .isInternal(true)
+                    .build();
+
+            TicketHistory publicHistory = TicketHistory.builder()
+                    .id(10L)
+                    .ticket(testTicket)
+                    .user(agentUser)
+                    .action(TicketAction.STATUS_CHANGE)
+                    .oldValue(TicketStatus.NEW.name())
+                    .newValue(TicketStatus.IN_PROGRESS.name())
+                    .details("Prise en charge")
+                    .build();
+            TicketHistory internalHistory = TicketHistory.builder()
+                    .id(11L)
+                    .ticket(testTicket)
+                    .user(agentUser)
+                    .action(TicketAction.INTERNAL_NOTE)
+                    .details("Analyse reservee au support")
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+            when(clientRepository.findByUserId(5L)).thenReturn(Optional.of(testClient));
+            when(commentRepository.findByTicketIdOrderByCreatedAtDesc(100L))
+                    .thenReturn(List.of(internalComment, publicComment));
+            when(historyRepository.findByTicketIdOrderByCreatedAtDesc(100L))
+                    .thenReturn(List.of(internalHistory, publicHistory));
+
+            TicketResponse response = ticketService.getTicketByIdSecured(100L, clientUser);
+
+            assertThat(response.getCommentCount()).isEqualTo(1);
+            assertThat(response.getComments())
+                    .extracting(TicketResponse.CommentInfo::getContent)
+                    .containsExactly("Reponse publique");
+            assertThat(response.getHistory())
+                    .extracting(TicketResponse.HistoryInfo::getAction)
+                    .containsExactly(TicketAction.STATUS_CHANGE.name());
+        }
+    }
+
+    // =========================================================================
     // CHANGE STATUS
     // =========================================================================
     @Nested
@@ -248,6 +374,7 @@ class TicketServiceImplTest {
         @DisplayName("Devrait permettre NEW → IN_PROGRESS")
         void changeStatus_new_to_inProgress() {
             testTicket.setStatus(TicketStatus.NEW);
+            testTicket.setAssignedTo(agentUser);
 
             TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
                     .newStatus(TicketStatus.IN_PROGRESS)
@@ -268,6 +395,7 @@ class TicketServiceImplTest {
         @DisplayName("Devrait refuser NEW → CLOSED (transition invalide)")
         void changeStatus_invalid_transition() {
             testTicket.setStatus(TicketStatus.NEW);
+            testTicket.setAssignedTo(agentUser);
 
             TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
                     .newStatus(TicketStatus.CLOSED)
@@ -283,6 +411,7 @@ class TicketServiceImplTest {
         @DisplayName("Devrait exiger une résolution pour RESOLVED")
         void changeStatus_resolved_requires_resolution() {
             testTicket.setStatus(TicketStatus.IN_PROGRESS);
+            testTicket.setAssignedTo(agentUser);
 
             TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
                     .newStatus(TicketStatus.RESOLVED)
@@ -299,6 +428,7 @@ class TicketServiceImplTest {
         @DisplayName("Devrait enregistrer resolvedAt lors de la résolution")
         void changeStatus_resolved_sets_resolvedAt() {
             testTicket.setStatus(TicketStatus.IN_PROGRESS);
+            testTicket.setAssignedTo(agentUser);
 
             TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
                     .newStatus(TicketStatus.RESOLVED)
@@ -320,6 +450,54 @@ class TicketServiceImplTest {
         }
 
         @Test
+        @DisplayName("Devrait marquer le SLA comme depasse si la resolution arrive apres la deadline")
+        void changeStatus_resolved_after_deadline_marks_breached_sla() {
+            testTicket.setStatus(TicketStatus.IN_PROGRESS);
+            testTicket.setAssignedTo(agentUser);
+            testTicket.setDeadline(LocalDateTime.now().minusMinutes(5));
+
+            TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
+                    .newStatus(TicketStatus.RESOLVED)
+                    .resolution("Resolution tardive")
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+
+            ticketService.changeStatus(100L, request, agentUser, "127.0.0.1");
+
+            verify(ticketRepository).save(argThat(t ->
+                    t.getStatus() == TicketStatus.RESOLVED &&
+                    Boolean.TRUE.equals(t.getBreachedSla())
+            ));
+        }
+
+        @Test
+        @DisplayName("Devrait nettoyer resolvedAt et closedAt lors de la reouverture")
+        void changeStatus_reopen_clears_resolution_timestamps() {
+            testTicket.setStatus(TicketStatus.RESOLVED);
+            testTicket.setAssignedTo(agentUser);
+            testTicket.setResolvedAt(LocalDateTime.now().minusMinutes(30));
+            testTicket.setClosedAt(LocalDateTime.now().minusMinutes(10));
+
+            TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
+                    .newStatus(TicketStatus.IN_PROGRESS)
+                    .comment("Reouverture pour verification")
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+
+            ticketService.changeStatus(100L, request, agentUser, "127.0.0.1");
+
+            verify(ticketRepository).save(argThat(t ->
+                    t.getStatus() == TicketStatus.IN_PROGRESS &&
+                    t.getResolvedAt() == null &&
+                    t.getClosedAt() == null
+            ));
+        }
+
+        @Test
         @DisplayName("Devrait échouer si le ticket n'existe pas")
         void changeStatus_ticket_not_found() {
             TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
@@ -330,6 +508,22 @@ class TicketServiceImplTest {
 
             assertThatThrownBy(() -> ticketService.changeStatus(999L, request, agentUser, "127.0.0.1"))
                     .isInstanceOf(ResourceNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("AGENT ne peut pas changer le statut d'un ticket non assigne")
+        void changeStatus_forbidden_for_unassigned_ticket() {
+            testTicket.setStatus(TicketStatus.NEW);
+            testTicket.setAssignedTo(null);
+
+            TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
+                    .newStatus(TicketStatus.IN_PROGRESS)
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.changeStatus(100L, request, agentUser, "127.0.0.1"))
+                    .isInstanceOf(ForbiddenException.class);
         }
     }
 
@@ -379,6 +573,49 @@ class TicketServiceImplTest {
             assertThatThrownBy(() -> ticketService.assignTicket(100L, request, agentUser, "127.0.0.1"))
                     .isInstanceOf(BadRequestException.class);
         }
+
+        @Test
+        @DisplayName("Devrait refuser l'assignation d'un ticket deja resolu")
+        void assignTicket_refuses_terminal_workflow_state() {
+            testTicket.setStatus(TicketStatus.RESOLVED);
+
+            TicketAssignRequest request = TicketAssignRequest.builder()
+                    .agentId(3L)
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.assignTicket(100L, request, agentUser, "127.0.0.1"))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("resolu");
+        }
+    }
+
+    // =========================================================================
+    // COMMENTS
+    // =========================================================================
+    @Nested
+    @DisplayName("addComment()")
+    class CommentTests {
+
+        @Test
+        @DisplayName("Devrait refuser un commentaire sur un ticket clos")
+        void addComment_rejects_closed_ticket() {
+            testTicket.setStatus(TicketStatus.CLOSED);
+            testTicket.setAssignedTo(agentUser);
+
+            TicketCommentRequest request = TicketCommentRequest.builder()
+                    .content("Relance client")
+                    .isInternal(false)
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.addComment(100L, request, agentUser, "127.0.0.1"))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("clos ou annule");
+            verify(commentRepository, never()).save(any(TicketComment.class));
+        }
     }
 
     // =========================================================================
@@ -408,7 +645,11 @@ class TicketServiceImplTest {
             verify(ticketRepository).save(argThat(t ->
                     t.getId().equals(50L) && t.getBreachedSla() == true
             ));
-            verify(historyRepository).save(any(TicketHistory.class));
+            ArgumentCaptor<TicketHistory> historyCaptor = ArgumentCaptor.forClass(TicketHistory.class);
+            verify(historyRepository, atLeastOnce()).save(historyCaptor.capture());
+            assertThat(historyCaptor.getAllValues())
+                    .extracting(TicketHistory::getAction)
+                    .contains(TicketAction.SLA_BREACH);
         }
 
         @Test
@@ -429,7 +670,150 @@ class TicketServiceImplTest {
 
             verify(ticketRepository, never()).save(any(Ticket.class));
         }
+
+        @Test
+        @DisplayName("Devrait escalader automatiquement un ticket actif en depassement SLA")
+        void detectSlaBreaches_auto_escalates_active_ticket() {
+            Ticket breachedTicket = Ticket.builder()
+                    .id(52L)
+                    .ticketNumber("TKT-2026-00052")
+                    .title("Ticket critique")
+                    .status(TicketStatus.IN_PROGRESS)
+                    .deadline(LocalDateTime.now().minusHours(1))
+                    .breachedSla(false)
+                    .createdBy(clientUser)
+                    .build();
+
+            when(ticketRepository.findSlaBreachedTickets()).thenReturn(List.of(breachedTicket));
+
+            ticketService.detectSlaBreaches();
+
+            verify(ticketRepository).save(argThat(t ->
+                    t.getId().equals(52L)
+                            && Boolean.TRUE.equals(t.getBreachedSla())
+                            && t.getStatus() == TicketStatus.ESCALATED
+            ));
+
+            ArgumentCaptor<TicketHistory> historyCaptor = ArgumentCaptor.forClass(TicketHistory.class);
+            verify(historyRepository, atLeast(2)).save(historyCaptor.capture());
+            assertThat(historyCaptor.getAllValues())
+                    .extracting(TicketHistory::getAction)
+                    .contains(TicketAction.SLA_BREACH, TicketAction.ESCALATION);
+        }
     }
+
+        // =========================================================================
+        // DELETE TICKET (CLIENT)
+        // =========================================================================
+        @Nested
+        @DisplayName("deleteTicketAsClient()")
+        class DeleteTicketAsClientTests {
+
+                @Test
+                @DisplayName("Devrait supprimer un ticket NEW non assigné appartenant au client")
+                void deleteTicketAsClient_success() {
+                        testTicket.setStatus(TicketStatus.NEW);
+                        testTicket.setAssignedTo(null);
+
+                        when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+                        when(clientRepository.findByUserId(5L)).thenReturn(Optional.of(testClient));
+                        when(ticketRepository.save(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                        ticketService.deleteTicketAsClient(100L, clientUser, "127.0.0.1");
+
+                        assertThat(testTicket.getStatus()).isEqualTo(TicketStatus.CANCELLED);
+                        verify(ticketRepository).save(testTicket);
+                        verify(historyRepository).save(any(TicketHistory.class));
+                        verify(ticketRepository, never()).delete(any(Ticket.class));
+                }
+
+                @Test
+                @DisplayName("Devrait refuser la suppression si ticket d'un autre client")
+                void deleteTicketAsClient_forbidden_not_owner() {
+                        Client otherClient = Client.builder().id(999L).build();
+                        testTicket.setClient(otherClient);
+
+                        when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+                        when(clientRepository.findByUserId(5L)).thenReturn(Optional.of(testClient));
+
+                        assertThatThrownBy(() -> ticketService.deleteTicketAsClient(100L, clientUser, "127.0.0.1"))
+                                .isInstanceOf(ForbiddenException.class);
+                }
+
+                @Test
+                @DisplayName("Devrait refuser la suppression si ticket déjà en traitement")
+                void deleteTicketAsClient_refuse_processed_status() {
+                        testTicket.setStatus(TicketStatus.IN_PROGRESS);
+                        testTicket.setAssignedTo(null);
+
+                        when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+                        when(clientRepository.findByUserId(5L)).thenReturn(Optional.of(testClient));
+
+                        assertThatThrownBy(() -> ticketService.deleteTicketAsClient(100L, clientUser, "127.0.0.1"))
+                                .isInstanceOf(BadRequestException.class);
+                        verify(ticketRepository, never()).delete(any(Ticket.class));
+                }
+
+                @Test
+                @DisplayName("Devrait supprimer definitivement un ticket vierge cote admin")
+                void hardDeleteTicketAsAdmin_success() throws IOException {
+                        testTicket.setStatus(TicketStatus.NEW);
+                        testTicket.setAssignedTo(null);
+                        ReflectionTestUtils.setField(ticketService, "ticketUploadDir", tempDir.toString());
+                        Path ticketFolder = Files.createDirectories(tempDir.resolve("100"));
+                        Files.writeString(ticketFolder.resolve("orphan.txt"), "temporary attachment residue");
+
+                        when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+                        when(commentRepository.countByTicketId(100L)).thenReturn(0L);
+                        when(attachmentRepository.countByTicketId(100L)).thenReturn(0L);
+                        when(historyRepository.countByTicketId(100L)).thenReturn(1L);
+                        when(slaTimelineRepository.countByTicket_Id(100L)).thenReturn(0L);
+                        when(incidentRepository.countByTicketId(100L)).thenReturn(0L);
+                        when(incidentRepository.countByTickets_Id(100L)).thenReturn(0L);
+                        when(notificationRepository.deleteByReferenceTypeAndReferenceId("TICKET", 100L)).thenReturn(2L);
+
+                        ticketService.hardDeleteTicketAsAdmin(100L, adminUser, "127.0.0.1");
+
+                        verify(ticketRepository).delete(testTicket);
+                        verify(notificationRepository).deleteByReferenceTypeAndReferenceId("TICKET", 100L);
+                        assertThat(Files.exists(ticketFolder)).isFalse();
+                }
+
+                @Test
+                @DisplayName("Devrait refuser le hard delete si le ticket contient deja des commentaires")
+                void hardDeleteTicketAsAdmin_refuse_when_comments_exist() {
+                        testTicket.setStatus(TicketStatus.NEW);
+                        testTicket.setAssignedTo(null);
+
+                        when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+                        when(commentRepository.countByTicketId(100L)).thenReturn(2L);
+
+                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(100L, adminUser, "127.0.0.1"))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("commentaires");
+                        verify(ticketRepository, never()).delete(any(Ticket.class));
+                }
+
+                @Test
+                @DisplayName("Devrait refuser le hard delete si le ticket est lie a un incident")
+                void hardDeleteTicketAsAdmin_refuse_when_linked_to_incident() {
+                        testTicket.setStatus(TicketStatus.NEW);
+                        testTicket.setAssignedTo(null);
+
+                        when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+                        when(commentRepository.countByTicketId(100L)).thenReturn(0L);
+                        when(attachmentRepository.countByTicketId(100L)).thenReturn(0L);
+                        when(historyRepository.countByTicketId(100L)).thenReturn(1L);
+                        when(slaTimelineRepository.countByTicket_Id(100L)).thenReturn(0L);
+                        when(incidentRepository.countByTicketId(100L)).thenReturn(1L);
+                        when(incidentRepository.countByTickets_Id(100L)).thenReturn(0L);
+
+                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(100L, adminUser, "127.0.0.1"))
+                                .isInstanceOf(BadRequestException.class)
+                                .hasMessageContaining("incident");
+                        verify(ticketRepository, never()).delete(any(Ticket.class));
+                }
+        }
 
     // =========================================================================
     // STATISTICS

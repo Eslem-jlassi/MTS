@@ -5,7 +5,7 @@
  * ============================================================================
  * ticketsSlice.ts - Gestion de l'état des tickets avec Redux Toolkit
  * ============================================================================
- * 
+ *
  * QU'EST-CE QU'UN REDUX SLICE?
  * ----------------------------
  * Un "slice" est une portion du state Redux qui gère un domaine spécifique.
@@ -15,7 +15,7 @@
  * - Commentaires et historique
  * - Pagination et filtres
  * - État de chargement et erreurs
- * 
+ *
  * ARCHITECTURE REDUX:
  * ┌────────────────────────────────────────────────────────────────────────┐
  * │                         REDUX STORE                                    │
@@ -24,14 +24,14 @@
  * │  │ (auth state) │  │(tickets state)│ │(dashboard state)│               │
  * │  └──────────────┘  └──────────────┘  └───────────────┘                │
  * └────────────────────────────────────────────────────────────────────────┘
- * 
+ *
  * ASYNC THUNKS:
  * Les opérations asynchrones (appels API) sont gérées par createAsyncThunk.
  * Chaque thunk génère 3 actions automatiquement:
  * - pending: Début de l'appel (isLoading = true)
  * - fulfilled: Succès (données reçues)
  * - rejected: Échec (erreur)
- * 
+ *
  * ============================================================================
  */
 
@@ -49,17 +49,16 @@ import { ticketService } from "../../api";
 
 // Types TypeScript
 import {
-  Ticket,                    // Entité ticket
-  CreateTicketRequest,       // Données pour créer un ticket
-  UpdateTicketRequest,       // Données pour modifier un ticket
+  Ticket, // Entité ticket
+  CreateTicketRequest, // Données pour créer un ticket
   TicketStatusChangeRequest, // Données pour changer le statut
-  TicketAssignRequest,       // Données pour assigner
-  TicketFilterParams,        // Filtres de recherche
-  PageRequest,               // Paramètres de pagination
-  PageResponse,              // Réponse paginée
-  TicketComment,             // Commentaire sur un ticket
-  CreateCommentRequest,      // Données pour créer un commentaire
-  TicketHistory,             // Historique des modifications
+  TicketAssignRequest, // Données pour assigner
+  TicketFilterParams, // Filtres de recherche
+  PageRequest, // Paramètres de pagination
+  PageResponse, // Réponse paginée
+  TicketComment, // Commentaire sur un ticket
+  CreateCommentRequest, // Données pour créer un commentaire
+  TicketHistory, // Historique des modifications
 } from "../../types";
 
 // =============================================================================
@@ -68,43 +67,43 @@ import {
 
 /**
  * Interface définissant la structure de l'état des tickets.
- * 
+ *
  * Ceci est le "shape" (forme) de state.tickets dans le store Redux.
  */
 interface TicketsState {
   // Liste des tickets affichés
   tickets: Ticket[];
-  
+
   // Ticket actuellement sélectionné (pour la vue détail)
   selectedTicket: Ticket | null;
-  
+
   // Commentaires du ticket sélectionné
   comments: TicketComment[];
-  
+
   // Historique du ticket sélectionné
   history: TicketHistory[];
-  
+
   // Pagination - Nombre total d'éléments
   totalElements: number;
-  
+
   // Pagination - Nombre total de pages
   totalPages: number;
-  
+
   // Pagination - Page courante (0-indexed)
   currentPage: number;
-  
+
   // Pagination - Nombre d'éléments par page
   pageSize: number;
-  
+
   // Indicateur de chargement (pour la liste)
   isLoading: boolean;
-  
+
   // Indicateur de chargement (pour les détails)
   isLoadingDetails: boolean;
-  
+
   // Message d'erreur (null si pas d'erreur)
   error: string | null;
-  
+
   // Filtres de recherche actifs
   filters: TicketFilterParams;
 }
@@ -138,18 +137,18 @@ const initialState: TicketsState = {
 
 /**
  * Récupère la liste des tickets avec filtres et pagination.
- * 
+ *
  * SYNTAXE createAsyncThunk:
  * createAsyncThunk<ReturnType, ArgType, ThunkConfig>(actionName, asyncFunction)
- * 
+ *
  * - ReturnType: Ce que retourne la fonction (PageResponse<Ticket>)
  * - ArgType: Les arguments passés ({ filters, page })
  * - ThunkConfig: Configuration (ici, rejectValue pour typer l'erreur)
  */
 export const fetchTickets = createAsyncThunk<
-  PageResponse<Ticket>,                              // Type de retour
+  PageResponse<Ticket>, // Type de retour
   { filters?: TicketFilterParams; page?: PageRequest }, // Arguments
-  { rejectValue: string }                             // Config (type de l'erreur)
+  { rejectValue: string } // Config (type de l'erreur)
 >("tickets/fetchTickets", async ({ filters, page }, { rejectWithValue }) => {
   try {
     // Appelle l'API
@@ -171,7 +170,7 @@ export const fetchTicketById = createAsyncThunk<Ticket, number, { rejectValue: s
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || "Ticket non trouvé");
     }
-  }
+  },
 );
 
 /**
@@ -185,23 +184,8 @@ export const createTicket = createAsyncThunk<Ticket, CreateTicketRequest, { reje
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || "Erreur de création du ticket");
     }
-  }
+  },
 );
-
-/**
- * Met à jour un ticket existant.
- */
-export const updateTicket = createAsyncThunk<
-  Ticket,
-  { id: number; request: UpdateTicketRequest },
-  { rejectValue: string }
->("tickets/updateTicket", async ({ id, request }, { rejectWithValue }) => {
-  try {
-    return await ticketService.updateTicket(id, request);
-  } catch (error: any) {
-    return rejectWithValue(error.response?.data?.message || "Erreur de mise à jour");
-  }
-});
 
 /**
  * Change le statut d'un ticket.
@@ -242,9 +226,11 @@ export const fetchComments = createAsyncThunk<TicketComment[], number, { rejectV
     try {
       return await ticketService.getComments(ticketId);
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || "Erreur de chargement des commentaires");
+      return rejectWithValue(
+        error.response?.data?.message || "Erreur de chargement des commentaires",
+      );
     }
-  }
+  },
 );
 
 /**
@@ -271,9 +257,11 @@ export const fetchHistory = createAsyncThunk<TicketHistory[], number, { rejectVa
     try {
       return await ticketService.getHistory(ticketId);
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || "Erreur de chargement de l'historique");
+      return rejectWithValue(
+        error.response?.data?.message || "Erreur de chargement de l'historique",
+      );
     }
-  }
+  },
 );
 
 // =============================================================================
@@ -290,7 +278,7 @@ export const fetchHistory = createAsyncThunk<TicketHistory[], number, { rejectVa
 const ticketsSlice = createSlice({
   name: "tickets",
   initialState,
-  
+
   // =========================================================================
   // REDUCERS - Actions synchrones
   // =========================================================================
@@ -298,7 +286,7 @@ const ticketsSlice = createSlice({
    * Les reducers sont des fonctions qui modifient l'état.
    * Grâce à Immer (intégré dans Redux Toolkit), on peut écrire
    * du code qui semble muter l'état, mais qui est en fait immutable.
-   * 
+   *
    * Exemple: state.selectedTicket = null;
    * Semble muter, mais crée un nouvel objet en coulisse.
    */
@@ -312,7 +300,7 @@ const ticketsSlice = createSlice({
       state.comments = [];
       state.history = [];
     },
-    
+
     /**
      * Met à jour les filtres de recherche.
      * PayloadAction<T> type l'action avec son payload.
@@ -320,21 +308,21 @@ const ticketsSlice = createSlice({
     setFilters: (state, action: PayloadAction<TicketFilterParams>) => {
       state.filters = action.payload;
     },
-    
+
     /**
      * Réinitialise les filtres.
      */
     clearFilters: (state) => {
       state.filters = {};
     },
-    
+
     /**
      * Efface le message d'erreur.
      */
     clearError: (state) => {
       state.error = null;
     },
-    
+
     /**
      * Change la page courante.
      */
@@ -342,41 +330,41 @@ const ticketsSlice = createSlice({
       state.currentPage = action.payload;
     },
   },
-  
+
   // =========================================================================
   // EXTRA REDUCERS - Gestion des actions asynchrones
   // =========================================================================
   /**
    * extraReducers gère les actions des createAsyncThunk.
-   * 
+   *
    * Chaque thunk génère 3 actions:
    * - .pending: L'appel API a commencé
    * - .fulfilled: L'appel a réussi
    * - .rejected: L'appel a échoué
-   * 
+   *
    * builder.addCase() associe une action à un handler.
    */
   extraReducers: (builder) => {
     // =========================================================================
     // FETCH TICKETS (Liste)
     // =========================================================================
-    
+
     // Début du chargement
     builder.addCase(fetchTickets.pending, (state) => {
-      state.isLoading = true;   // Active le spinner
-      state.error = null;       // Reset l'erreur
+      state.isLoading = true; // Active le spinner
+      state.error = null; // Reset l'erreur
     });
-    
+
     // Succès - on reçoit la page de tickets
     builder.addCase(fetchTickets.fulfilled, (state, action) => {
       state.isLoading = false;
-      state.tickets = action.payload.content;       // Les tickets
-      state.totalElements = action.payload.totalElements;  // Nombre total
+      state.tickets = action.payload.content; // Les tickets
+      state.totalElements = action.payload.totalElements; // Nombre total
       state.totalPages = action.payload.totalPages; // Nombre de pages
-      state.currentPage = action.payload.number;    // Page courante
-      state.pageSize = action.payload.size;         // Taille de page
+      state.currentPage = action.payload.number; // Page courante
+      state.pageSize = action.payload.size; // Taille de page
     });
-    
+
     // Échec - on stocke l'erreur
     builder.addCase(fetchTickets.rejected, (state, action) => {
       state.isLoading = false;
@@ -386,17 +374,17 @@ const ticketsSlice = createSlice({
     // =========================================================================
     // FETCH TICKET BY ID (Détail)
     // =========================================================================
-    
+
     builder.addCase(fetchTicketById.pending, (state) => {
-      state.isLoadingDetails = true;  // Spinner pour les détails
+      state.isLoadingDetails = true; // Spinner pour les détails
       state.error = null;
     });
-    
+
     builder.addCase(fetchTicketById.fulfilled, (state, action) => {
       state.isLoadingDetails = false;
-      state.selectedTicket = action.payload;  // Stocke le ticket
+      state.selectedTicket = action.payload; // Stocke le ticket
     });
-    
+
     builder.addCase(fetchTicketById.rejected, (state, action) => {
       state.isLoadingDetails = false;
       state.error = action.payload || "Erreur";
@@ -405,44 +393,28 @@ const ticketsSlice = createSlice({
     // =========================================================================
     // CREATE TICKET
     // =========================================================================
-    
+
     builder.addCase(createTicket.pending, (state) => {
       state.isLoading = true;
       state.error = null;
     });
-    
+
     builder.addCase(createTicket.fulfilled, (state, action) => {
       state.isLoading = false;
       // Ajoute le nouveau ticket au début de la liste
       state.tickets.unshift(action.payload);
       state.totalElements += 1;
     });
-    
+
     builder.addCase(createTicket.rejected, (state, action) => {
       state.isLoading = false;
       state.error = action.payload || "Erreur";
     });
 
     // =========================================================================
-    // UPDATE TICKET
-    // =========================================================================
-    
-    builder.addCase(updateTicket.fulfilled, (state, action) => {
-      // Trouve et met à jour le ticket dans la liste
-      const index = state.tickets.findIndex((t) => t.id === action.payload.id);
-      if (index !== -1) {
-        state.tickets[index] = action.payload;
-      }
-      // Met aussi à jour le ticket sélectionné si c'est le même
-      if (state.selectedTicket?.id === action.payload.id) {
-        state.selectedTicket = action.payload;
-      }
-    });
-
-    // =========================================================================
     // CHANGE STATUS
     // =========================================================================
-    
+
     builder.addCase(changeTicketStatus.fulfilled, (state, action) => {
       const index = state.tickets.findIndex((t) => t.id === action.payload.id);
       if (index !== -1) {
@@ -456,7 +428,7 @@ const ticketsSlice = createSlice({
     // =========================================================================
     // ASSIGN TICKET
     // =========================================================================
-    
+
     builder.addCase(assignTicket.fulfilled, (state, action) => {
       const index = state.tickets.findIndex((t) => t.id === action.payload.id);
       if (index !== -1) {
@@ -470,7 +442,7 @@ const ticketsSlice = createSlice({
     // =========================================================================
     // COMMENTAIRES
     // =========================================================================
-    
+
     // Récupération des commentaires
     builder.addCase(fetchComments.fulfilled, (state, action) => {
       state.comments = action.payload;
@@ -478,13 +450,13 @@ const ticketsSlice = createSlice({
 
     // Ajout d'un commentaire
     builder.addCase(addComment.fulfilled, (state, action) => {
-      state.comments.push(action.payload);  // Ajoute à la fin
+      state.comments.push(action.payload); // Ajoute à la fin
     });
 
     // =========================================================================
     // HISTORIQUE
     // =========================================================================
-    
+
     builder.addCase(fetchHistory.fulfilled, (state, action) => {
       state.history = action.payload;
     });

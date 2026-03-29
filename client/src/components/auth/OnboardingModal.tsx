@@ -127,11 +127,7 @@ function markOnboardingDone(userId: number | string): void {
 // =============================================================================
 // COMPOSANT PRINCIPAL
 // =============================================================================
-const OnboardingModal: React.FC<OnboardingModalProps> = ({
-  userRole,
-  userId,
-  onComplete,
-}) => {
+const OnboardingModal: React.FC<OnboardingModalProps> = ({ userRole, userId, onComplete }) => {
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -229,9 +225,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   {step.icon}
                 </div>
 
-                <h3 className="text-lg font-bold text-ds-primary text-center">
-                  {step.title}
-                </h3>
+                <h3 className="text-lg font-bold text-ds-primary text-center">{step.title}</h3>
                 <p className="text-sm text-ds-secondary text-center mt-2 leading-relaxed">
                   {step.description}
                 </p>
@@ -261,8 +255,8 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                       idx === currentStep
                         ? "w-6 bg-primary-500"
                         : idx < currentStep
-                        ? "w-1.5 bg-primary-300 dark:bg-primary-700"
-                        : "w-1.5 bg-ds-border"
+                          ? "w-1.5 bg-primary-300 dark:bg-primary-700"
+                          : "w-1.5 bg-ds-border"
                     }`}
                   />
                 ))}

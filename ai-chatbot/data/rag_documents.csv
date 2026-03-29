@@ -1,0 +1,1727 @@
+﻿doc_id,doc_type,source_id,service_name,company_name,language,title,content
+ticket_4,ticket,4,VoIP Platform,Sahara Connect Services,fr,Latence élevée sur VoIP entreprise,"Type: Ticket
+Ticket Number: TKT-2026-00004
+Service: VoIP Platform
+Company: Sahara Connect Services
+Title: Latence élevée sur VoIP entreprise
+Description: Nos utilisateurs signalent une latence > 200ms sur les appels VoIP depuis 2 jours. Qualité dégradée, écho fréquent.
+Category: PANNE
+Priority: MEDIUM
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Test de latence effectué. Résultats : 180-220ms. Possible congestion switch S2. En attente retour équipe réseau.
+Language: fr"
+ticket_2,ticket,2,CRM Ericsson,Atlas Distribution Maroc,fr,Erreur synchronisation CRM contacts,"Type: Ticket
+Ticket Number: TKT-2026-00002
+Service: CRM Ericsson
+Company: Atlas Distribution Maroc
+Title: Erreur synchronisation CRM contacts
+Description: La synchronisation des contacts entre le CRM Ericsson et le système HLR ne fonctionne plus depuis la mise à jour de vendredi.
+Category: PANNE
+Priority: HIGH
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Pouvez-vous nous donner un délai estimé pour la résolution ? C'est urgent pour notre équipe commerciale.
+Language: fr"
+ticket_2001,ticket,2001,BSCS Billing System,Atlas Distribution Maroc,fr,Blocage du rating BSCS sur les CDR roaming entrants,"Type: Ticket
+Ticket Number: TKT-2026-02001
+Service: BSCS Billing System
+Company: Atlas Distribution Maroc
+Title: Blocage du rating BSCS sur les CDR roaming entrants
+Description: Depuis 06:20 les CDR roaming entrants ne sont plus valorises dans BSCS et le backlog depasse 42000 enregistrements. Les soldes clients postpayes ne sont plus mis a jour apres consommation. L impact est confirme sur le perimetre production entreprise.
+Category: INCIDENT
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Un lot de CDR partenaire contenait un format de date non conforme qui a bloque le parseur de mediation
+Resolution: Le parseur a ete corrige puis le lot corrompu a ete purge et les CDR en attente ont ete rejoues sans perte de donnees
+Comments: Les CDR invalides ont ete isoles et la file de mediation secondaire a pris le relais pour les flux prioritaires Le parseur a ete corrige puis le lot corrompu a ete purge et les CDR en attente ont ete rejoues sans perte de donnees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2002,ticket,2002,BSCS Billing System,Sahara Connect Services,fr,Echec du bill run mensuel BSCS pour les comptes entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02002
+Service: BSCS Billing System
+Company: Sahara Connect Services
+Title: Echec du bill run mensuel BSCS pour les comptes entreprise
+Description: Le bill run mensuel s arrete au milieu du cycle entreprise et aucune facture PDF n est produite pour 8600 comptes. Les previsions de cloture financiere sont retardees. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Le repertoire de polices du moteur PDF etait invalide apres une maintenance systeme
+Resolution: Le chemin de rendu PDF a ete corrige puis le bill run a ete relance en reprise et toutes les factures ont ete regenerees
+Comments: Les factures critiques ont ete sorties via le moteur de secours afin de respecter la fenetre de controle finance Le chemin de rendu PDF a ete corrige puis le bill run a ete relance en reprise et toutes les factures ont ete regenerees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2003,ticket,2003,CRM Ericsson,Rabat Digital Operations,fr,Desynchronisation des fiches clients CRM Ericsson vers BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02003
+Service: CRM Ericsson
+Company: Rabat Digital Operations
+Title: Desynchronisation des fiches clients CRM Ericsson vers BSCS
+Description: Les creations de comptes corporate dans le CRM Ericsson ne remontent plus vers BSCS depuis la derniere mise a jour. Les commerciaux valident les dossiers mais aucun compte de facturation n est cree. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: INCIDENT
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les comptes urgents ont ete crees manuellement dans BSCS pour les ventes prioritaires Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2004,ticket,2004,Core Network OSS,Maghreb Fibre Entreprise,fr,Perte de remontee des KPI radio dans Core Network OSS,"Type: Ticket
+Ticket Number: TKT-2026-02004
+Service: Core Network OSS
+Company: Maghreb Fibre Entreprise
+Title: Perte de remontee des KPI radio dans Core Network OSS
+Description: Les tableaux NOC n affichent plus les KPI radio 2G et 4G pour 186 noeuds depuis 01:00. La supervision reseau ne peut plus suivre la disponibilite et la charge trafic en temps reel. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le NOC a bascule temporairement sur les compteurs locaux exposes par les equipements critiques Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2005,ticket,2005,Provisioning Platform,Atlas Cloud Hosting,fr,Blocage de la file JMS d activation dans la plateforme de provisioning,"Type: Ticket
+Ticket Number: TKT-2026-02005
+Service: Provisioning Platform
+Company: Atlas Cloud Hosting
+Title: Blocage de la file JMS d activation dans la plateforme de provisioning
+Description: Les demandes d activation postpayees restent en statut pending depuis 09:10 et plus de 630 ordres sont en attente. Les boutiques et le CRM ne recoivent plus de confirmation technique. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Un message XML mal forme issu d un canal partenaire a bloque le consommateur principal de la file JMS
+Resolution: Le message fautif a ete mis en quarantaine puis le consumer a ete relance et les ordres ont ete rejoues avec succes
+Comments: Les activations VIP ont ete traitees via un worker secondaire et une verification manuelle des accuses a ete effectuee Le message fautif a ete mis en quarantaine puis le consumer a ete relance et les ordres ont ete rejoues avec succes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2006,ticket,2006,Mobile Portability Gateway,Nova Business Connect,fr,Demandes de portabilite bloquees a la validation operateur donneur,"Type: Ticket
+Ticket Number: TKT-2026-02006
+Service: Mobile Portability Gateway
+Company: Nova Business Connect
+Title: Demandes de portabilite bloquees a la validation operateur donneur
+Description: Les demandes MNP entrantes restent en attente de validation et aucun accuse n est renvoye par l operateur donneur. Le portail de portabilite accumule rapidement un stock de dossiers. L impact est confirme sur le perimetre production entreprise.
+Category: PROVISIONING
+Priority: HIGH
+Status: CLOSED
+Root Cause: Le timeout reseau de la passerelle etait inferieur au temps de reponse reel du service partenaire
+Resolution: Le timeout du connecteur a ete ajuste puis les dossiers en attente ont ete reemis dans l ordre de soumission
+Comments: Les dossiers urgents ont ete rejoues en lots restreints avec un suivi manuel des accuses de reception Le timeout du connecteur a ete ajuste puis les dossiers en attente ont ete reemis dans l ordre de soumission Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2007,ticket,2007,Order Care API,Atlas Distribution Maroc,fr,Indisponibilite de l API Order Care sur la creation de commandes,"Type: Ticket
+Ticket Number: TKT-2026-02007
+Service: Order Care API
+Company: Atlas Distribution Maroc
+Title: Indisponibilite de l API Order Care sur la creation de commandes
+Description: Les appels POST vers l API Order Care retournent HTTP 500 pour toutes les souscriptions depuis 07:45. Les canaux digitaux et le CRM ne peuvent plus creer de nouvelles commandes. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Les connexions JDBC expiraient avant renouvellement et ont sature le pool applicatif
+Resolution: Le pool de connexions a ete redimensionne puis l application a ete redemarree et les commandes en echec ont ete rejouees
+Comments: Les commandes critiques ont ete prises en charge via un script de creation controle sur la base de secours Le pool de connexions a ete redimensionne puis l application a ete redemarree et les commandes en echec ont ete rejouees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2008,ticket,2008,Data Migration Engine,Sahara Connect Services,fr,Echec du lot de migration des comptes clients vers le nouveau referentiel,"Type: Ticket
+Ticket Number: TKT-2026-02008
+Service: Data Migration Engine
+Company: Sahara Connect Services
+Title: Echec du lot de migration des comptes clients vers le nouveau referentiel
+Description: Le lot nocturne de migration de 12500 comptes postpayes s arrete a la phase de transformation et aucun chargement n est effectue dans la cible. Le planning de bascule projet est menace. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: MIGRATION
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Une valeur historique de segment client etait absente de la table de correspondance de l ETL
+Resolution: La table de mapping a ete completee puis le lot a ete relance depuis le point de reprise et la reconciliation finale a ete validee
+Comments: Le lot a ete suspendu et un perimetre reduit de comptes critiques a ete extrait pour verification manuelle La table de mapping a ete completee puis le lot a ete relance depuis le point de reprise et la reconciliation finale a ete validee Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2009,ticket,2009,VoIP Platform,Rabat Digital Operations,fr,Echec d enregistrement SIP sur le trunk principal entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02009
+Service: VoIP Platform
+Company: Rabat Digital Operations
+Title: Echec d enregistrement SIP sur le trunk principal entreprise
+Description: Les appels sortants des clients entreprise ne s etablissent plus depuis 08:15 et le SBC principal retourne 403 sur toutes les tentatives d enregistrement SIP. Le trafic voix sortant est fortement impacte. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Le certificat TLS du trunk principal a expire a minuit sans redeploiement automatique
+Resolution: Le certificat a ete renouvele puis redeploye sur le SBC principal et les enregistrements SIP ont repris normalement
+Comments: Le trafic voix sortant a ete bascule provisoirement sur le SBC secondaire pour les clients critiques Le certificat a ete renouvele puis redeploye sur le SBC principal et les enregistrements SIP ont repris normalement Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2010,ticket,2010,Fibre FTTH,Maghreb Fibre Entreprise,fr,Coupure FTTH regionale apres saturation d un port OLT,"Type: Ticket
+Ticket Number: TKT-2026-02010
+Service: Fibre FTTH
+Company: Maghreb Fibre Entreprise
+Title: Coupure FTTH regionale apres saturation d un port OLT
+Description: Plusieurs clients entreprise de la zone industrielle de Casablanca ont perdu la connectivite IP alors que les ONT restent synchronisees optiquement. Aucun trafic ne transite sur le port de collecte principal. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le trafic a ete detourne vers un port de collecte de secours pour les clients prioritaires Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2011,ticket,2011,Cloud VPS,Atlas Cloud Hosting,fr,Perte de connectivite publique sur des instances Cloud VPS apres maintenance,"Type: Ticket
+Ticket Number: TKT-2026-02011
+Service: Cloud VPS
+Company: Atlas Cloud Hosting
+Title: Perte de connectivite publique sur des instances Cloud VPS apres maintenance
+Description: Des machines virtuelles de production restent joignables en interne mais ne repondent plus depuis Internet apres une maintenance hyperviseur. Les applications B2B exposees publiquement sont indisponibles. L impact est confirme sur le perimetre production entreprise.
+Category: INCIDENT
+Priority: HIGH
+Status: CLOSED
+Root Cause: Un agent reseau du cluster n a pas restaure les liaisons des adresses IP flottantes au redemarrage
+Resolution: Les liaisons IP flottantes ont ete reconstruites puis les tables de routage externes ont ete resynchronisees sur le cluster
+Comments: Un basculement de certains services publics a ete effectue vers le site secondaire du client Les liaisons IP flottantes ont ete reconstruites puis les tables de routage externes ont ete resynchronisees sur le cluster Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2012,ticket,2012,CRM Ericsson,Nova Business Connect,fr,Lenteur de consultation des contrats multi lignes dans CRM Ericsson,"Type: Ticket
+Ticket Number: TKT-2026-02012
+Service: CRM Ericsson
+Company: Nova Business Connect
+Title: Lenteur de consultation des contrats multi lignes dans CRM Ericsson
+Description: Les agents du centre de relation client constatent des temps d affichage superieurs a 25 secondes lors de l ouverture des contrats multi lignes. La prise d appel sur les comptes entreprise est fortement ralentie. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: HIGH
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les agents ont utilise la vue simplifiee client pendant la degradation pour poursuivre les appels Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2013,ticket,2013,BSCS Billing System,Atlas Distribution Maroc,fr,Erreur de taxation TVA sur les frais de remise en service BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02013
+Service: BSCS Billing System
+Company: Atlas Distribution Maroc
+Title: Erreur de taxation TVA sur les frais de remise en service BSCS
+Description: Les devis et previsualisations de facture appliquent un taux de TVA incorrect sur les frais de remise en service des comptes entreprise. L anomalie ne touche pas les comptes grand public. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: CONFIGURATION
+Priority: LOW
+Status: RESOLVED
+Root Cause: Le produit technique etait rattache a une classe fiscale grand public au lieu de la classe entreprise
+Resolution: Le code taxe du produit a ete corrige dans le catalogue BSCS puis les simulations tarifaires ont ete relancees
+Comments: Les devis sensibles ont ete verifies manuellement par l equipe billing avant validation client Le code taxe du produit a ete corrige dans le catalogue BSCS puis les simulations tarifaires ont ete relancees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2014,ticket,2014,Core Network OSS,Sahara Connect Services,fr,Fausse alarme critique persistante sur un routeur coeur dans OSS,"Type: Ticket
+Ticket Number: TKT-2026-02014
+Service: Core Network OSS
+Company: Sahara Connect Services
+Title: Fausse alarme critique persistante sur un routeur coeur dans OSS
+Description: Une alarme de perte de redondance reste ouverte dans l OSS alors que le routeur coeur est revenu nominalement selon l equipe reseau. Les tableaux de disponibilite sont fausses et le NOC multiplie les escalades inutiles. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Le moteur de reconciliation des etats n arrivait plus a purger l alarme a cause d une incoherence d inventaire temps reel
+Resolution: La base d etat OSS a ete resynchronisee puis le connecteur d alarme a ete redemarre et les faux positifs ont disparu
+Comments: Le NOC a applique une suppression logique controlee de l alarme sur le tableau de supervision pour limiter le bruit La base d etat OSS a ete resynchronisee puis le connecteur d alarme a ete redemarre et les faux positifs ont disparu Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2015,ticket,2015,Provisioning Platform,Rabat Digital Operations,fr,Echec de provisionnement de l option roaming entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02015
+Service: Provisioning Platform
+Company: Rabat Digital Operations
+Title: Echec de provisionnement de l option roaming entreprise
+Description: Les commandes de souscription a l option roaming sont acceptees dans le CRM mais echouent a l etape de provisionning HLR HSS. Les clients ne peuvent pas utiliser l option a l etranger. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: PROVISIONING
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les activations urgentes ont ete forcees manuellement sur le HLR pour les comptes en voyage Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2016,ticket,2016,Mobile Portability Gateway,Maghreb Fibre Entreprise,fr,Rejets incoherents des demandes MNP pour identite client invalide,"Type: Ticket
+Ticket Number: TKT-2026-02016
+Service: Mobile Portability Gateway
+Company: Maghreb Fibre Entreprise
+Title: Rejets incoherents des demandes MNP pour identite client invalide
+Description: Plusieurs dossiers de portabilite sont rejetes avec un code identite client invalide alors que les donnees du CRM sont correctes. Le phenomene touche surtout les lignes B2B multi utilisateurs. L impact est confirme sur le perimetre production entreprise.
+Category: PROVISIONING
+Priority: HIGH
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les dossiers urgents ont ete corriges manuellement avant soumission a l operateur donneur Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2017,ticket,2017,Order Care API,Atlas Cloud Hosting,fr,Webhook Order Care non emis apres validation des changements d offre,"Type: Ticket
+Ticket Number: TKT-2026-02017
+Service: Order Care API
+Company: Atlas Cloud Hosting
+Title: Webhook Order Care non emis apres validation des changements d offre
+Description: Les systemes aval ne recoivent plus l evenement de validation des commandes de changement d offre. Les options commerciales ne sont donc pas activees automatiquement. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: EVOLUTION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une cle de routage incorrecte avait ete appliquee lors d une mise a jour du bus d evenements
+Resolution: La cle de routage a ete corrigee puis les webhooks en attente ont ete republies vers tous les consommateurs concernes
+Comments: Les ordres valides ont ete surveilles manuellement et les activations critiques ont ete lancees via un script de reprise La cle de routage a ete corrigee puis les webhooks en attente ont ete republies vers tous les consommateurs concernes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2018,ticket,2018,Data Migration Engine,Nova Business Connect,fr,Violation de cles etrangeres pendant la migration des ordres de service,"Type: Ticket
+Ticket Number: TKT-2026-02018
+Service: Data Migration Engine
+Company: Nova Business Connect
+Title: Violation de cles etrangeres pendant la migration des ordres de service
+Description: Le chargement des ordres de service dans la cible s interrompt avec des erreurs SQL de cle etrangere. Les ordres dependent de referentiels produit et canal absents dans la cible. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: MIGRATION
+Priority: CRITICAL
+Status: CLOSED
+Root Cause: L ordonnancement des jobs ETL ne respectait pas la dependance entre les tables de reference et les ordres
+Resolution: Le sequencement ETL a ete corrige puis les referentiels ont ete recharges avant rejeu complet des ordres de service
+Comments: Le lot d import des ordres a ete suspendu et les ordres critiques ont ete extraits pour un chargement pilote Le sequencement ETL a ete corrige puis les referentiels ont ete recharges avant rejeu complet des ordres de service Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2019,ticket,2019,VoIP Platform,Atlas Distribution Maroc,fr,Perte RTP sur les files du centre de contact VoIP,"Type: Ticket
+Ticket Number: TKT-2026-02019
+Service: VoIP Platform
+Company: Atlas Distribution Maroc
+Title: Perte RTP sur les files du centre de contact VoIP
+Description: Le centre de contact constate des coupures vocales et une forte gigue sur les appels entrants depuis le debut de matinee. Le taux de perte RTP depasse 8 pour cent sur plusieurs files critiques. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une politique QoS appliquee lors d une maintenance avait degrade la priorite du trafic RTP
+Resolution: La politique QoS a ete corrigee sur les interfaces de sortie et les flux RTP ont retrouve un niveau de perte normal
+Comments: Les appels prioritaires ont ete reroutes vers la passerelle media secondaire pour reduire l impact La politique QoS a ete corrigee sur les interfaces de sortie et les flux RTP ont retrouve un niveau de perte normal Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2020,ticket,2020,Fibre FTTH,Sahara Connect Services,fr,Debit FTTH inferieur au profil commercial sur liaison entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02020
+Service: Fibre FTTH
+Company: Sahara Connect Services
+Title: Debit FTTH inferieur au profil commercial sur liaison entreprise
+Description: Le client mesure un debit descendant plafonne a 120 Mbps sur une offre 300 Mbps. Les tests sont realises en filaire et l ONT ne remonte aucune alarme optique. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Le profil de traffic shaping applique sur l OLT etait celui d une ancienne offre
+Resolution: Le template de bande passante a ete corrige sur l OLT puis la session client a ete reprovisionnee au bon debit
+Comments: Le client a ete place temporairement sur un profil intermediaire plus eleve en attendant la correction definitive Le template de bande passante a ete corrige sur l OLT puis la session client a ete reprovisionnee au bon debit Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2021,ticket,2021,Cloud VPS,Rabat Digital Operations,fr,Snapshots nocturnes Cloud VPS en echec sur le cluster de sauvegarde,"Type: Ticket
+Ticket Number: TKT-2026-02021
+Service: Cloud VPS
+Company: Rabat Digital Operations
+Title: Snapshots nocturnes Cloud VPS en echec sur le cluster de sauvegarde
+Description: Les snapshots planifies de plusieurs VM de production echouent depuis deux nuits consecutives et aucun point de restauration recent n est disponible. Le risque de perte de reprise augmente. L impact est confirme sur le perimetre production entreprise.
+Category: INCIDENT
+Priority: HIGH
+Status: CLOSED
+Root Cause: Le stockage du repository de snapshots etait arrive a saturation
+Resolution: Le volume du repository a ete etendu puis les jobs en erreur ont ete rejoues et verifies
+Comments: Les sauvegardes les plus critiques ont ete exportees manuellement vers un stockage temporaire Le volume du repository a ete etendu puis les jobs en erreur ont ete rejoues et verifies Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2022,ticket,2022,CRM Ericsson,Maghreb Fibre Entreprise,fr,Historique des interactions client incomplet dans CRM Ericsson,"Type: Ticket
+Ticket Number: TKT-2026-02022
+Service: CRM Ericsson
+Company: Maghreb Fibre Entreprise
+Title: Historique des interactions client incomplet dans CRM Ericsson
+Description: Les conseillers ne visualisent plus l ensemble des interactions sur certains comptes entreprise depuis la derniere synchronisation analytique. Les dossiers anciens sont absents du timeline CRM. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: RECLAMATION
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les agents ont consulte temporairement l historique via le referentiel analytique en lecture seule Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2023,ticket,2023,BSCS Billing System,Atlas Cloud Hosting,fr,Lot de suspension pour impayes non execute dans BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02023
+Service: BSCS Billing System
+Company: Atlas Cloud Hosting
+Title: Lot de suspension pour impayes non execute dans BSCS
+Description: Le traitement automatique de suspension pour impayes n a pas ete lance durant la nuit. Les comptes en retard n ont pas change de statut et les campagnes de recouvrement sont bloquees. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: INCIDENT
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les comptes a risque eleve ont ete identifies et traites manuellement par l equipe recouvrement Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2024,ticket,2024,Core Network OSS,Nova Business Connect,fr,Arret de collecte des alarmes sur le cluster OSS secondaire,"Type: Ticket
+Ticket Number: TKT-2026-02024
+Service: Core Network OSS
+Company: Nova Business Connect
+Title: Arret de collecte des alarmes sur le cluster OSS secondaire
+Description: Le cluster secondaire OSS ne collecte plus les alarmes coeur reseau depuis 03:00. En cas de bascule NOC aucune vue fiable des incidents n est disponible sur l environnement de secours. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le NOC est reste positionne sur le cluster principal pendant la remise en service afin de conserver une vision complete Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2025,ticket,2025,Provisioning Platform,Atlas Distribution Maroc,fr,Rollback incomplet lors de l annulation d une suspension,"Type: Ticket
+Ticket Number: TKT-2026-02025
+Service: Provisioning Platform
+Company: Atlas Distribution Maroc
+Title: Rollback incomplet lors de l annulation d une suspension
+Description: Quand une commande de suspension est annulee dans le CRM certains sous services restent suspendus dans le moteur de provisioning. Le statut commercial redevient actif mais le service technique ne suit pas. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: PROVISIONING
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une branche du workflow de rollback omettait le sous service data dans les offres multi produits
+Resolution: Le workflow a ete corrige puis un batch de remediation a reactive les sous services restes suspendus
+Comments: Les comptes les plus sensibles ont ete regularises manuellement avant execution du correctif global Le workflow a ete corrige puis un batch de remediation a reactive les sous services restes suspendus Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2026,ticket,2026,Order Care API,Sahara Connect Services,fr,Decomposition technique incomplete des commandes FTTH via Order Care,"Type: Ticket
+Ticket Number: TKT-2026-02026
+Service: Order Care API
+Company: Sahara Connect Services
+Title: Decomposition technique incomplete des commandes FTTH via Order Care
+Description: Les commandes FTTH creees depuis le digital arrivent dans Order Care mais ne generent pas tous les sous ordres necessaires a l installation et a l activation PPPoE. Les plannings terrain restent incomplets. L impact est confirme sur le perimetre production entreprise.
+Category: PROVISIONING
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une condition d orchestration filtrait a tort les produits FTTH B2B avec option IP fixe
+Resolution: La regle de decomposition a ete corrigee puis les commandes incompletes ont ete repassees dans le moteur d orchestration
+Comments: Les commandes urgentes ont ete completees manuellement par le back office pour maintenir les rendez vous terrain La regle de decomposition a ete corrigee puis les commandes incompletes ont ete repassees dans le moteur d orchestration Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2027,ticket,2027,Data Migration Engine,Rabat Digital Operations,fr,Incoherence de reprise des historiques de facture dans Data Migration Engine,"Type: Ticket
+Ticket Number: TKT-2026-02027
+Service: Data Migration Engine
+Company: Rabat Digital Operations
+Title: Incoherence de reprise des historiques de facture dans Data Migration Engine
+Description: Lors des tests de migration certains comptes recuperent un historique de facturation incomplet sur 24 mois. Les ecarts concernent surtout les factures avec ajustements manuels et avoirs. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: MIGRATION
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Un export controle des factures critiques a ete fourni aux equipes recette en attendant le rejeu complet Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2028,ticket,2028,Core Network OSS,Maghreb Fibre Entreprise,fr,Tableaux de disponibilite OSS figes sur des donnees obsoletes,"Type: Ticket
+Ticket Number: TKT-2026-02028
+Service: Core Network OSS
+Company: Maghreb Fibre Entreprise
+Title: Tableaux de disponibilite OSS figes sur des donnees obsoletes
+Description: Les dashboards de disponibilite multi service affichent encore les metriques de la veille alors que les collecteurs remontent des donnees fraiches. Le management ne dispose plus d un suivi fiable. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: EVOLUTION
+Priority: LOW
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le reporting du matin a ete prepare a partir des exports bruts des collecteurs pendant la remise en service Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2029,ticket,2029,BSCS Billing System,Atlas Cloud Hosting,fr,Blocage du rating BSCS sur les CDR roaming entrants,"Type: Ticket
+Ticket Number: TKT-2026-02029
+Service: BSCS Billing System
+Company: Atlas Cloud Hosting
+Title: Blocage du rating BSCS sur les CDR roaming entrants
+Description: Depuis 06:20 les CDR roaming entrants ne sont plus valorises dans BSCS et le backlog depasse 42000 enregistrements. Les soldes clients postpayes ne sont plus mis a jour apres consommation. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: CRITICAL
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les CDR invalides ont ete isoles et la file de mediation secondaire a pris le relais pour les flux prioritaires Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2030,ticket,2030,BSCS Billing System,Nova Business Connect,fr,Echec du bill run mensuel BSCS pour les comptes entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02030
+Service: BSCS Billing System
+Company: Nova Business Connect
+Title: Echec du bill run mensuel BSCS pour les comptes entreprise
+Description: Le bill run mensuel s arrete au milieu du cycle entreprise et aucune facture PDF n est produite pour 8600 comptes. Les previsions de cloture financiere sont retardees. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: INCIDENT
+Priority: HIGH
+Status: CLOSED
+Root Cause: Le repertoire de polices du moteur PDF etait invalide apres une maintenance systeme
+Resolution: Le chemin de rendu PDF a ete corrige puis le bill run a ete relance en reprise et toutes les factures ont ete regenerees
+Comments: Les factures critiques ont ete sorties via le moteur de secours afin de respecter la fenetre de controle finance Le chemin de rendu PDF a ete corrige puis le bill run a ete relance en reprise et toutes les factures ont ete regenerees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2031,ticket,2031,CRM Ericsson,Atlas Distribution Maroc,fr,Desynchronisation des fiches clients CRM Ericsson vers BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02031
+Service: CRM Ericsson
+Company: Atlas Distribution Maroc
+Title: Desynchronisation des fiches clients CRM Ericsson vers BSCS
+Description: Les creations de comptes corporate dans le CRM Ericsson ne remontent plus vers BSCS depuis la derniere mise a jour. Les commerciaux valident les dossiers mais aucun compte de facturation n est cree. L impact est confirme sur le perimetre production entreprise.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Le certificat OAuth utilise par le connecteur CRM vers BSCS avait expire sans rotation automatique
+Resolution: Le secret OAuth et le certificat ont ete renouvelles puis la file d integration a ete rejouee et les comptes manquants ont ete synchronises
+Comments: Les comptes urgents ont ete crees manuellement dans BSCS pour les ventes prioritaires Le secret OAuth et le certificat ont ete renouvelles puis la file d integration a ete rejouee et les comptes manquants ont ete synchronises Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2032,ticket,2032,Core Network OSS,Sahara Connect Services,fr,Perte de remontee des KPI radio dans Core Network OSS,"Type: Ticket
+Ticket Number: TKT-2026-02032
+Service: Core Network OSS
+Company: Sahara Connect Services
+Title: Perte de remontee des KPI radio dans Core Network OSS
+Description: Les tableaux NOC n affichent plus les KPI radio 2G et 4G pour 186 noeuds depuis 01:00. La supervision reseau ne peut plus suivre la disponibilite et la charge trafic en temps reel. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: La rotation des credentials SNMP n a pas ete propagee au cluster de pollers secondaire
+Resolution: Les credentials ont ete resynchronises puis les pollers ont ete redemarres et les KPI manquants ont ete reconstruits depuis les buffers locaux
+Comments: Le NOC a bascule temporairement sur les compteurs locaux exposes par les equipements critiques Les credentials ont ete resynchronises puis les pollers ont ete redemarres et les KPI manquants ont ete reconstruits depuis les buffers locaux Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2033,ticket,2033,Provisioning Platform,Rabat Digital Operations,fr,Blocage de la file JMS d activation dans la plateforme de provisioning,"Type: Ticket
+Ticket Number: TKT-2026-02033
+Service: Provisioning Platform
+Company: Rabat Digital Operations
+Title: Blocage de la file JMS d activation dans la plateforme de provisioning
+Description: Les demandes d activation postpayees restent en statut pending depuis 09:10 et plus de 630 ordres sont en attente. Les boutiques et le CRM ne recoivent plus de confirmation technique. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Un message XML mal forme issu d un canal partenaire a bloque le consommateur principal de la file JMS
+Resolution: Le message fautif a ete mis en quarantaine puis le consumer a ete relance et les ordres ont ete rejoues avec succes
+Comments: Les activations VIP ont ete traitees via un worker secondaire et une verification manuelle des accuses a ete effectuee Le message fautif a ete mis en quarantaine puis le consumer a ete relance et les ordres ont ete rejoues avec succes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2034,ticket,2034,Mobile Portability Gateway,Maghreb Fibre Entreprise,fr,Demandes de portabilite bloquees a la validation operateur donneur,"Type: Ticket
+Ticket Number: TKT-2026-02034
+Service: Mobile Portability Gateway
+Company: Maghreb Fibre Entreprise
+Title: Demandes de portabilite bloquees a la validation operateur donneur
+Description: Les demandes MNP entrantes restent en attente de validation et aucun accuse n est renvoye par l operateur donneur. Le portail de portabilite accumule rapidement un stock de dossiers. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: PROVISIONING
+Priority: HIGH
+Status: CLOSED
+Root Cause: Le timeout reseau de la passerelle etait inferieur au temps de reponse reel du service partenaire
+Resolution: Le timeout du connecteur a ete ajuste puis les dossiers en attente ont ete reemis dans l ordre de soumission
+Comments: Les dossiers urgents ont ete rejoues en lots restreints avec un suivi manuel des accuses de reception Le timeout du connecteur a ete ajuste puis les dossiers en attente ont ete reemis dans l ordre de soumission Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2035,ticket,2035,Order Care API,Atlas Cloud Hosting,fr,Indisponibilite de l API Order Care sur la creation de commandes,"Type: Ticket
+Ticket Number: TKT-2026-02035
+Service: Order Care API
+Company: Atlas Cloud Hosting
+Title: Indisponibilite de l API Order Care sur la creation de commandes
+Description: Les appels POST vers l API Order Care retournent HTTP 500 pour toutes les souscriptions depuis 07:45. Les canaux digitaux et le CRM ne peuvent plus creer de nouvelles commandes. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: INCIDENT
+Priority: CRITICAL
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les commandes critiques ont ete prises en charge via un script de creation controle sur la base de secours Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2036,ticket,2036,Data Migration Engine,Nova Business Connect,fr,Echec du lot de migration des comptes clients vers le nouveau referentiel,"Type: Ticket
+Ticket Number: TKT-2026-02036
+Service: Data Migration Engine
+Company: Nova Business Connect
+Title: Echec du lot de migration des comptes clients vers le nouveau referentiel
+Description: Le lot nocturne de migration de 12500 comptes postpayes s arrete a la phase de transformation et aucun chargement n est effectue dans la cible. Le planning de bascule projet est menace. L impact est confirme sur le perimetre production entreprise.
+Category: MIGRATION
+Priority: CRITICAL
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le lot a ete suspendu et un perimetre reduit de comptes critiques a ete extrait pour verification manuelle Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2037,ticket,2037,VoIP Platform,Atlas Distribution Maroc,fr,Echec d enregistrement SIP sur le trunk principal entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02037
+Service: VoIP Platform
+Company: Atlas Distribution Maroc
+Title: Echec d enregistrement SIP sur le trunk principal entreprise
+Description: Les appels sortants des clients entreprise ne s etablissent plus depuis 08:15 et le SBC principal retourne 403 sur toutes les tentatives d enregistrement SIP. Le trafic voix sortant est fortement impacte. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Le certificat TLS du trunk principal a expire a minuit sans redeploiement automatique
+Resolution: Le certificat a ete renouvele puis redeploye sur le SBC principal et les enregistrements SIP ont repris normalement
+Comments: Le trafic voix sortant a ete bascule provisoirement sur le SBC secondaire pour les clients critiques Le certificat a ete renouvele puis redeploye sur le SBC principal et les enregistrements SIP ont repris normalement Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2038,ticket,2038,Fibre FTTH,Sahara Connect Services,fr,Coupure FTTH regionale apres saturation d un port OLT,"Type: Ticket
+Ticket Number: TKT-2026-02038
+Service: Fibre FTTH
+Company: Sahara Connect Services
+Title: Coupure FTTH regionale apres saturation d un port OLT
+Description: Plusieurs clients entreprise de la zone industrielle de Casablanca ont perdu la connectivite IP alors que les ONT restent synchronisees optiquement. Aucun trafic ne transite sur le port de collecte principal. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Une saturation anormale de la table MAC sur le port OLT de collecte a bloque l acheminement des flux
+Resolution: Le port OLT a ete nettoye puis reequilibre et la connectivite a ete retablie sur l ensemble de la zone impactee
+Comments: Le trafic a ete detourne vers un port de collecte de secours pour les clients prioritaires Le port OLT a ete nettoye puis reequilibre et la connectivite a ete retablie sur l ensemble de la zone impactee Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2039,ticket,2039,Cloud VPS,Rabat Digital Operations,fr,Perte de connectivite publique sur des instances Cloud VPS apres maintenance,"Type: Ticket
+Ticket Number: TKT-2026-02039
+Service: Cloud VPS
+Company: Rabat Digital Operations
+Title: Perte de connectivite publique sur des instances Cloud VPS apres maintenance
+Description: Des machines virtuelles de production restent joignables en interne mais ne repondent plus depuis Internet apres une maintenance hyperviseur. Les applications B2B exposees publiquement sont indisponibles. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Un basculement de certains services publics a ete effectue vers le site secondaire du client Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2040,ticket,2040,CRM Ericsson,Maghreb Fibre Entreprise,fr,Lenteur de consultation des contrats multi lignes dans CRM Ericsson,"Type: Ticket
+Ticket Number: TKT-2026-02040
+Service: CRM Ericsson
+Company: Maghreb Fibre Entreprise
+Title: Lenteur de consultation des contrats multi lignes dans CRM Ericsson
+Description: Les agents du centre de relation client constatent des temps d affichage superieurs a 25 secondes lors de l ouverture des contrats multi lignes. La prise d appel sur les comptes entreprise est fortement ralentie. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: INCIDENT
+Priority: HIGH
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les agents ont utilise la vue simplifiee client pendant la degradation pour poursuivre les appels Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2041,ticket,2041,BSCS Billing System,Atlas Cloud Hosting,fr,Erreur de taxation TVA sur les frais de remise en service BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02041
+Service: BSCS Billing System
+Company: Atlas Cloud Hosting
+Title: Erreur de taxation TVA sur les frais de remise en service BSCS
+Description: Les devis et previsualisations de facture appliquent un taux de TVA incorrect sur les frais de remise en service des comptes entreprise. L anomalie ne touche pas les comptes grand public. L impact est confirme sur le perimetre production entreprise.
+Category: CONFIGURATION
+Priority: LOW
+Status: CLOSED
+Root Cause: Le produit technique etait rattache a une classe fiscale grand public au lieu de la classe entreprise
+Resolution: Le code taxe du produit a ete corrige dans le catalogue BSCS puis les simulations tarifaires ont ete relancees
+Comments: Les devis sensibles ont ete verifies manuellement par l equipe billing avant validation client Le code taxe du produit a ete corrige dans le catalogue BSCS puis les simulations tarifaires ont ete relancees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2042,ticket,2042,Core Network OSS,Nova Business Connect,fr,Fausse alarme critique persistante sur un routeur coeur dans OSS,"Type: Ticket
+Ticket Number: TKT-2026-02042
+Service: Core Network OSS
+Company: Nova Business Connect
+Title: Fausse alarme critique persistante sur un routeur coeur dans OSS
+Description: Une alarme de perte de redondance reste ouverte dans l OSS alors que le routeur coeur est revenu nominalement selon l equipe reseau. Les tableaux de disponibilite sont fausses et le NOC multiplie les escalades inutiles. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: HIGH
+Status: CLOSED
+Root Cause: Le moteur de reconciliation des etats n arrivait plus a purger l alarme a cause d une incoherence d inventaire temps reel
+Resolution: La base d etat OSS a ete resynchronisee puis le connecteur d alarme a ete redemarre et les faux positifs ont disparu
+Comments: Le NOC a applique une suppression logique controlee de l alarme sur le tableau de supervision pour limiter le bruit La base d etat OSS a ete resynchronisee puis le connecteur d alarme a ete redemarre et les faux positifs ont disparu Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2043,ticket,2043,Provisioning Platform,Atlas Distribution Maroc,fr,Echec de provisionnement de l option roaming entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02043
+Service: Provisioning Platform
+Company: Atlas Distribution Maroc
+Title: Echec de provisionnement de l option roaming entreprise
+Description: Les commandes de souscription a l option roaming sont acceptees dans le CRM mais echouent a l etape de provisionning HLR HSS. Les clients ne peuvent pas utiliser l option a l etranger. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: PROVISIONING
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Le code option commercial ne correspondait plus au profil technique attendu par le moteur de provisioning
+Resolution: Le mapping catalogue vers profil technique a ete corrige puis les commandes en echec ont ete rejouees et verifiees
+Comments: Les activations urgentes ont ete forcees manuellement sur le HLR pour les comptes en voyage Le mapping catalogue vers profil technique a ete corrige puis les commandes en echec ont ete rejouees et verifiees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2044,ticket,2044,Mobile Portability Gateway,Sahara Connect Services,fr,Rejets incoherents des demandes MNP pour identite client invalide,"Type: Ticket
+Ticket Number: TKT-2026-02044
+Service: Mobile Portability Gateway
+Company: Sahara Connect Services
+Title: Rejets incoherents des demandes MNP pour identite client invalide
+Description: Plusieurs dossiers de portabilite sont rejetes avec un code identite client invalide alors que les donnees du CRM sont correctes. Le phenomene touche surtout les lignes B2B multi utilisateurs. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: PROVISIONING
+Priority: HIGH
+Status: RESOLVED
+Root Cause: La regle de normalisation du numero de piece d identite supprimait un caractere significatif sur les dossiers entreprise
+Resolution: La transformation de l identite client a ete corrigee puis les demandes rejetees ont ete resoumises avec succes
+Comments: Les dossiers urgents ont ete corriges manuellement avant soumission a l operateur donneur La transformation de l identite client a ete corrigee puis les demandes rejetees ont ete resoumises avec succes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2045,ticket,2045,Order Care API,Rabat Digital Operations,fr,Webhook Order Care non emis apres validation des changements d offre,"Type: Ticket
+Ticket Number: TKT-2026-02045
+Service: Order Care API
+Company: Rabat Digital Operations
+Title: Webhook Order Care non emis apres validation des changements d offre
+Description: Les systemes aval ne recoivent plus l evenement de validation des commandes de changement d offre. Les options commerciales ne sont donc pas activees automatiquement. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: EVOLUTION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une cle de routage incorrecte avait ete appliquee lors d une mise a jour du bus d evenements
+Resolution: La cle de routage a ete corrigee puis les webhooks en attente ont ete republies vers tous les consommateurs concernes
+Comments: Les ordres valides ont ete surveilles manuellement et les activations critiques ont ete lancees via un script de reprise La cle de routage a ete corrigee puis les webhooks en attente ont ete republies vers tous les consommateurs concernes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2046,ticket,2046,Data Migration Engine,Maghreb Fibre Entreprise,fr,Violation de cles etrangeres pendant la migration des ordres de service,"Type: Ticket
+Ticket Number: TKT-2026-02046
+Service: Data Migration Engine
+Company: Maghreb Fibre Entreprise
+Title: Violation de cles etrangeres pendant la migration des ordres de service
+Description: Le chargement des ordres de service dans la cible s interrompt avec des erreurs SQL de cle etrangere. Les ordres dependent de referentiels produit et canal absents dans la cible. L impact est confirme sur le perimetre production entreprise.
+Category: MIGRATION
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le lot d import des ordres a ete suspendu et les ordres critiques ont ete extraits pour un chargement pilote Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2047,ticket,2047,VoIP Platform,Atlas Cloud Hosting,fr,Perte RTP sur les files du centre de contact VoIP,"Type: Ticket
+Ticket Number: TKT-2026-02047
+Service: VoIP Platform
+Company: Atlas Cloud Hosting
+Title: Perte RTP sur les files du centre de contact VoIP
+Description: Le centre de contact constate des coupures vocales et une forte gigue sur les appels entrants depuis le debut de matinee. Le taux de perte RTP depasse 8 pour cent sur plusieurs files critiques. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les appels prioritaires ont ete reroutes vers la passerelle media secondaire pour reduire l impact Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2048,ticket,2048,Fibre FTTH,Nova Business Connect,fr,Debit FTTH inferieur au profil commercial sur liaison entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02048
+Service: Fibre FTTH
+Company: Nova Business Connect
+Title: Debit FTTH inferieur au profil commercial sur liaison entreprise
+Description: Le client mesure un debit descendant plafonne a 120 Mbps sur une offre 300 Mbps. Les tests sont realises en filaire et l ONT ne remonte aucune alarme optique. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: INCIDENT
+Priority: HIGH
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le client a ete place temporairement sur un profil intermediaire plus eleve en attendant la correction definitive Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2049,ticket,2049,Cloud VPS,Atlas Distribution Maroc,fr,Snapshots nocturnes Cloud VPS en echec sur le cluster de sauvegarde,"Type: Ticket
+Ticket Number: TKT-2026-02049
+Service: Cloud VPS
+Company: Atlas Distribution Maroc
+Title: Snapshots nocturnes Cloud VPS en echec sur le cluster de sauvegarde
+Description: Les snapshots planifies de plusieurs VM de production echouent depuis deux nuits consecutives et aucun point de restauration recent n est disponible. Le risque de perte de reprise augmente. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Le stockage du repository de snapshots etait arrive a saturation
+Resolution: Le volume du repository a ete etendu puis les jobs en erreur ont ete rejoues et verifies
+Comments: Les sauvegardes les plus critiques ont ete exportees manuellement vers un stockage temporaire Le volume du repository a ete etendu puis les jobs en erreur ont ete rejoues et verifies Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2050,ticket,2050,CRM Ericsson,Sahara Connect Services,fr,Historique des interactions client incomplet dans CRM Ericsson,"Type: Ticket
+Ticket Number: TKT-2026-02050
+Service: CRM Ericsson
+Company: Sahara Connect Services
+Title: Historique des interactions client incomplet dans CRM Ericsson
+Description: Les conseillers ne visualisent plus l ensemble des interactions sur certains comptes entreprise depuis la derniere synchronisation analytique. Les dossiers anciens sont absents du timeline CRM. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: RECLAMATION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une erreur de partitionnement sur la cle customer group excluait les gros comptes B2B du traitement incremental
+Resolution: Le job d alimentation du timeline a ete relance apres correction de la cle de partition et les interactions manquantes ont ete rechargees
+Comments: Les agents ont consulte temporairement l historique via le referentiel analytique en lecture seule Le job d alimentation du timeline a ete relance apres correction de la cle de partition et les interactions manquantes ont ete rechargees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2051,ticket,2051,BSCS Billing System,Rabat Digital Operations,fr,Lot de suspension pour impayes non execute dans BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02051
+Service: BSCS Billing System
+Company: Rabat Digital Operations
+Title: Lot de suspension pour impayes non execute dans BSCS
+Description: Le traitement automatique de suspension pour impayes n a pas ete lance durant la nuit. Les comptes en retard n ont pas change de statut et les campagnes de recouvrement sont bloquees. L impact est confirme sur le perimetre production entreprise.
+Category: INCIDENT
+Priority: HIGH
+Status: CLOSED
+Root Cause: Une mise a jour de planification avait desactive la tache nocturne dans le calendrier d exploitation
+Resolution: Le scheduler a ete corrige puis le lot de suspension a ete execute en rattrapage avec verification des statuts comptes
+Comments: Les comptes a risque eleve ont ete identifies et traites manuellement par l equipe recouvrement Le scheduler a ete corrige puis le lot de suspension a ete execute en rattrapage avec verification des statuts comptes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2052,ticket,2052,Core Network OSS,Maghreb Fibre Entreprise,fr,Arret de collecte des alarmes sur le cluster OSS secondaire,"Type: Ticket
+Ticket Number: TKT-2026-02052
+Service: Core Network OSS
+Company: Maghreb Fibre Entreprise
+Title: Arret de collecte des alarmes sur le cluster OSS secondaire
+Description: Le cluster secondaire OSS ne collecte plus les alarmes coeur reseau depuis 03:00. En cas de bascule NOC aucune vue fiable des incidents n est disponible sur l environnement de secours. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le NOC est reste positionne sur le cluster principal pendant la remise en service afin de conserver une vision complete Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2053,ticket,2053,Provisioning Platform,Atlas Cloud Hosting,fr,Rollback incomplet lors de l annulation d une suspension,"Type: Ticket
+Ticket Number: TKT-2026-02053
+Service: Provisioning Platform
+Company: Atlas Cloud Hosting
+Title: Rollback incomplet lors de l annulation d une suspension
+Description: Quand une commande de suspension est annulee dans le CRM certains sous services restent suspendus dans le moteur de provisioning. Le statut commercial redevient actif mais le service technique ne suit pas. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: PROVISIONING
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une branche du workflow de rollback omettait le sous service data dans les offres multi produits
+Resolution: Le workflow a ete corrige puis un batch de remediation a reactive les sous services restes suspendus
+Comments: Les comptes les plus sensibles ont ete regularises manuellement avant execution du correctif global Le workflow a ete corrige puis un batch de remediation a reactive les sous services restes suspendus Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2054,ticket,2054,Order Care API,Nova Business Connect,fr,Decomposition technique incomplete des commandes FTTH via Order Care,"Type: Ticket
+Ticket Number: TKT-2026-02054
+Service: Order Care API
+Company: Nova Business Connect
+Title: Decomposition technique incomplete des commandes FTTH via Order Care
+Description: Les commandes FTTH creees depuis le digital arrivent dans Order Care mais ne generent pas tous les sous ordres necessaires a l installation et a l activation PPPoE. Les plannings terrain restent incomplets. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: PROVISIONING
+Priority: HIGH
+Status: CLOSED
+Root Cause: Une condition d orchestration filtrait a tort les produits FTTH B2B avec option IP fixe
+Resolution: La regle de decomposition a ete corrigee puis les commandes incompletes ont ete repassees dans le moteur d orchestration
+Comments: Les commandes urgentes ont ete completees manuellement par le back office pour maintenir les rendez vous terrain La regle de decomposition a ete corrigee puis les commandes incompletes ont ete repassees dans le moteur d orchestration Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2055,ticket,2055,Data Migration Engine,Atlas Distribution Maroc,fr,Incoherence de reprise des historiques de facture dans Data Migration Engine,"Type: Ticket
+Ticket Number: TKT-2026-02055
+Service: Data Migration Engine
+Company: Atlas Distribution Maroc
+Title: Incoherence de reprise des historiques de facture dans Data Migration Engine
+Description: Lors des tests de migration certains comptes recuperent un historique de facturation incomplet sur 24 mois. Les ecarts concernent surtout les factures avec ajustements manuels et avoirs. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: MIGRATION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Une jointure ETL n integrait pas correctement les ecritures d ajustement rattachees aux factures d origine
+Resolution: La requete de reconciliation a ete corrigee puis les historiques manquants ont ete recharges et verifies par echantillon
+Comments: Un export controle des factures critiques a ete fourni aux equipes recette en attendant le rejeu complet La requete de reconciliation a ete corrigee puis les historiques manquants ont ete recharges et verifies par echantillon Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2056,ticket,2056,Core Network OSS,Sahara Connect Services,fr,Tableaux de disponibilite OSS figes sur des donnees obsoletes,"Type: Ticket
+Ticket Number: TKT-2026-02056
+Service: Core Network OSS
+Company: Sahara Connect Services
+Title: Tableaux de disponibilite OSS figes sur des donnees obsoletes
+Description: Les dashboards de disponibilite multi service affichent encore les metriques de la veille alors que les collecteurs remontent des donnees fraiches. Le management ne dispose plus d un suivi fiable. L impact est confirme sur le perimetre production entreprise.
+Category: EVOLUTION
+Priority: LOW
+Status: RESOLVED
+Root Cause: Le service de cache de series temporelles etait bloque apres une purge planifiee inachevee
+Resolution: Le cache applicatif a ete reconstruit puis le service de requetage a ete redemarre et les tableaux ont retrouve des donnees a jour
+Comments: Le reporting du matin a ete prepare a partir des exports bruts des collecteurs pendant la remise en service Le cache applicatif a ete reconstruit puis le service de requetage a ete redemarre et les tableaux ont retrouve des donnees a jour Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2057,ticket,2057,BSCS Billing System,Rabat Digital Operations,fr,Blocage du rating BSCS sur les CDR roaming entrants,"Type: Ticket
+Ticket Number: TKT-2026-02057
+Service: BSCS Billing System
+Company: Rabat Digital Operations
+Title: Blocage du rating BSCS sur les CDR roaming entrants
+Description: Depuis 06:20 les CDR roaming entrants ne sont plus valorises dans BSCS et le backlog depasse 42000 enregistrements. Les soldes clients postpayes ne sont plus mis a jour apres consommation. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: CRITICAL
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les CDR invalides ont ete isoles et la file de mediation secondaire a pris le relais pour les flux prioritaires Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2058,ticket,2058,BSCS Billing System,Maghreb Fibre Entreprise,fr,Echec du bill run mensuel BSCS pour les comptes entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02058
+Service: BSCS Billing System
+Company: Maghreb Fibre Entreprise
+Title: Echec du bill run mensuel BSCS pour les comptes entreprise
+Description: Le bill run mensuel s arrete au milieu du cycle entreprise et aucune facture PDF n est produite pour 8600 comptes. Les previsions de cloture financiere sont retardees. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: INCIDENT
+Priority: HIGH
+Status: CLOSED
+Root Cause: Le repertoire de polices du moteur PDF etait invalide apres une maintenance systeme
+Resolution: Le chemin de rendu PDF a ete corrige puis le bill run a ete relance en reprise et toutes les factures ont ete regenerees
+Comments: Les factures critiques ont ete sorties via le moteur de secours afin de respecter la fenetre de controle finance Le chemin de rendu PDF a ete corrige puis le bill run a ete relance en reprise et toutes les factures ont ete regenerees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2059,ticket,2059,CRM Ericsson,Atlas Cloud Hosting,fr,Desynchronisation des fiches clients CRM Ericsson vers BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02059
+Service: CRM Ericsson
+Company: Atlas Cloud Hosting
+Title: Desynchronisation des fiches clients CRM Ericsson vers BSCS
+Description: Les creations de comptes corporate dans le CRM Ericsson ne remontent plus vers BSCS depuis la derniere mise a jour. Les commerciaux valident les dossiers mais aucun compte de facturation n est cree. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: INCIDENT
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les comptes urgents ont ete crees manuellement dans BSCS pour les ventes prioritaires Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2060,ticket,2060,Core Network OSS,Nova Business Connect,fr,Perte de remontee des KPI radio dans Core Network OSS,"Type: Ticket
+Ticket Number: TKT-2026-02060
+Service: Core Network OSS
+Company: Nova Business Connect
+Title: Perte de remontee des KPI radio dans Core Network OSS
+Description: Les tableaux NOC n affichent plus les KPI radio 2G et 4G pour 186 noeuds depuis 01:00. La supervision reseau ne peut plus suivre la disponibilite et la charge trafic en temps reel. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: INCIDENT
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le NOC a bascule temporairement sur les compteurs locaux exposes par les equipements critiques Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2061,ticket,2061,Provisioning Platform,Atlas Distribution Maroc,fr,Blocage de la file JMS d activation dans la plateforme de provisioning,"Type: Ticket
+Ticket Number: TKT-2026-02061
+Service: Provisioning Platform
+Company: Atlas Distribution Maroc
+Title: Blocage de la file JMS d activation dans la plateforme de provisioning
+Description: Les demandes d activation postpayees restent en statut pending depuis 09:10 et plus de 630 ordres sont en attente. Les boutiques et le CRM ne recoivent plus de confirmation technique. L impact est confirme sur le perimetre production entreprise.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Un message XML mal forme issu d un canal partenaire a bloque le consommateur principal de la file JMS
+Resolution: Le message fautif a ete mis en quarantaine puis le consumer a ete relance et les ordres ont ete rejoues avec succes
+Comments: Les activations VIP ont ete traitees via un worker secondaire et une verification manuelle des accuses a ete effectuee Le message fautif a ete mis en quarantaine puis le consumer a ete relance et les ordres ont ete rejoues avec succes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2062,ticket,2062,Mobile Portability Gateway,Sahara Connect Services,fr,Demandes de portabilite bloquees a la validation operateur donneur,"Type: Ticket
+Ticket Number: TKT-2026-02062
+Service: Mobile Portability Gateway
+Company: Sahara Connect Services
+Title: Demandes de portabilite bloquees a la validation operateur donneur
+Description: Les demandes MNP entrantes restent en attente de validation et aucun accuse n est renvoye par l operateur donneur. Le portail de portabilite accumule rapidement un stock de dossiers. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: PROVISIONING
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Le timeout reseau de la passerelle etait inferieur au temps de reponse reel du service partenaire
+Resolution: Le timeout du connecteur a ete ajuste puis les dossiers en attente ont ete reemis dans l ordre de soumission
+Comments: Les dossiers urgents ont ete rejoues en lots restreints avec un suivi manuel des accuses de reception Le timeout du connecteur a ete ajuste puis les dossiers en attente ont ete reemis dans l ordre de soumission Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2063,ticket,2063,Order Care API,Rabat Digital Operations,fr,Indisponibilite de l API Order Care sur la creation de commandes,"Type: Ticket
+Ticket Number: TKT-2026-02063
+Service: Order Care API
+Company: Rabat Digital Operations
+Title: Indisponibilite de l API Order Care sur la creation de commandes
+Description: Les appels POST vers l API Order Care retournent HTTP 500 pour toutes les souscriptions depuis 07:45. Les canaux digitaux et le CRM ne peuvent plus creer de nouvelles commandes. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: INCIDENT
+Priority: CRITICAL
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Les commandes critiques ont ete prises en charge via un script de creation controle sur la base de secours Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2064,ticket,2064,Data Migration Engine,Maghreb Fibre Entreprise,fr,Echec du lot de migration des comptes clients vers le nouveau referentiel,"Type: Ticket
+Ticket Number: TKT-2026-02064
+Service: Data Migration Engine
+Company: Maghreb Fibre Entreprise
+Title: Echec du lot de migration des comptes clients vers le nouveau referentiel
+Description: Le lot nocturne de migration de 12500 comptes postpayes s arrete a la phase de transformation et aucun chargement n est effectue dans la cible. Le planning de bascule projet est menace. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: MIGRATION
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation en cours. Le lot a ete suspendu et un perimetre reduit de comptes critiques a ete extrait pour verification manuelle Une analyse detaillee des journaux applicatifs et des dependances techniques a ete engagee.
+Language: fr"
+ticket_2065,ticket,2065,VoIP Platform,Atlas Cloud Hosting,fr,Echec d enregistrement SIP sur le trunk principal entreprise,"Type: Ticket
+Ticket Number: TKT-2026-02065
+Service: VoIP Platform
+Company: Atlas Cloud Hosting
+Title: Echec d enregistrement SIP sur le trunk principal entreprise
+Description: Les appels sortants des clients entreprise ne s etablissent plus depuis 08:15 et le SBC principal retourne 403 sur toutes les tentatives d enregistrement SIP. Le trafic voix sortant est fortement impacte. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: INCIDENT
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: Le certificat TLS du trunk principal a expire a minuit sans redeploiement automatique
+Resolution: Le certificat a ete renouvele puis redeploye sur le SBC principal et les enregistrements SIP ont repris normalement
+Comments: Le trafic voix sortant a ete bascule provisoirement sur le SBC secondaire pour les clients critiques Le certificat a ete renouvele puis redeploye sur le SBC principal et les enregistrements SIP ont repris normalement Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2066,ticket,2066,Fibre FTTH,Nova Business Connect,fr,Coupure FTTH regionale apres saturation d un port OLT,"Type: Ticket
+Ticket Number: TKT-2026-02066
+Service: Fibre FTTH
+Company: Nova Business Connect
+Title: Coupure FTTH regionale apres saturation d un port OLT
+Description: Plusieurs clients entreprise de la zone industrielle de Casablanca ont perdu la connectivite IP alors que les ONT restent synchronisees optiquement. Aucun trafic ne transite sur le port de collecte principal. L impact est confirme sur le perimetre production entreprise.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: CLOSED
+Root Cause: Une saturation anormale de la table MAC sur le port OLT de collecte a bloque l acheminement des flux
+Resolution: Le port OLT a ete nettoye puis reequilibre et la connectivite a ete retablie sur l ensemble de la zone impactee
+Comments: Le trafic a ete detourne vers un port de collecte de secours pour les clients prioritaires Le port OLT a ete nettoye puis reequilibre et la connectivite a ete retablie sur l ensemble de la zone impactee Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2067,ticket,2067,Cloud VPS,Atlas Distribution Maroc,fr,Perte de connectivite publique sur des instances Cloud VPS apres maintenance,"Type: Ticket
+Ticket Number: TKT-2026-02067
+Service: Cloud VPS
+Company: Atlas Distribution Maroc
+Title: Perte de connectivite publique sur des instances Cloud VPS apres maintenance
+Description: Des machines virtuelles de production restent joignables en interne mais ne repondent plus depuis Internet apres une maintenance hyperviseur. Les applications B2B exposees publiquement sont indisponibles. Le NOC a ouvert une surveillance renforcee sur le service concerne.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Un agent reseau du cluster n a pas restaure les liaisons des adresses IP flottantes au redemarrage
+Resolution: Les liaisons IP flottantes ont ete reconstruites puis les tables de routage externes ont ete resynchronisees sur le cluster
+Comments: Un basculement de certains services publics a ete effectue vers le site secondaire du client Les liaisons IP flottantes ont ete reconstruites puis les tables de routage externes ont ete resynchronisees sur le cluster Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2068,ticket,2068,CRM Ericsson,Sahara Connect Services,fr,Lenteur de consultation des contrats multi lignes dans CRM Ericsson,"Type: Ticket
+Ticket Number: TKT-2026-02068
+Service: CRM Ericsson
+Company: Sahara Connect Services
+Title: Lenteur de consultation des contrats multi lignes dans CRM Ericsson
+Description: Les agents du centre de relation client constatent des temps d affichage superieurs a 25 secondes lors de l ouverture des contrats multi lignes. La prise d appel sur les comptes entreprise est fortement ralentie. Le client demande un retour rapide afin de respecter son SLA contractuel.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: La requete chargeait tout l historique contractuel sans index adapte sur la table de liaison
+Resolution: Un index SQL a ete ajoute et la pagination de l historique a ete activee ce qui a ramene le temps d ouverture sous quatre secondes
+Comments: Les agents ont utilise la vue simplifiee client pendant la degradation pour poursuivre les appels Un index SQL a ete ajoute et la pagination de l historique a ete activee ce qui a ramene le temps d ouverture sous quatre secondes Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2069,ticket,2069,BSCS Billing System,Rabat Digital Operations,fr,Erreur de taxation TVA sur les frais de remise en service BSCS,"Type: Ticket
+Ticket Number: TKT-2026-02069
+Service: BSCS Billing System
+Company: Rabat Digital Operations
+Title: Erreur de taxation TVA sur les frais de remise en service BSCS
+Description: Les devis et previsualisations de facture appliquent un taux de TVA incorrect sur les frais de remise en service des comptes entreprise. L anomalie ne touche pas les comptes grand public. Des controles complementaires ont ete lances sur les flux inter applicatifs.
+Category: CONFIGURATION
+Priority: LOW
+Status: RESOLVED
+Root Cause: Le produit technique etait rattache a une classe fiscale grand public au lieu de la classe entreprise
+Resolution: Le code taxe du produit a ete corrige dans le catalogue BSCS puis les simulations tarifaires ont ete relancees
+Comments: Les devis sensibles ont ete verifies manuellement par l equipe billing avant validation client Le code taxe du produit a ete corrige dans le catalogue BSCS puis les simulations tarifaires ont ete relancees Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2070,ticket,2070,Core Network OSS,Maghreb Fibre Entreprise,fr,Fausse alarme critique persistante sur un routeur coeur dans OSS,"Type: Ticket
+Ticket Number: TKT-2026-02070
+Service: Core Network OSS
+Company: Maghreb Fibre Entreprise
+Title: Fausse alarme critique persistante sur un routeur coeur dans OSS
+Description: Une alarme de perte de redondance reste ouverte dans l OSS alors que le routeur coeur est revenu nominalement selon l equipe reseau. Les tableaux de disponibilite sont fausses et le NOC multiplie les escalades inutiles. Le perimetre touche concerne principalement les comptes B2B prioritaires.
+Category: INCIDENT
+Priority: HIGH
+Status: CLOSED
+Root Cause: Le moteur de reconciliation des etats n arrivait plus a purger l alarme a cause d une incoherence d inventaire temps reel
+Resolution: La base d etat OSS a ete resynchronisee puis le connecteur d alarme a ete redemarre et les faux positifs ont disparu
+Comments: Le NOC a applique une suppression logique controlee de l alarme sur le tableau de supervision pour limiter le bruit La base d etat OSS a ete resynchronisee puis le connecteur d alarme a ete redemarre et les faux positifs ont disparu Verification finale effectuee avec les equipes metier et exploitation.
+Language: fr"
+ticket_2071,ticket,2071,BSCS Billing System,Atlas Cloud Hosting,en,Enterprise discount not applied on BSCS monthly invoices secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02071
+Service: BSCS Billing System
+Company: Atlas Cloud Hosting
+Title: Enterprise discount not applied on BSCS monthly invoices secondary scope
+Description: Several enterprise accounts were billed above their contracted amount because the corporate discount rule was not applied during invoice generation. Finance escalated the discrepancy before customer distribution. The impact is confirmed on the enterprise production scope.
+Category: RECLAMATION
+Priority: HIGH
+Status: CLOSED
+Root Cause: An incomplete tariff catalog promotion removed the enterprise discount reference from the active billing configuration
+Resolution: The discount reference was restored in the billing catalog and impacted invoices were regenerated before release
+Comments: Invoice release was paused for the affected account segment while finance reviewed the impacted customer list The discount reference was restored in the billing catalog and impacted invoices were regenerated before release Final validation was completed with operations and business teams.
+Language: en"
+ticket_2072,ticket,2072,Order Care API,Nova Business Connect,en,Order Care webhook payload missing sales channel after release secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02072
+Service: Order Care API
+Company: Nova Business Connect
+Title: Order Care webhook payload missing sales channel after release secondary scope
+Description: Downstream CRM and reporting systems stopped receiving the sales channel attribute in Order Care webhook payloads after a minor release. Reporting by channel became inconsistent for new orders. The operations team opened enhanced monitoring on the affected service.
+Category: EVOLUTION
+Priority: LOW
+Status: RESOLVED
+Root Cause: A serialization change removed the optional salesChannel field from the webhook contract
+Resolution: The webhook serializer was corrected and missed events were republished with the complete payload schema
+Comments: Reporting teams used the order creation logs as a temporary source for channel attribution during the issue The webhook serializer was corrected and missed events were republished with the complete payload schema Final validation was completed with operations and business teams.
+Language: en"
+ticket_2073,ticket,2073,BSCS Billing System,Atlas Distribution Maroc,en,BSCS invoice rendering backlog on large enterprise accounts secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02073
+Service: BSCS Billing System
+Company: Atlas Distribution Maroc
+Title: BSCS invoice rendering backlog on large enterprise accounts secondary scope
+Description: Invoice rendering for high volume enterprise accounts exceeded twenty minutes and several invoice previews timed out in the billing portal. Finance users could not validate invoices before the cut off window. The customer requested rapid recovery to protect the contractual SLA.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: The rendering service loaded oversized attachment bundles without using the template cache efficiently
+Resolution: The rendering cache configuration was optimized and the blocked preview jobs were reprocessed successfully
+Comments: A reduced preview template was enabled for urgent finance validation while the rendering path was being corrected The rendering cache configuration was optimized and the blocked preview jobs were reprocessed successfully Final validation was completed with operations and business teams.
+Language: en"
+ticket_2074,ticket,2074,CRM Ericsson,Sahara Connect Services,en,CRM Ericsson merge workflow failing for duplicate corporate accounts secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02074
+Service: CRM Ericsson
+Company: Sahara Connect Services
+Title: CRM Ericsson merge workflow failing for duplicate corporate accounts secondary scope
+Description: Customer care teams could not merge duplicate corporate accounts in CRM Ericsson because the workflow stopped after validation. The duplicate record remained active and case ownership stayed inconsistent. Additional checks were launched on the related integration flows.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: The merge workflow did not handle active service contracts linked to multiple billing profiles
+Resolution: The workflow rules were updated and duplicate corporate records were merged successfully after validation testing
+Comments: Support agents used a manual ownership correction process for urgent duplicate cases during the incident The workflow rules were updated and duplicate corporate records were merged successfully after validation testing Final validation was completed with operations and business teams.
+Language: en"
+ticket_2075,ticket,2075,Core Network OSS,Rabat Digital Operations,en,Core Network OSS polling failure for transmission backbone nodes secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02075
+Service: Core Network OSS
+Company: Rabat Digital Operations
+Title: Core Network OSS polling failure for transmission backbone nodes secondary scope
+Description: Backbone transmission nodes stopped reporting availability and latency metrics to Core Network OSS during the morning collection window. NOC dashboards showed the nodes in unknown state. The issue mainly affects priority B2B accounts.
+Category: EVOLUTION
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. The NOC relied on direct device polling for the most critical backbone sites until OSS collection was restored Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2076,ticket,2076,Provisioning Platform,Maghreb Fibre Entreprise,en,Provisioning queue blocked for postpaid package activations secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02076
+Service: Provisioning Platform
+Company: Maghreb Fibre Entreprise
+Title: Provisioning queue blocked for postpaid package activations secondary scope
+Description: Postpaid package activation orders remained in accepted state for more than one hour and were not progressing through the provisioning platform. Retail and CRM channels were both affected. The impact is confirmed on the enterprise production scope.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: A malformed campaign payload blocked the main provisioning consumer thread
+Resolution: The malformed payload pattern was quarantined and the main consumer was restarted then all pending activations were replayed
+Comments: A secondary worker pool processed priority activations while the queue was being stabilized The malformed payload pattern was quarantined and the main consumer was restarted then all pending activations were replayed Final validation was completed with operations and business teams.
+Language: en"
+ticket_2077,ticket,2077,Mobile Portability Gateway,Atlas Cloud Hosting,en,Morning portability cutover batch missed by gateway scheduler secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02077
+Service: Mobile Portability Gateway
+Company: Atlas Cloud Hosting
+Title: Morning portability cutover batch missed by gateway scheduler secondary scope
+Description: The 06:00 portability cutover batch did not start and customer numbers remained pending for activation on the target network. The incident created a risk of regulatory SLA breach. The operations team opened enhanced monitoring on the affected service.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: CLOSED
+Root Cause: A stale execution lock prevented the scheduler from releasing the morning cutover trigger
+Resolution: The stale lock was cleared and scheduler health checks were added before replaying the missed batch successfully
+Comments: Priority portability cases were executed through a supervised manual cutover sequence while the scheduler was recovered The stale lock was cleared and scheduler health checks were added before replaying the missed batch successfully Final validation was completed with operations and business teams.
+Language: en"
+ticket_2078,ticket,2078,Order Care API,Nova Business Connect,en,Order Care callback delivery loss to CRM integration connector secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02078
+Service: Order Care API
+Company: Nova Business Connect
+Title: Order Care callback delivery loss to CRM integration connector secondary scope
+Description: Completion callbacks were generated by Order Care but a subset of them never reached the CRM connector. Orders appeared completed in Order Care and still in progress in CRM. The customer requested rapid recovery to protect the contractual SLA.
+Category: INCIDENT
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. Back office teams used the Order Care operations console to confirm completion status for urgent customer orders Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2079,ticket,2079,Data Migration Engine,Atlas Distribution Maroc,en,Customer migration batch failed on invalid product mapping rules secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02079
+Service: Data Migration Engine
+Company: Atlas Distribution Maroc
+Title: Customer migration batch failed on invalid product mapping rules secondary scope
+Description: A migration batch moving enterprise customers to the new billing and CRM stack stopped during transformation because several product codes could not be mapped to the target catalog. Additional checks were launched on the related integration flows.
+Category: MIGRATION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Legacy enterprise product codes were missing from the target mapping table
+Resolution: The missing product mappings were added and the migration batch was replayed from the failed checkpoint without remaining errors
+Comments: Migration governance accepted a temporary exclusion list for non critical products while the catalog mapping was completed The missing product mappings were added and the migration batch was replayed from the failed checkpoint without remaining errors Final validation was completed with operations and business teams.
+Language: en"
+ticket_2080,ticket,2080,VoIP Platform,Sahara Connect Services,en,International call routing failure on enterprise VoIP trunks secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02080
+Service: VoIP Platform
+Company: Sahara Connect Services
+Title: International call routing failure on enterprise VoIP trunks secondary scope
+Description: Enterprise customers could place national calls successfully but international calls toward European destinations failed with 503 responses on the VoIP platform. Several contact centers were impacted. The issue mainly affects priority B2B accounts.
+Category: CONFIGURATION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: A recent route pattern update removed the main international exit trunk from one destination group
+Resolution: The route pattern was restored on the production SBC nodes and successful international test calls confirmed service recovery
+Comments: Calls to affected destinations were temporarily rerouted through the backup carrier for premium customers The route pattern was restored on the production SBC nodes and successful international test calls confirmed service recovery Final validation was completed with operations and business teams.
+Language: en"
+ticket_2081,ticket,2081,Fibre FTTH,Rabat Digital Operations,en,FTTH enterprise access profile mismatch after service migration secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02081
+Service: Fibre FTTH
+Company: Rabat Digital Operations
+Title: FTTH enterprise access profile mismatch after service migration secondary scope
+Description: After a recent migration the enterprise FTTH circuit kept the previous residential shaping template and delivered a lower bandwidth than contracted. Optical quality remained stable during the incident. The impact is confirmed on the enterprise production scope.
+Category: MIGRATION
+Priority: HIGH
+Status: CLOSED
+Root Cause: The migration workflow attached the wrong OLT service profile to the enterprise circuit
+Resolution: The correct enterprise access template was assigned and the circuit was reprovisioned with the expected bandwidth profile
+Comments: A temporary bandwidth override was applied on the access node to reduce customer impact before final correction The correct enterprise access template was assigned and the circuit was reprovisioned with the expected bandwidth profile Final validation was completed with operations and business teams.
+Language: en"
+ticket_2082,ticket,2082,Cloud VPS,Maghreb Fibre Entreprise,en,Cloud VPS firewall policy not applied to the management subnet secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02082
+Service: Cloud VPS
+Company: Maghreb Fibre Entreprise
+Title: Cloud VPS firewall policy not applied to the management subnet secondary scope
+Description: A customer approved firewall rule was visible in the cloud portal but was not enforced on the production virtual machine. Management access from the approved subnet failed while other services stayed online. The operations team opened enhanced monitoring on the affected service.
+Category: CONFIGURATION
+Priority: LOW
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. Operations used console access on the hypervisor to perform urgent administration tasks until the firewall policy was corrected Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2083,ticket,2083,BSCS Billing System,Atlas Cloud Hosting,en,Enterprise discount not applied on BSCS monthly invoices secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02083
+Service: BSCS Billing System
+Company: Atlas Cloud Hosting
+Title: Enterprise discount not applied on BSCS monthly invoices secondary scope
+Description: Several enterprise accounts were billed above their contracted amount because the corporate discount rule was not applied during invoice generation. Finance escalated the discrepancy before customer distribution. The customer requested rapid recovery to protect the contractual SLA.
+Category: RECLAMATION
+Priority: HIGH
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. Invoice release was paused for the affected account segment while finance reviewed the impacted customer list Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2084,ticket,2084,Order Care API,Nova Business Connect,en,Order Care webhook payload missing sales channel after release secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02084
+Service: Order Care API
+Company: Nova Business Connect
+Title: Order Care webhook payload missing sales channel after release secondary scope
+Description: Downstream CRM and reporting systems stopped receiving the sales channel attribute in Order Care webhook payloads after a minor release. Reporting by channel became inconsistent for new orders. Additional checks were launched on the related integration flows.
+Category: EVOLUTION
+Priority: LOW
+Status: RESOLVED
+Root Cause: A serialization change removed the optional salesChannel field from the webhook contract
+Resolution: The webhook serializer was corrected and missed events were republished with the complete payload schema
+Comments: Reporting teams used the order creation logs as a temporary source for channel attribution during the issue The webhook serializer was corrected and missed events were republished with the complete payload schema Final validation was completed with operations and business teams.
+Language: en"
+ticket_2085,ticket,2085,BSCS Billing System,Atlas Distribution Maroc,en,BSCS invoice rendering backlog on large enterprise accounts secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02085
+Service: BSCS Billing System
+Company: Atlas Distribution Maroc
+Title: BSCS invoice rendering backlog on large enterprise accounts secondary scope
+Description: Invoice rendering for high volume enterprise accounts exceeded twenty minutes and several invoice previews timed out in the billing portal. Finance users could not validate invoices before the cut off window. The issue mainly affects priority B2B accounts.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: The rendering service loaded oversized attachment bundles without using the template cache efficiently
+Resolution: The rendering cache configuration was optimized and the blocked preview jobs were reprocessed successfully
+Comments: A reduced preview template was enabled for urgent finance validation while the rendering path was being corrected The rendering cache configuration was optimized and the blocked preview jobs were reprocessed successfully Final validation was completed with operations and business teams.
+Language: en"
+ticket_2086,ticket,2086,CRM Ericsson,Sahara Connect Services,en,CRM Ericsson merge workflow failing for duplicate corporate accounts secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02086
+Service: CRM Ericsson
+Company: Sahara Connect Services
+Title: CRM Ericsson merge workflow failing for duplicate corporate accounts secondary scope
+Description: Customer care teams could not merge duplicate corporate accounts in CRM Ericsson because the workflow stopped after validation. The duplicate record remained active and case ownership stayed inconsistent. The impact is confirmed on the enterprise production scope.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: The merge workflow did not handle active service contracts linked to multiple billing profiles
+Resolution: The workflow rules were updated and duplicate corporate records were merged successfully after validation testing
+Comments: Support agents used a manual ownership correction process for urgent duplicate cases during the incident The workflow rules were updated and duplicate corporate records were merged successfully after validation testing Final validation was completed with operations and business teams.
+Language: en"
+ticket_2087,ticket,2087,Core Network OSS,Rabat Digital Operations,en,Core Network OSS polling failure for transmission backbone nodes secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02087
+Service: Core Network OSS
+Company: Rabat Digital Operations
+Title: Core Network OSS polling failure for transmission backbone nodes secondary scope
+Description: Backbone transmission nodes stopped reporting availability and latency metrics to Core Network OSS during the morning collection window. NOC dashboards showed the nodes in unknown state. The operations team opened enhanced monitoring on the affected service.
+Category: EVOLUTION
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. The NOC relied on direct device polling for the most critical backbone sites until OSS collection was restored Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2088,ticket,2088,Provisioning Platform,Maghreb Fibre Entreprise,en,Provisioning queue blocked for postpaid package activations secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02088
+Service: Provisioning Platform
+Company: Maghreb Fibre Entreprise
+Title: Provisioning queue blocked for postpaid package activations secondary scope
+Description: Postpaid package activation orders remained in accepted state for more than one hour and were not progressing through the provisioning platform. Retail and CRM channels were both affected. The customer requested rapid recovery to protect the contractual SLA.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: RESOLVED
+Root Cause: A malformed campaign payload blocked the main provisioning consumer thread
+Resolution: The malformed payload pattern was quarantined and the main consumer was restarted then all pending activations were replayed
+Comments: A secondary worker pool processed priority activations while the queue was being stabilized The malformed payload pattern was quarantined and the main consumer was restarted then all pending activations were replayed Final validation was completed with operations and business teams.
+Language: en"
+ticket_2089,ticket,2089,Mobile Portability Gateway,Atlas Cloud Hosting,en,Morning portability cutover batch missed by gateway scheduler secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02089
+Service: Mobile Portability Gateway
+Company: Atlas Cloud Hosting
+Title: Morning portability cutover batch missed by gateway scheduler secondary scope
+Description: The 06:00 portability cutover batch did not start and customer numbers remained pending for activation on the target network. The incident created a risk of regulatory SLA breach. Additional checks were launched on the related integration flows.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: CLOSED
+Root Cause: A stale execution lock prevented the scheduler from releasing the morning cutover trigger
+Resolution: The stale lock was cleared and scheduler health checks were added before replaying the missed batch successfully
+Comments: Priority portability cases were executed through a supervised manual cutover sequence while the scheduler was recovered The stale lock was cleared and scheduler health checks were added before replaying the missed batch successfully Final validation was completed with operations and business teams.
+Language: en"
+ticket_2090,ticket,2090,Order Care API,Nova Business Connect,en,Order Care callback delivery loss to CRM integration connector secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02090
+Service: Order Care API
+Company: Nova Business Connect
+Title: Order Care callback delivery loss to CRM integration connector secondary scope
+Description: Completion callbacks were generated by Order Care but a subset of them never reached the CRM connector. Orders appeared completed in Order Care and still in progress in CRM. The issue mainly affects priority B2B accounts.
+Category: INCIDENT
+Priority: HIGH
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. Back office teams used the Order Care operations console to confirm completion status for urgent customer orders Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2091,ticket,2091,Data Migration Engine,Atlas Distribution Maroc,en,Customer migration batch failed on invalid product mapping rules secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02091
+Service: Data Migration Engine
+Company: Atlas Distribution Maroc
+Title: Customer migration batch failed on invalid product mapping rules secondary scope
+Description: A migration batch moving enterprise customers to the new billing and CRM stack stopped during transformation because several product codes could not be mapped to the target catalog. The impact is confirmed on the enterprise production scope.
+Category: MIGRATION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: Legacy enterprise product codes were missing from the target mapping table
+Resolution: The missing product mappings were added and the migration batch was replayed from the failed checkpoint without remaining errors
+Comments: Migration governance accepted a temporary exclusion list for non critical products while the catalog mapping was completed The missing product mappings were added and the migration batch was replayed from the failed checkpoint without remaining errors Final validation was completed with operations and business teams.
+Language: en"
+ticket_2092,ticket,2092,VoIP Platform,Sahara Connect Services,en,International call routing failure on enterprise VoIP trunks secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02092
+Service: VoIP Platform
+Company: Sahara Connect Services
+Title: International call routing failure on enterprise VoIP trunks secondary scope
+Description: Enterprise customers could place national calls successfully but international calls toward European destinations failed with 503 responses on the VoIP platform. Several contact centers were impacted. The operations team opened enhanced monitoring on the affected service.
+Category: CONFIGURATION
+Priority: HIGH
+Status: RESOLVED
+Root Cause: A recent route pattern update removed the main international exit trunk from one destination group
+Resolution: The route pattern was restored on the production SBC nodes and successful international test calls confirmed service recovery
+Comments: Calls to affected destinations were temporarily rerouted through the backup carrier for premium customers The route pattern was restored on the production SBC nodes and successful international test calls confirmed service recovery Final validation was completed with operations and business teams.
+Language: en"
+ticket_2093,ticket,2093,Fibre FTTH,Rabat Digital Operations,en,FTTH enterprise access profile mismatch after service migration secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02093
+Service: Fibre FTTH
+Company: Rabat Digital Operations
+Title: FTTH enterprise access profile mismatch after service migration secondary scope
+Description: After a recent migration the enterprise FTTH circuit kept the previous residential shaping template and delivered a lower bandwidth than contracted. Optical quality remained stable during the incident. The customer requested rapid recovery to protect the contractual SLA.
+Category: MIGRATION
+Priority: HIGH
+Status: CLOSED
+Root Cause: The migration workflow attached the wrong OLT service profile to the enterprise circuit
+Resolution: The correct enterprise access template was assigned and the circuit was reprovisioned with the expected bandwidth profile
+Comments: A temporary bandwidth override was applied on the access node to reduce customer impact before final correction The correct enterprise access template was assigned and the circuit was reprovisioned with the expected bandwidth profile Final validation was completed with operations and business teams.
+Language: en"
+ticket_2094,ticket,2094,Cloud VPS,Maghreb Fibre Entreprise,en,Cloud VPS firewall policy not applied to the management subnet secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02094
+Service: Cloud VPS
+Company: Maghreb Fibre Entreprise
+Title: Cloud VPS firewall policy not applied to the management subnet secondary scope
+Description: A customer approved firewall rule was visible in the cloud portal but was not enforced on the production virtual machine. Management access from the approved subnet failed while other services stayed online. Additional checks were launched on the related integration flows.
+Category: CONFIGURATION
+Priority: LOW
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. Operations used console access on the hypervisor to perform urgent administration tasks until the firewall policy was corrected Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2095,ticket,2095,BSCS Billing System,Atlas Cloud Hosting,en,Enterprise discount not applied on BSCS monthly invoices secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02095
+Service: BSCS Billing System
+Company: Atlas Cloud Hosting
+Title: Enterprise discount not applied on BSCS monthly invoices secondary scope
+Description: Several enterprise accounts were billed above their contracted amount because the corporate discount rule was not applied during invoice generation. Finance escalated the discrepancy before customer distribution. The issue mainly affects priority B2B accounts.
+Category: RECLAMATION
+Priority: HIGH
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. Invoice release was paused for the affected account segment while finance reviewed the impacted customer list Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2096,ticket,2096,Order Care API,Nova Business Connect,en,Order Care webhook payload missing sales channel after release secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02096
+Service: Order Care API
+Company: Nova Business Connect
+Title: Order Care webhook payload missing sales channel after release secondary scope
+Description: Downstream CRM and reporting systems stopped receiving the sales channel attribute in Order Care webhook payloads after a minor release. Reporting by channel became inconsistent for new orders. The impact is confirmed on the enterprise production scope.
+Category: EVOLUTION
+Priority: LOW
+Status: RESOLVED
+Root Cause: A serialization change removed the optional salesChannel field from the webhook contract
+Resolution: The webhook serializer was corrected and missed events were republished with the complete payload schema
+Comments: Reporting teams used the order creation logs as a temporary source for channel attribution during the issue The webhook serializer was corrected and missed events were republished with the complete payload schema Final validation was completed with operations and business teams.
+Language: en"
+ticket_2097,ticket,2097,BSCS Billing System,Atlas Distribution Maroc,en,BSCS invoice rendering backlog on large enterprise accounts secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02097
+Service: BSCS Billing System
+Company: Atlas Distribution Maroc
+Title: BSCS invoice rendering backlog on large enterprise accounts secondary scope
+Description: Invoice rendering for high volume enterprise accounts exceeded twenty minutes and several invoice previews timed out in the billing portal. Finance users could not validate invoices before the cut off window. The operations team opened enhanced monitoring on the affected service.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: The rendering service loaded oversized attachment bundles without using the template cache efficiently
+Resolution: The rendering cache configuration was optimized and the blocked preview jobs were reprocessed successfully
+Comments: A reduced preview template was enabled for urgent finance validation while the rendering path was being corrected The rendering cache configuration was optimized and the blocked preview jobs were reprocessed successfully Final validation was completed with operations and business teams.
+Language: en"
+ticket_2098,ticket,2098,CRM Ericsson,Sahara Connect Services,en,CRM Ericsson merge workflow failing for duplicate corporate accounts secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02098
+Service: CRM Ericsson
+Company: Sahara Connect Services
+Title: CRM Ericsson merge workflow failing for duplicate corporate accounts secondary scope
+Description: Customer care teams could not merge duplicate corporate accounts in CRM Ericsson because the workflow stopped after validation. The duplicate record remained active and case ownership stayed inconsistent. The customer requested rapid recovery to protect the contractual SLA.
+Category: INCIDENT
+Priority: HIGH
+Status: RESOLVED
+Root Cause: The merge workflow did not handle active service contracts linked to multiple billing profiles
+Resolution: The workflow rules were updated and duplicate corporate records were merged successfully after validation testing
+Comments: Support agents used a manual ownership correction process for urgent duplicate cases during the incident The workflow rules were updated and duplicate corporate records were merged successfully after validation testing Final validation was completed with operations and business teams.
+Language: en"
+ticket_2099,ticket,2099,Core Network OSS,Rabat Digital Operations,en,Core Network OSS polling failure for transmission backbone nodes secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02099
+Service: Core Network OSS
+Company: Rabat Digital Operations
+Title: Core Network OSS polling failure for transmission backbone nodes secondary scope
+Description: Backbone transmission nodes stopped reporting availability and latency metrics to Core Network OSS during the morning collection window. NOC dashboards showed the nodes in unknown state. Additional checks were launched on the related integration flows.
+Category: EVOLUTION
+Priority: CRITICAL
+Status: IN_PROGRESS
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. The NOC relied on direct device polling for the most critical backbone sites until OSS collection was restored Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+ticket_2100,ticket,2100,Provisioning Platform,Maghreb Fibre Entreprise,en,Provisioning queue blocked for postpaid package activations secondary scope,"Type: Ticket
+Ticket Number: TKT-2026-02100
+Service: Provisioning Platform
+Company: Maghreb Fibre Entreprise
+Title: Provisioning queue blocked for postpaid package activations secondary scope
+Description: Postpaid package activation orders remained in accepted state for more than one hour and were not progressing through the provisioning platform. Retail and CRM channels were both affected. The issue mainly affects priority B2B accounts.
+Category: PROVISIONING
+Priority: CRITICAL
+Status: ESCALATED
+Root Cause: 
+Resolution: 
+Comments: Investigation is ongoing. A secondary worker pool processed priority activations while the queue was being stabilized Detailed review of application logs and technical dependencies is in progress.
+Language: en"
+incident_1,incident,1,BSCS Billing System,,fr,Blocage du rating BSCS sur les CDR roaming entrants,"Type: Incident
+Service: BSCS Billing System
+Title: Blocage du rating BSCS sur les CDR roaming entrants
+Description: Depuis 06:20 les CDR roaming entrants ne sont plus valorises dans BSCS et le backlog depasse 42000 enregistrements. Les soldes clients postpayes ne sont plus mis a jour apres consommation.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: Un lot de CDR partenaire contenait un format de date non conforme qui a bloque le parseur de mediation
+Workaround: Les CDR invalides ont ete isoles et la file de mediation secondaire a pris le relais pour les flux prioritaires
+Final Resolution: Le parseur a ete corrige puis le lot corrompu a ete purge et les CDR en attente ont ete rejoues sans perte de donnees
+Language: fr"
+incident_2,incident,2,BSCS Billing System,,fr,Echec du bill run mensuel BSCS pour les comptes entreprise,"Type: Incident
+Service: BSCS Billing System
+Title: Echec du bill run mensuel BSCS pour les comptes entreprise
+Description: Le bill run mensuel s arrete au milieu du cycle entreprise et aucune facture PDF n est produite pour 8600 comptes. Les previsions de cloture financiere sont retardees.
+Severity: MAJOR
+Status: CLOSED
+Root Cause: Le repertoire de polices du moteur PDF etait invalide apres une maintenance systeme
+Workaround: Les factures critiques ont ete sorties via le moteur de secours afin de respecter la fenetre de controle finance
+Final Resolution: Le chemin de rendu PDF a ete corrige puis le bill run a ete relance en reprise et toutes les factures ont ete regenerees
+Language: fr"
+incident_3,incident,3,CRM Ericsson,,fr,Desynchronisation des fiches clients CRM Ericsson vers BSCS,"Type: Incident
+Service: CRM Ericsson
+Title: Desynchronisation des fiches clients CRM Ericsson vers BSCS
+Description: Les creations de comptes corporate dans le CRM Ericsson ne remontent plus vers BSCS depuis la derniere mise a jour. Les commerciaux valident les dossiers mais aucun compte de facturation n est cree.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Le certificat OAuth utilise par le connecteur CRM vers BSCS avait expire sans rotation automatique
+Workaround: Les comptes urgents ont ete crees manuellement dans BSCS pour les ventes prioritaires
+Final Resolution: Le secret OAuth et le certificat ont ete renouvelles puis la file d integration a ete rejouee et les comptes manquants ont ete synchronises
+Language: fr"
+incident_4,incident,4,Core Network OSS,,fr,Perte de remontee des KPI radio dans Core Network OSS,"Type: Incident
+Service: Core Network OSS
+Title: Perte de remontee des KPI radio dans Core Network OSS
+Description: Les tableaux NOC n affichent plus les KPI radio 2G et 4G pour 186 noeuds depuis 01:00. La supervision reseau ne peut plus suivre la disponibilite et la charge trafic en temps reel.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: La rotation des credentials SNMP n a pas ete propagee au cluster de pollers secondaire
+Workaround: Le NOC a bascule temporairement sur les compteurs locaux exposes par les equipements critiques
+Final Resolution: Les credentials ont ete resynchronises puis les pollers ont ete redemarres et les KPI manquants ont ete reconstruits depuis les buffers locaux
+Language: fr"
+incident_5,incident,5,Provisioning Platform,,fr,Blocage de la file JMS d activation dans la plateforme de provisioning,"Type: Incident
+Service: Provisioning Platform
+Title: Blocage de la file JMS d activation dans la plateforme de provisioning
+Description: Les demandes d activation postpayees restent en statut pending depuis 09:10 et plus de 630 ordres sont en attente. Les boutiques et le CRM ne recoivent plus de confirmation technique.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: Un message XML mal forme issu d un canal partenaire a bloque le consommateur principal de la file JMS
+Workaround: Les activations VIP ont ete traitees via un worker secondaire et une verification manuelle des accuses a ete effectuee
+Final Resolution: Le message fautif a ete mis en quarantaine puis le consumer a ete relance et les ordres ont ete rejoues avec succes
+Language: fr"
+incident_6,incident,6,Mobile Portability Gateway,,fr,Demandes de portabilite bloquees a la validation operateur donneur,"Type: Incident
+Service: Mobile Portability Gateway
+Title: Demandes de portabilite bloquees a la validation operateur donneur
+Description: Les demandes MNP entrantes restent en attente de validation et aucun accuse n est renvoye par l operateur donneur. Le portail de portabilite accumule rapidement un stock de dossiers.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Le timeout reseau de la passerelle etait inferieur au temps de reponse reel du service partenaire
+Workaround: Les dossiers urgents ont ete rejoues en lots restreints avec un suivi manuel des accuses de reception
+Final Resolution: Le timeout du connecteur a ete ajuste puis les dossiers en attente ont ete reemis dans l ordre de soumission
+Language: fr"
+incident_7,incident,7,Order Care API,,fr,Indisponibilite de l API Order Care sur la creation de commandes,"Type: Incident
+Service: Order Care API
+Title: Indisponibilite de l API Order Care sur la creation de commandes
+Description: Les appels POST vers l API Order Care retournent HTTP 500 pour toutes les souscriptions depuis 07:45. Les canaux digitaux et le CRM ne peuvent plus creer de nouvelles commandes.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: Les connexions JDBC expiraient avant renouvellement et ont sature le pool applicatif
+Workaround: Les commandes critiques ont ete prises en charge via un script de creation controle sur la base de secours
+Final Resolution: Le pool de connexions a ete redimensionne puis l application a ete redemarree et les commandes en echec ont ete rejouees
+Language: fr"
+incident_8,incident,8,Data Migration Engine,,fr,Echec du lot de migration des comptes clients vers le nouveau referentiel,"Type: Incident
+Service: Data Migration Engine
+Title: Echec du lot de migration des comptes clients vers le nouveau referentiel
+Description: Le lot nocturne de migration de 12500 comptes postpayes s arrete a la phase de transformation et aucun chargement n est effectue dans la cible. Le planning de bascule projet est menace.
+Severity: CRITICAL
+Status: CLOSED
+Root Cause: Une valeur historique de segment client etait absente de la table de correspondance de l ETL
+Workaround: Le lot a ete suspendu et un perimetre reduit de comptes critiques a ete extrait pour verification manuelle
+Final Resolution: La table de mapping a ete completee puis le lot a ete relance depuis le point de reprise et la reconciliation finale a ete validee
+Language: fr"
+incident_9,incident,9,VoIP Platform,,fr,Echec d enregistrement SIP sur le trunk principal entreprise,"Type: Incident
+Service: VoIP Platform
+Title: Echec d enregistrement SIP sur le trunk principal entreprise
+Description: Les appels sortants des clients entreprise ne s etablissent plus depuis 08:15 et le SBC principal retourne 403 sur toutes les tentatives d enregistrement SIP. Le trafic voix sortant est fortement impacte.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: Le certificat TLS du trunk principal a expire a minuit sans redeploiement automatique
+Workaround: Le trafic voix sortant a ete bascule provisoirement sur le SBC secondaire pour les clients critiques
+Final Resolution: Le certificat a ete renouvele puis redeploye sur le SBC principal et les enregistrements SIP ont repris normalement
+Language: fr"
+incident_10,incident,10,Fibre FTTH,,fr,Coupure FTTH regionale apres saturation d un port OLT,"Type: Incident
+Service: Fibre FTTH
+Title: Coupure FTTH regionale apres saturation d un port OLT
+Description: Plusieurs clients entreprise de la zone industrielle de Casablanca ont perdu la connectivite IP alors que les ONT restent synchronisees optiquement. Aucun trafic ne transite sur le port de collecte principal.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: Une saturation anormale de la table MAC sur le port OLT de collecte a bloque l acheminement des flux
+Workaround: Le trafic a ete detourne vers un port de collecte de secours pour les clients prioritaires
+Final Resolution: Le port OLT a ete nettoye puis reequilibre et la connectivite a ete retablie sur l ensemble de la zone impactee
+Language: fr"
+incident_11,incident,11,Cloud VPS,,fr,Perte de connectivite publique sur des instances Cloud VPS apres maintenance,"Type: Incident
+Service: Cloud VPS
+Title: Perte de connectivite publique sur des instances Cloud VPS apres maintenance
+Description: Des machines virtuelles de production restent joignables en interne mais ne repondent plus depuis Internet apres une maintenance hyperviseur. Les applications B2B exposees publiquement sont indisponibles.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Un agent reseau du cluster n a pas restaure les liaisons des adresses IP flottantes au redemarrage
+Workaround: Un basculement de certains services publics a ete effectue vers le site secondaire du client
+Final Resolution: Les liaisons IP flottantes ont ete reconstruites puis les tables de routage externes ont ete resynchronisees sur le cluster
+Language: fr"
+incident_12,incident,12,CRM Ericsson,,fr,Lenteur de consultation des contrats multi lignes dans CRM Ericsson,"Type: Incident
+Service: CRM Ericsson
+Title: Lenteur de consultation des contrats multi lignes dans CRM Ericsson
+Description: Les agents du centre de relation client constatent des temps d affichage superieurs a 25 secondes lors de l ouverture des contrats multi lignes. La prise d appel sur les comptes entreprise est fortement ralentie.
+Severity: MAJOR
+Status: CLOSED
+Root Cause: La requete chargeait tout l historique contractuel sans index adapte sur la table de liaison
+Workaround: Les agents ont utilise la vue simplifiee client pendant la degradation pour poursuivre les appels
+Final Resolution: Un index SQL a ete ajoute et la pagination de l historique a ete activee ce qui a ramene le temps d ouverture sous quatre secondes
+Language: fr"
+incident_13,incident,13,BSCS Billing System,,fr,Erreur de taxation TVA sur les frais de remise en service BSCS,"Type: Incident
+Service: BSCS Billing System
+Title: Erreur de taxation TVA sur les frais de remise en service BSCS
+Description: Les devis et previsualisations de facture appliquent un taux de TVA incorrect sur les frais de remise en service des comptes entreprise. L anomalie ne touche pas les comptes grand public.
+Severity: LOW
+Status: RESOLVED
+Root Cause: Le produit technique etait rattache a une classe fiscale grand public au lieu de la classe entreprise
+Workaround: Les devis sensibles ont ete verifies manuellement par l equipe billing avant validation client
+Final Resolution: Le code taxe du produit a ete corrige dans le catalogue BSCS puis les simulations tarifaires ont ete relancees
+Language: fr"
+incident_14,incident,14,Core Network OSS,,fr,Fausse alarme critique persistante sur un routeur coeur dans OSS,"Type: Incident
+Service: Core Network OSS
+Title: Fausse alarme critique persistante sur un routeur coeur dans OSS
+Description: Une alarme de perte de redondance reste ouverte dans l OSS alors que le routeur coeur est revenu nominalement selon l equipe reseau. Les tableaux de disponibilite sont fausses et le NOC multiplie les escalades inutiles.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Le moteur de reconciliation des etats n arrivait plus a purger l alarme a cause d une incoherence d inventaire temps reel
+Workaround: Le NOC a applique une suppression logique controlee de l alarme sur le tableau de supervision pour limiter le bruit
+Final Resolution: La base d etat OSS a ete resynchronisee puis le connecteur d alarme a ete redemarre et les faux positifs ont disparu
+Language: fr"
+incident_15,incident,15,Provisioning Platform,,fr,Echec de provisionnement de l option roaming entreprise,"Type: Incident
+Service: Provisioning Platform
+Title: Echec de provisionnement de l option roaming entreprise
+Description: Les commandes de souscription a l option roaming sont acceptees dans le CRM mais echouent a l etape de provisionning HLR HSS. Les clients ne peuvent pas utiliser l option a l etranger.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Le code option commercial ne correspondait plus au profil technique attendu par le moteur de provisioning
+Workaround: Les activations urgentes ont ete forcees manuellement sur le HLR pour les comptes en voyage
+Final Resolution: Le mapping catalogue vers profil technique a ete corrige puis les commandes en echec ont ete rejouees et verifiees
+Language: fr"
+incident_16,incident,16,Mobile Portability Gateway,,fr,Rejets incoherents des demandes MNP pour identite client invalide,"Type: Incident
+Service: Mobile Portability Gateway
+Title: Rejets incoherents des demandes MNP pour identite client invalide
+Description: Plusieurs dossiers de portabilite sont rejetes avec un code identite client invalide alors que les donnees du CRM sont correctes. Le phenomene touche surtout les lignes B2B multi utilisateurs.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: La regle de normalisation du numero de piece d identite supprimait un caractere significatif sur les dossiers entreprise
+Workaround: Les dossiers urgents ont ete corriges manuellement avant soumission a l operateur donneur
+Final Resolution: La transformation de l identite client a ete corrigee puis les demandes rejetees ont ete resoumises avec succes
+Language: fr"
+incident_17,incident,17,Order Care API,,fr,Webhook Order Care non emis apres validation des changements d offre,"Type: Incident
+Service: Order Care API
+Title: Webhook Order Care non emis apres validation des changements d offre
+Description: Les systemes aval ne recoivent plus l evenement de validation des commandes de changement d offre. Les options commerciales ne sont donc pas activees automatiquement.
+Severity: MAJOR
+Status: CLOSED
+Root Cause: Une cle de routage incorrecte avait ete appliquee lors d une mise a jour du bus d evenements
+Workaround: Les ordres valides ont ete surveilles manuellement et les activations critiques ont ete lancees via un script de reprise
+Final Resolution: La cle de routage a ete corrigee puis les webhooks en attente ont ete republies vers tous les consommateurs concernes
+Language: fr"
+incident_18,incident,18,Data Migration Engine,,fr,Violation de cles etrangeres pendant la migration des ordres de service,"Type: Incident
+Service: Data Migration Engine
+Title: Violation de cles etrangeres pendant la migration des ordres de service
+Description: Le chargement des ordres de service dans la cible s interrompt avec des erreurs SQL de cle etrangere. Les ordres dependent de referentiels produit et canal absents dans la cible.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: L ordonnancement des jobs ETL ne respectait pas la dependance entre les tables de reference et les ordres
+Workaround: Le lot d import des ordres a ete suspendu et les ordres critiques ont ete extraits pour un chargement pilote
+Final Resolution: Le sequencement ETL a ete corrige puis les referentiels ont ete recharges avant rejeu complet des ordres de service
+Language: fr"
+incident_19,incident,19,VoIP Platform,,fr,Perte RTP sur les files du centre de contact VoIP,"Type: Incident
+Service: VoIP Platform
+Title: Perte RTP sur les files du centre de contact VoIP
+Description: Le centre de contact constate des coupures vocales et une forte gigue sur les appels entrants depuis le debut de matinee. Le taux de perte RTP depasse 8 pour cent sur plusieurs files critiques.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Une politique QoS appliquee lors d une maintenance avait degrade la priorite du trafic RTP
+Workaround: Les appels prioritaires ont ete reroutes vers la passerelle media secondaire pour reduire l impact
+Final Resolution: La politique QoS a ete corrigee sur les interfaces de sortie et les flux RTP ont retrouve un niveau de perte normal
+Language: fr"
+incident_20,incident,20,Fibre FTTH,,fr,Debit FTTH inferieur au profil commercial sur liaison entreprise,"Type: Incident
+Service: Fibre FTTH
+Title: Debit FTTH inferieur au profil commercial sur liaison entreprise
+Description: Le client mesure un debit descendant plafonne a 120 Mbps sur une offre 300 Mbps. Les tests sont realises en filaire et l ONT ne remonte aucune alarme optique.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Le profil de traffic shaping applique sur l OLT etait celui d une ancienne offre
+Workaround: Le client a ete place temporairement sur un profil intermediaire plus eleve en attendant la correction definitive
+Final Resolution: Le template de bande passante a ete corrige sur l OLT puis la session client a ete reprovisionnee au bon debit
+Language: fr"
+incident_21,incident,21,Cloud VPS,,fr,Snapshots nocturnes Cloud VPS en echec sur le cluster de sauvegarde,"Type: Incident
+Service: Cloud VPS
+Title: Snapshots nocturnes Cloud VPS en echec sur le cluster de sauvegarde
+Description: Les snapshots planifies de plusieurs VM de production echouent depuis deux nuits consecutives et aucun point de restauration recent n est disponible. Le risque de perte de reprise augmente.
+Severity: MAJOR
+Status: CLOSED
+Root Cause: Le stockage du repository de snapshots etait arrive a saturation
+Workaround: Les sauvegardes les plus critiques ont ete exportees manuellement vers un stockage temporaire
+Final Resolution: Le volume du repository a ete etendu puis les jobs en erreur ont ete rejoues et verifies
+Language: fr"
+incident_22,incident,22,CRM Ericsson,,fr,Historique des interactions client incomplet dans CRM Ericsson,"Type: Incident
+Service: CRM Ericsson
+Title: Historique des interactions client incomplet dans CRM Ericsson
+Description: Les conseillers ne visualisent plus l ensemble des interactions sur certains comptes entreprise depuis la derniere synchronisation analytique. Les dossiers anciens sont absents du timeline CRM.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Une erreur de partitionnement sur la cle customer group excluait les gros comptes B2B du traitement incremental
+Workaround: Les agents ont consulte temporairement l historique via le referentiel analytique en lecture seule
+Final Resolution: Le job d alimentation du timeline a ete relance apres correction de la cle de partition et les interactions manquantes ont ete rechargees
+Language: fr"
+incident_23,incident,23,BSCS Billing System,,fr,Lot de suspension pour impayes non execute dans BSCS,"Type: Incident
+Service: BSCS Billing System
+Title: Lot de suspension pour impayes non execute dans BSCS
+Description: Le traitement automatique de suspension pour impayes n a pas ete lance durant la nuit. Les comptes en retard n ont pas change de statut et les campagnes de recouvrement sont bloquees.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Une mise a jour de planification avait desactive la tache nocturne dans le calendrier d exploitation
+Workaround: Les comptes a risque eleve ont ete identifies et traites manuellement par l equipe recouvrement
+Final Resolution: Le scheduler a ete corrige puis le lot de suspension a ete execute en rattrapage avec verification des statuts comptes
+Language: fr"
+incident_24,incident,24,Core Network OSS,,fr,Arret de collecte des alarmes sur le cluster OSS secondaire,"Type: Incident
+Service: Core Network OSS
+Title: Arret de collecte des alarmes sur le cluster OSS secondaire
+Description: Le cluster secondaire OSS ne collecte plus les alarmes coeur reseau depuis 03:00. En cas de bascule NOC aucune vue fiable des incidents n est disponible sur l environnement de secours.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: Un montage NFS en lecture seule empechait la mise a jour des fichiers de subscription alarmes
+Workaround: Le NOC est reste positionne sur le cluster principal pendant la remise en service afin de conserver une vision complete
+Final Resolution: Le montage a ete corrige puis les services de collecte ont ete redemarres et le buffer d alarmes a ete resynchronise
+Language: fr"
+incident_25,incident,25,Provisioning Platform,,fr,Rollback incomplet lors de l annulation d une suspension,"Type: Incident
+Service: Provisioning Platform
+Title: Rollback incomplet lors de l annulation d une suspension
+Description: Quand une commande de suspension est annulee dans le CRM certains sous services restent suspendus dans le moteur de provisioning. Le statut commercial redevient actif mais le service technique ne suit pas.
+Severity: MAJOR
+Status: CLOSED
+Root Cause: Une branche du workflow de rollback omettait le sous service data dans les offres multi produits
+Workaround: Les comptes les plus sensibles ont ete regularises manuellement avant execution du correctif global
+Final Resolution: Le workflow a ete corrige puis un batch de remediation a reactive les sous services restes suspendus
+Language: fr"
+incident_26,incident,26,Order Care API,,fr,Decomposition technique incomplete des commandes FTTH via Order Care,"Type: Incident
+Service: Order Care API
+Title: Decomposition technique incomplete des commandes FTTH via Order Care
+Description: Les commandes FTTH creees depuis le digital arrivent dans Order Care mais ne generent pas tous les sous ordres necessaires a l installation et a l activation PPPoE. Les plannings terrain restent incomplets.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Une condition d orchestration filtrait a tort les produits FTTH B2B avec option IP fixe
+Workaround: Les commandes urgentes ont ete completees manuellement par le back office pour maintenir les rendez vous terrain
+Final Resolution: La regle de decomposition a ete corrigee puis les commandes incompletes ont ete repassees dans le moteur d orchestration
+Language: fr"
+incident_27,incident,27,Data Migration Engine,,fr,Incoherence de reprise des historiques de facture dans Data Migration Engine,"Type: Incident
+Service: Data Migration Engine
+Title: Incoherence de reprise des historiques de facture dans Data Migration Engine
+Description: Lors des tests de migration certains comptes recuperent un historique de facturation incomplet sur 24 mois. Les ecarts concernent surtout les factures avec ajustements manuels et avoirs.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Une jointure ETL n integrait pas correctement les ecritures d ajustement rattachees aux factures d origine
+Workaround: Un export controle des factures critiques a ete fourni aux equipes recette en attendant le rejeu complet
+Final Resolution: La requete de reconciliation a ete corrigee puis les historiques manquants ont ete recharges et verifies par echantillon
+Language: fr"
+incident_28,incident,28,Core Network OSS,,fr,Tableaux de disponibilite OSS figes sur des donnees obsoletes,"Type: Incident
+Service: Core Network OSS
+Title: Tableaux de disponibilite OSS figes sur des donnees obsoletes
+Description: Les dashboards de disponibilite multi service affichent encore les metriques de la veille alors que les collecteurs remontent des donnees fraiches. Le management ne dispose plus d un suivi fiable.
+Severity: LOW
+Status: CLOSED
+Root Cause: Le service de cache de series temporelles etait bloque apres une purge planifiee inachevee
+Workaround: Le reporting du matin a ete prepare a partir des exports bruts des collecteurs pendant la remise en service
+Final Resolution: Le cache applicatif a ete reconstruit puis le service de requetage a ete redemarre et les tableaux ont retrouve des donnees a jour
+Language: fr"
+incident_29,incident,29,BSCS Billing System,,en,BSCS invoice rendering backlog on large enterprise accounts,"Type: Incident
+Service: BSCS Billing System
+Title: BSCS invoice rendering backlog on large enterprise accounts
+Description: Invoice rendering for high volume enterprise accounts exceeded twenty minutes and several invoice previews timed out in the billing portal. Finance users could not validate invoices before the cut off window.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: The rendering service loaded oversized attachment bundles without using the template cache efficiently
+Workaround: A reduced preview template was enabled for urgent finance validation while the rendering path was being corrected
+Final Resolution: The rendering cache configuration was optimized and the blocked preview jobs were reprocessed successfully
+Language: en"
+incident_30,incident,30,CRM Ericsson,,en,CRM Ericsson merge workflow failing for duplicate corporate accounts,"Type: Incident
+Service: CRM Ericsson
+Title: CRM Ericsson merge workflow failing for duplicate corporate accounts
+Description: Customer care teams could not merge duplicate corporate accounts in CRM Ericsson because the workflow stopped after validation. The duplicate record remained active and case ownership stayed inconsistent.
+Severity: MAJOR
+Status: CLOSED
+Root Cause: The merge workflow did not handle active service contracts linked to multiple billing profiles
+Workaround: Support agents used a manual ownership correction process for urgent duplicate cases during the incident
+Final Resolution: The workflow rules were updated and duplicate corporate records were merged successfully after validation testing
+Language: en"
+incident_31,incident,31,Core Network OSS,,en,Core Network OSS polling failure for transmission backbone nodes,"Type: Incident
+Service: Core Network OSS
+Title: Core Network OSS polling failure for transmission backbone nodes
+Description: Backbone transmission nodes stopped reporting availability and latency metrics to Core Network OSS during the morning collection window. NOC dashboards showed the nodes in unknown state.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: A corrupted deployment package removed the transmission SNMP profiles from one collector group
+Workaround: The NOC relied on direct device polling for the most critical backbone sites until OSS collection was restored
+Final Resolution: The missing SNMP profiles were redeployed and the collectors were restarted which restored normal metric collection
+Language: en"
+incident_32,incident,32,Provisioning Platform,,en,Provisioning queue blocked for postpaid package activations,"Type: Incident
+Service: Provisioning Platform
+Title: Provisioning queue blocked for postpaid package activations
+Description: Postpaid package activation orders remained in accepted state for more than one hour and were not progressing through the provisioning platform. Retail and CRM channels were both affected.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: A malformed campaign payload blocked the main provisioning consumer thread
+Workaround: A secondary worker pool processed priority activations while the queue was being stabilized
+Final Resolution: The malformed payload pattern was quarantined and the main consumer was restarted then all pending activations were replayed
+Language: en"
+incident_33,incident,33,Mobile Portability Gateway,,en,Morning portability cutover batch missed by gateway scheduler,"Type: Incident
+Service: Mobile Portability Gateway
+Title: Morning portability cutover batch missed by gateway scheduler
+Description: The 06:00 portability cutover batch did not start and customer numbers remained pending for activation on the target network. The incident created a risk of regulatory SLA breach.
+Severity: CRITICAL
+Status: RESOLVED
+Root Cause: A stale execution lock prevented the scheduler from releasing the morning cutover trigger
+Workaround: Priority portability cases were executed through a supervised manual cutover sequence while the scheduler was recovered
+Final Resolution: The stale lock was cleared and scheduler health checks were added before replaying the missed batch successfully
+Language: en"
+incident_34,incident,34,Order Care API,,en,Order Care callback delivery loss to CRM integration connector,"Type: Incident
+Service: Order Care API
+Title: Order Care callback delivery loss to CRM integration connector
+Description: Completion callbacks were generated by Order Care but a subset of them never reached the CRM connector. Orders appeared completed in Order Care and still in progress in CRM.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: The CRM connector retry policy discarded callback messages after a temporary broker timeout
+Workaround: Back office teams used the Order Care operations console to confirm completion status for urgent customer orders
+Final Resolution: The connector retry policy was corrected and missed completion events were republished to CRM consumers
+Language: en"
+incident_35,incident,35,Data Migration Engine,,en,Customer migration batch failed on invalid product mapping rules,"Type: Incident
+Service: Data Migration Engine
+Title: Customer migration batch failed on invalid product mapping rules
+Description: A migration batch moving enterprise customers to the new billing and CRM stack stopped during transformation because several product codes could not be mapped to the target catalog.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: Legacy enterprise product codes were missing from the target mapping table
+Workaround: Migration governance accepted a temporary exclusion list for non critical products while the catalog mapping was completed
+Final Resolution: The missing product mappings were added and the migration batch was replayed from the failed checkpoint without remaining errors
+Language: en"
+incident_36,incident,36,VoIP Platform,,en,International call routing failure on enterprise VoIP trunks,"Type: Incident
+Service: VoIP Platform
+Title: International call routing failure on enterprise VoIP trunks
+Description: Enterprise customers could place national calls successfully but international calls toward European destinations failed with 503 responses on the VoIP platform. Several contact centers were impacted.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: A recent route pattern update removed the main international exit trunk from one destination group
+Workaround: Calls to affected destinations were temporarily rerouted through the backup carrier for premium customers
+Final Resolution: The route pattern was restored on the production SBC nodes and successful international test calls confirmed service recovery
+Language: en"
+incident_37,incident,37,Fibre FTTH,,en,FTTH enterprise access profile mismatch after service migration,"Type: Incident
+Service: Fibre FTTH
+Title: FTTH enterprise access profile mismatch after service migration
+Description: After a recent migration the enterprise FTTH circuit kept the previous residential shaping template and delivered a lower bandwidth than contracted. Optical quality remained stable during the incident.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: The migration workflow attached the wrong OLT service profile to the enterprise circuit
+Workaround: A temporary bandwidth override was applied on the access node to reduce customer impact before final correction
+Final Resolution: The correct enterprise access template was assigned and the circuit was reprovisioned with the expected bandwidth profile
+Language: en"
+incident_38,incident,38,Cloud VPS,,en,Cloud VPS firewall policy not applied to the management subnet,"Type: Incident
+Service: Cloud VPS
+Title: Cloud VPS firewall policy not applied to the management subnet
+Description: A customer approved firewall rule was visible in the cloud portal but was not enforced on the production virtual machine. Management access from the approved subnet failed while other services stayed online.
+Severity: LOW
+Status: CLOSED
+Root Cause: The production VM was attached to an outdated security group after an earlier cloning operation
+Workaround: Operations used console access on the hypervisor to perform urgent administration tasks until the firewall policy was corrected
+Final Resolution: The correct security group was attached and the firewall policy was redeployed on the shared gateway with successful management access validation
+Language: en"
+incident_39,incident,39,BSCS Billing System,,en,Enterprise discount not applied on BSCS monthly invoices,"Type: Incident
+Service: BSCS Billing System
+Title: Enterprise discount not applied on BSCS monthly invoices
+Description: Several enterprise accounts were billed above their contracted amount because the corporate discount rule was not applied during invoice generation. Finance escalated the discrepancy before customer distribution.
+Severity: MAJOR
+Status: RESOLVED
+Root Cause: An incomplete tariff catalog promotion removed the enterprise discount reference from the active billing configuration
+Workaround: Invoice release was paused for the affected account segment while finance reviewed the impacted customer list
+Final Resolution: The discount reference was restored in the billing catalog and impacted invoices were regenerated before release
+Language: en"
+incident_40,incident,40,Order Care API,,en,Order Care webhook payload missing sales channel after release,"Type: Incident
+Service: Order Care API
+Title: Order Care webhook payload missing sales channel after release
+Description: Downstream CRM and reporting systems stopped receiving the sales channel attribute in Order Care webhook payloads after a minor release. Reporting by channel became inconsistent for new orders.
+Severity: LOW
+Status: CLOSED
+Root Cause: A serialization change removed the optional salesChannel field from the webhook contract
+Workaround: Reporting teams used the order creation logs as a temporary source for channel attribution during the issue
+Final Resolution: The webhook serializer was corrected and missed events were republished with the complete payload schema
+Language: en"

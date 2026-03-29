@@ -24,11 +24,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
 }) => {
   return (
     <Card className={`flex items-start gap-4 ${className}`}>
-      {icon && (
-        <div className={`flex-shrink-0 p-2.5 rounded-lg ${color}`}>
-          {icon}
-        </div>
-      )}
+      {icon && <div className={`flex-shrink-0 p-2.5 rounded-lg ${color}`}>{icon}</div>}
       <div className="flex-1 min-w-0">
         <p className="text-sm text-ds-secondary truncate">{title}</p>
         <p className="mt-1 text-2xl font-semibold text-ds-primary">{value}</p>

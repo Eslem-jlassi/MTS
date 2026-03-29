@@ -27,7 +27,6 @@ import {
   ServiceStatusColors,
   ServiceStatusBgColors,
   CriticalityLabels,
-  IncidentStatusLabels,
   SeverityLabels,
 } from "../types";
 
@@ -38,7 +37,10 @@ const statusIcon: Record<ServiceStatus, React.ReactNode> = {
   [ServiceStatus.MAINTENANCE]: <Wrench size={20} />,
 };
 
-const statusCardConfig: Record<ServiceStatus, { label: string; borderColor: string; bgColor: string; iconBg: string; iconColor: string }> = {
+const statusCardConfig: Record<
+  ServiceStatus,
+  { label: string; borderColor: string; bgColor: string; iconBg: string; iconColor: string }
+> = {
   [ServiceStatus.UP]: {
     label: "Opérationnels",
     borderColor: "border-l-emerald-500",
@@ -83,10 +85,7 @@ const HealthMonitoringPage: React.FC = () => {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([
-      telecomServiceService.getHealthDashboard(),
-      incidentService.getActive(),
-    ])
+    Promise.all([telecomServiceService.getHealthDashboard(), incidentService.getActive()])
       .then(([svcList, incList]) => {
         setServices(svcList);
         setActiveIncidents(incList);
@@ -203,16 +202,29 @@ const HealthMonitoringPage: React.FC = () => {
           </div>
         </Card>
         {/* Status cards */}
-        {([ServiceStatus.UP, ServiceStatus.DEGRADED, ServiceStatus.DOWN, ServiceStatus.MAINTENANCE] as ServiceStatus[]).map((st) => {
+        {(
+          [
+            ServiceStatus.UP,
+            ServiceStatus.DEGRADED,
+            ServiceStatus.DOWN,
+            ServiceStatus.MAINTENANCE,
+          ] as ServiceStatus[]
+        ).map((st) => {
           const config = statusCardConfig[st];
           return (
-            <Card key={st} padding="md" className={`border-l-4 ${config.borderColor} ${config.bgColor}`}>
+            <Card
+              key={st}
+              padding="md"
+              className={`border-l-4 ${config.borderColor} ${config.bgColor}`}
+            >
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-xl ${config.iconBg} ${config.iconColor}`}>
                   {statusIcon[st]}
                 </div>
                 <div>
-                  <p className="text-xs text-ds-secondary uppercase tracking-wider">{config.label}</p>
+                  <p className="text-xs text-ds-secondary uppercase tracking-wider">
+                    {config.label}
+                  </p>
                   <p className="text-2xl font-bold text-ds-primary">{byStatus[st]}</p>
                 </div>
               </div>
@@ -223,15 +235,22 @@ const HealthMonitoringPage: React.FC = () => {
 
       {/* Active incidents banner */}
       {activeIncidents.length > 0 && (
-        <Card padding="md" className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10">
+        <Card
+          padding="md"
+          className="border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/10"
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <AlertTriangle className="text-red-600 dark:text-red-400" size={20} />
               <span className="font-semibold text-red-700 dark:text-red-400">
-                {activeIncidents.length} incident{activeIncidents.length > 1 ? "s" : ""} actif{activeIncidents.length > 1 ? "s" : ""}
+                {activeIncidents.length} incident{activeIncidents.length > 1 ? "s" : ""} actif
+                {activeIncidents.length > 1 ? "s" : ""}
               </span>
             </div>
-            <Link to="/incidents" className="text-sm font-medium text-primary hover:text-primary-hover flex items-center gap-1">
+            <Link
+              to="/incidents"
+              className="text-sm font-medium text-primary hover:text-primary-hover flex items-center gap-1"
+            >
               Voir les incidents <ArrowRight size={14} />
             </Link>
           </div>
@@ -240,7 +259,9 @@ const HealthMonitoringPage: React.FC = () => {
               <li key={inc.id} className="text-sm text-ds-secondary flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
                 <Link to={`/incidents/${inc.id}`} className="hover:text-primary truncate">
-                  {inc.incidentNumber && <span className="font-mono text-xs mr-1">{inc.incidentNumber}</span>}
+                  {inc.incidentNumber && (
+                    <span className="font-mono text-xs mr-1">{inc.incidentNumber}</span>
+                  )}
                   {inc.title}
                   <span className="text-ds-muted ml-1">({SeverityLabels[inc.severity]})</span>
                 </Link>
@@ -306,7 +327,9 @@ const HealthMonitoringPage: React.FC = () => {
                           <td className="px-4 sm:px-6 py-4">
                             <div>
                               <p className="font-medium text-ds-primary">{s.name}</p>
-                              <p className="text-xs text-ds-muted">{s.categoryLabel ?? s.category}</p>
+                              <p className="text-xs text-ds-muted">
+                                {s.categoryLabel ?? s.category}
+                              </p>
                             </div>
                           </td>
                           <td className="px-4 sm:px-6 py-4">
@@ -318,11 +341,15 @@ const HealthMonitoringPage: React.FC = () => {
                             </span>
                           </td>
                           <td className="px-4 sm:px-6 py-4 text-sm text-ds-secondary">
-                            {s.criticality ? (s.criticalityLabel ?? CriticalityLabels[s.criticality]) : "—"}
+                            {s.criticality
+                              ? (s.criticalityLabel ?? CriticalityLabels[s.criticality])
+                              : "—"}
                           </td>
                           <td className="px-4 sm:px-6 py-4 text-right">
                             {s.availabilityPct != null ? (
-                              <span className={`text-sm font-medium ${s.availabilityPct >= 99 ? "text-green-600 dark:text-green-400" : s.availabilityPct >= 95 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
+                              <span
+                                className={`text-sm font-medium ${s.availabilityPct >= 99 ? "text-green-600 dark:text-green-400" : s.availabilityPct >= 95 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}
+                              >
                                 {s.availabilityPct.toFixed(1)}%
                               </span>
                             ) : (
@@ -353,14 +380,22 @@ const HealthMonitoringPage: React.FC = () => {
               <Card>
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-ds-primary">{selectedService.name}</h3>
-                    <p className="text-sm text-ds-muted">{selectedService.categoryLabel ?? selectedService.category}</p>
+                    <h3 className="text-lg font-semibold text-ds-primary">
+                      {selectedService.name}
+                    </h3>
+                    <p className="text-sm text-ds-muted">
+                      {selectedService.categoryLabel ?? selectedService.category}
+                    </p>
                   </div>
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${ServiceStatusBgColors[(selectedService.status as ServiceStatus) || ServiceStatus.UP]} ${ServiceStatusColors[(selectedService.status as ServiceStatus) || ServiceStatus.UP]}`}
                   >
                     {statusIcon[(selectedService.status as ServiceStatus) || ServiceStatus.UP]}
-                    {ServiceStatusLabels[(selectedService.status as ServiceStatus) || ServiceStatus.UP]}
+                    {
+                      ServiceStatusLabels[
+                        (selectedService.status as ServiceStatus) || ServiceStatus.UP
+                      ]
+                    }
                   </span>
                 </div>
                 {selectedService.description && (
@@ -376,40 +411,57 @@ const HealthMonitoringPage: React.FC = () => {
                   {selectedService.criticality && (
                     <div>
                       <dt className="text-ds-muted">Criticité</dt>
-                      <dd className="font-medium text-ds-primary">{selectedService.criticalityLabel ?? CriticalityLabels[selectedService.criticality]}</dd>
+                      <dd className="font-medium text-ds-primary">
+                        {selectedService.criticalityLabel ??
+                          CriticalityLabels[selectedService.criticality]}
+                      </dd>
                     </div>
                   )}
                   {selectedService.slaPolicyName && (
                     <div>
                       <dt className="text-ds-muted">Politique SLA</dt>
-                      <dd className="font-medium text-ds-primary">{selectedService.slaPolicyName}</dd>
+                      <dd className="font-medium text-ds-primary">
+                        {selectedService.slaPolicyName}
+                      </dd>
                     </div>
                   )}
                   {selectedService.availabilityPct != null && (
                     <div>
-                      <dt className="text-ds-muted flex items-center gap-1"><TrendingUp size={12} /> Dispo.</dt>
-                      <dd className="font-medium text-ds-primary">{selectedService.availabilityPct.toFixed(2)}%</dd>
+                      <dt className="text-ds-muted flex items-center gap-1">
+                        <TrendingUp size={12} /> Dispo.
+                      </dt>
+                      <dd className="font-medium text-ds-primary">
+                        {selectedService.availabilityPct.toFixed(2)}%
+                      </dd>
                     </div>
                   )}
                   {selectedService.avgLatencyMs != null && (
                     <div>
                       <dt className="text-ds-muted">Latence moy.</dt>
-                      <dd className="font-medium text-ds-primary">{selectedService.avgLatencyMs} ms</dd>
+                      <dd className="font-medium text-ds-primary">
+                        {selectedService.avgLatencyMs} ms
+                      </dd>
                     </div>
                   )}
                   {selectedService.mttrMinutes != null && (
                     <div>
                       <dt className="text-ds-muted">MTTR</dt>
-                      <dd className="font-medium text-ds-primary">{selectedService.mttrMinutes} min</dd>
+                      <dd className="font-medium text-ds-primary">
+                        {selectedService.mttrMinutes} min
+                      </dd>
                     </div>
                   )}
                   <div>
                     <dt className="text-ds-muted">Tickets</dt>
-                    <dd className="font-medium text-ds-primary">{selectedService.ticketCount ?? 0}</dd>
+                    <dd className="font-medium text-ds-primary">
+                      {selectedService.ticketCount ?? 0}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-ds-muted">Incidents actifs</dt>
-                    <dd className="font-medium text-ds-primary">{selectedService.activeIncidentCount ?? 0}</dd>
+                    <dd className="font-medium text-ds-primary">
+                      {selectedService.activeIncidentCount ?? 0}
+                    </dd>
                   </div>
                 </dl>
               </Card>
@@ -435,11 +487,15 @@ const HealthMonitoringPage: React.FC = () => {
                           </div>
                           <div>
                             <p className="text-sm text-ds-primary">
-                              <span className={`font-medium ${ServiceStatusColors[(entry.oldStatus as ServiceStatus)] ?? ""}`}>
+                              <span
+                                className={`font-medium ${ServiceStatusColors[entry.oldStatus as ServiceStatus] ?? ""}`}
+                              >
                                 {entry.oldStatusLabel ?? entry.oldStatus}
                               </span>
                               {" → "}
-                              <span className={`font-medium ${ServiceStatusColors[(entry.newStatus as ServiceStatus)] ?? ""}`}>
+                              <span
+                                className={`font-medium ${ServiceStatusColors[entry.newStatus as ServiceStatus] ?? ""}`}
+                              >
                                 {entry.newStatusLabel ?? entry.newStatus}
                               </span>
                             </p>

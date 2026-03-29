@@ -47,10 +47,7 @@ export const businessHoursService = {
   /**
    * Met à jour un horaire ouvrés existant.
    */
-  update: async (
-    id: number,
-    request: BusinessHoursRequest
-  ): Promise<BusinessHours> => {
+  update: async (id: number, request: BusinessHoursRequest): Promise<BusinessHours> => {
     const response = await api.put<BusinessHours>(`${PREFIX}/${id}`, request);
     return response.data;
   },

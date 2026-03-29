@@ -103,19 +103,21 @@ public class ReportGenerationService {
 
         // --- Résolution des filtres ---
         TelecomService serviceFilter = null;
-        if (request.getServiceId() != null) {
+        if (request.getServiceId() != null && telecomServiceRepository != null) {
             serviceFilter = telecomServiceRepository.findById(request.getServiceId())
                     .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
         }
         Client clientFilter = null;
-        if (request.getClientId() != null) {
+        if (request.getClientId() != null && clientRepository != null) {
             clientFilter = clientRepository.findById(request.getClientId())
                     .orElseThrow(() -> new ResourceNotFoundException("Client", "id", request.getClientId()));
         }
 
         // --- Requêtes données avec filtres ---
         List<Ticket> ticketsInPeriod = fetchFilteredTickets(from, to, request);
-        List<Incident> incidentsInPeriod = incidentRepository.findByPeriod(from, to);
+        List<Incident> incidentsInPeriod = incidentRepository != null
+                ? incidentRepository.findByPeriod(from, to)
+                : List.of();
 
         // --- Calcul des KPIs ---
         long ticketsCreated = ticketsInPeriod.size();
@@ -126,7 +128,9 @@ public class ReportGenerationService {
         long ticketsSlaBreached = ticketRepository.countSlaBreachedBetween(from, to);
         long backlogCount = ticketRepository.countBacklogAt(to);
         long incidentsCount = incidentsInPeriod.size();
-        long incidentsCritical = incidentRepository.countCriticalByPeriod(from, to);
+        long incidentsCritical = incidentRepository != null
+                ? incidentRepository.countCriticalByPeriod(from, to)
+                : 0L;
         double slaCompliancePct = ExecutiveSummaryEngine.computeSlaCompliance(ticketsCreated, ticketsSlaBreached);
 
         // Distributions
@@ -163,7 +167,9 @@ public class ReportGenerationService {
                 .build();
 
         // --- Génération du résumé exécutif ---
-        String executiveSummary = executiveSummaryEngine.generate(kpis);
+        String executiveSummary = executiveSummaryEngine != null
+                ? executiveSummaryEngine.generate(kpis)
+                : "";
 
         // --- Titre et description ---
         ReportType reportType = request.getReportType();

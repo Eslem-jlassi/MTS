@@ -2,27 +2,27 @@
  * ============================================================================
  * COMPOSANT: RoleBasedRoute
  * ============================================================================
- * 
+ *
  * OBJECTIF:
  * Ce composant permet de protéger les routes en fonction du rôle de l'utilisateur.
  * Il vérifie si l'utilisateur connecté a le rôle requis pour accéder à une page.
- * 
+ *
  * FONCTIONNEMENT:
  * 1. Récupère l'utilisateur connecté depuis Redux
  * 2. Vérifie si le rôle de l'utilisateur est dans la liste des rôles autorisés
  * 3. Si OUI → Affiche la page demandée (children)
  * 4. Si NON → Redirige vers une page d'erreur ou le dashboard
- * 
+ *
  * UTILISATION DANS App.tsx:
- * <Route 
- *   path="/admin" 
+ * <Route
+ *   path="/admin"
  *   element={
  *     <RoleBasedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
  *       <AdminPage />
  *     </RoleBasedRoute>
- *   } 
+ *   }
  * />
- * 
+ *
  * ============================================================================
  */
 
@@ -37,7 +37,7 @@ import { UserRole } from "../../types";
 
 /**
  * Props du composant RoleBasedRoute
- * 
+ *
  * @property children - Le contenu à afficher si l'utilisateur a le bon rôle
  * @property allowedRoles - Liste des rôles autorisés à accéder à cette route
  * @property fallbackPath - Chemin de redirection si non autorisé (par défaut: /dashboard)
@@ -56,7 +56,7 @@ interface RoleBasedRouteProps {
 
 /**
  * RoleBasedRoute - Composant de protection des routes par rôle
- * 
+ *
  * Ce composant wrap les routes qui nécessitent un rôle spécifique.
  * Il utilise le pattern "Higher Order Component" (HOC) simplifié.
  */
@@ -69,13 +69,13 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   // ============================================
   // RÉCUPÉRATION DES DONNÉES DEPUIS REDUX
   // ============================================
-  
+
   /**
    * useAppSelector: Hook personnalisé pour accéder au store Redux typé
    * On récupère ici l'utilisateur connecté et l'état d'authentification
    */
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  
+
   /**
    * useLocation: Hook de React Router pour connaître l'URL actuelle
    * Utile pour rediriger vers la bonne page après connexion
@@ -85,25 +85,19 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   // ============================================
   // VÉRIFICATION DE L'AUTHENTIFICATION
   // ============================================
-  
+
   /**
    * Si l'utilisateur n'est pas connecté, on le redirige vers la page de login
    * On sauvegarde l'URL actuelle dans "state" pour y revenir après connexion
    */
   if (!isAuthenticated || !user) {
-    return (
-      <Navigate 
-        to="/login" 
-        state={{ from: location.pathname }} 
-        replace 
-      />
-    );
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   // ============================================
   // VÉRIFICATION DU RÔLE
   // ============================================
-  
+
   /**
    * On récupère le rôle de l'utilisateur depuis ses données
    * Par défaut, on considère le rôle CLIENT si non défini
@@ -119,7 +113,7 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   // ============================================
   // GESTION DU NON-ACCÈS
   // ============================================
-  
+
   if (!hasRequiredRole) {
     /**
      * Si showError est true, on affiche un message d'erreur stylisé
@@ -145,19 +139,15 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
                 />
               </svg>
             </div>
-            
+
             {/* Message d'erreur */}
-            <h2 className="text-xl font-bold text-ds-primary mb-2">
-              Accès refusé
-            </h2>
+            <h2 className="text-xl font-bold text-ds-primary mb-2">Accès refusé</h2>
             <p className="text-ds-secondary mb-6">
               Vous n'avez pas les permissions nécessaires pour accéder à cette page.
               <br />
-              <span className="text-sm text-ds-muted">
-                Rôle requis: {allowedRoles.join(", ")}
-              </span>
+              <span className="text-sm text-ds-muted">Rôle requis: {allowedRoles.join(", ")}</span>
             </p>
-            
+
             {/* Bouton retour */}
             <button
               onClick={() => window.history.back()}
@@ -180,7 +170,7 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   // ============================================
   // RENDU DU CONTENU PROTÉGÉ
   // ============================================
-  
+
   /**
    * Si toutes les vérifications passent, on affiche le contenu protégé
    * Le fragment <></> permet de retourner children sans wrapper supplémentaire
@@ -194,7 +184,7 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
 
 /**
  * AdminOnlyRoute - Raccourci pour les pages admin uniquement
- * 
+ *
  * Usage: <AdminOnlyRoute><AdminPage /></AdminOnlyRoute>
  */
 export const AdminOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -205,7 +195,7 @@ export const AdminOnlyRoute: React.FC<{ children: React.ReactNode }> = ({ childr
 
 /**
  * ManagerRoute - Accès pour Manager et Admin
- * 
+ *
  * Usage: <ManagerRoute><ReportsPage /></ManagerRoute>
  */
 export const ManagerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -216,7 +206,7 @@ export const ManagerRoute: React.FC<{ children: React.ReactNode }> = ({ children
 
 /**
  * AgentRoute - Accès pour Agent, Manager et Admin
- * 
+ *
  * Usage: <AgentRoute><TicketAssignmentPage /></AgentRoute>
  */
 export const AgentRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -227,11 +217,11 @@ export const AgentRoute: React.FC<{ children: React.ReactNode }> = ({ children }
 
 /**
  * ClientRoute - Accès pour tous les utilisateurs authentifiés
- * 
+ *
  * Usage: <ClientRoute><MyTicketsPage /></ClientRoute>
  */
 export const ClientRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <RoleBasedRoute 
+  <RoleBasedRoute
     allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.AGENT, UserRole.CLIENT]}
   >
     {children}

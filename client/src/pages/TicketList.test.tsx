@@ -6,7 +6,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { Provider } from "react-redux";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import ticketsReducer from "../redux/slices/ticketsSlice";
 import authReducer from "../redux/slices/authSlice";
@@ -15,6 +15,14 @@ import notificationsReducer from "../redux/slices/notificationsSlice";
 import TicketList from "./TicketList";
 import { TicketStatus, TicketPriority, TicketCategory } from "../types";
 import { ThemeProvider } from "../context/ThemeContext";
+import { ToastProvider } from "../context/ToastContext";
+
+jest.mock("../components/tickets/TicketDrawer", () => ({
+  __esModule: true,
+  default: ({ ticketId, isOpen }: { ticketId: number | null; isOpen: boolean }) => (
+    <div data-testid="ticket-drawer" data-open={String(isOpen)} data-ticket-id={ticketId ?? ""} />
+  ),
+}));
 
 // Mock ticketService (used by component for exports + fetching via thunk)
 jest.mock("../api/ticketService", () => {
@@ -22,6 +30,8 @@ jest.mock("../api/ticketService", () => {
     exportCsv: jest.fn(),
     exportExcel: jest.fn(),
     exportPdf: jest.fn(),
+    deleteTicket: jest.fn(),
+    hardDeleteTicket: jest.fn(),
     getTickets: jest.fn().mockResolvedValue({
       content: [],
       totalElements: 0,
@@ -45,6 +55,7 @@ jest.mock("../api", () => {
 // eslint-disable-next-line import/first
 import { ticketService as mockedService } from "../api/ticketService";
 const mockGetTickets = mockedService.getTickets as jest.Mock;
+const mockHardDeleteTicket = mockedService.hardDeleteTicket as jest.Mock;
 
 // ----- Helpers ---------------------------------------------------------------
 
@@ -104,6 +115,7 @@ function createTestStore(
         token: "fake-jwt-token",
         refreshToken: null,
         isAuthenticated: true,
+        isInitialized: true,
         isLoading: false,
         error: null,
         ...authOverrides,
@@ -130,13 +142,24 @@ function createTestStore(
 function renderTicketList(
   ticketsOverrides?: Record<string, unknown>,
   authOverrides?: Record<string, unknown>,
+  routerOptions: {
+    initialEntries?: string[];
+    routePath?: string;
+  } = {},
 ) {
   const store = createTestStore(ticketsOverrides, authOverrides);
   return render(
     <Provider store={store}>
-      <MemoryRouter>
+      <MemoryRouter
+        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        initialEntries={routerOptions.initialEntries ?? ["/tickets"]}
+      >
         <ThemeProvider>
-          <TicketList />
+          <ToastProvider>
+            <Routes>
+              <Route path={routerOptions.routePath ?? "/tickets"} element={<TicketList />} />
+            </Routes>
+          </ToastProvider>
         </ThemeProvider>
       </MemoryRouter>
     </Provider>,
@@ -148,6 +171,7 @@ function renderTicketList(
 describe("TicketList", () => {
   beforeEach(() => {
     mockGetTickets.mockReset();
+    mockHardDeleteTicket.mockReset();
     mockGetTickets.mockResolvedValue({
       content: [],
       totalElements: 0,
@@ -155,6 +179,7 @@ describe("TicketList", () => {
       number: 0,
       size: 10,
     });
+    mockHardDeleteTicket.mockResolvedValue(undefined);
   });
 
   it("shows loading skeleton when isLoading is true", () => {
@@ -250,6 +275,7 @@ describe("TicketList", () => {
           email: "client@test.com",
         },
         isAuthenticated: true,
+        isInitialized: true,
         isLoading: false,
         token: "fake",
         refreshToken: null,
@@ -272,6 +298,7 @@ describe("TicketList", () => {
           email: "agent@test.com",
         },
         isAuthenticated: true,
+        isInitialized: true,
         isLoading: false,
         token: "fake",
         refreshToken: null,
@@ -322,5 +349,149 @@ describe("TicketList", () => {
     });
     expect(screen.getByLabelText("Page précédente")).toBeDisabled();
     expect(screen.getByLabelText("Page suivante")).not.toBeDisabled();
+  });
+
+  it("opens the drawer when the page is loaded from a /tickets/:id deep link", async () => {
+    renderTicketList(
+      {},
+      {},
+      {
+        initialEntries: ["/tickets/42"],
+        routePath: "/tickets/:id",
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ticket-drawer")).toHaveAttribute("data-open", "true");
+    });
+    expect(screen.getByTestId("ticket-drawer")).toHaveAttribute("data-ticket-id", "42");
+  });
+
+  it("shows the hard delete action only for ADMIN on a new unassigned ticket", async () => {
+    const tickets = [
+      buildTicket({
+        id: 3,
+        ticketNumber: "TK-20240003",
+        title: "Ticket a supprimer",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 1,
+          role: "ADMIN",
+          firstName: "Admin",
+          lastName: "Root",
+          email: "admin@test.com",
+        },
+        isAuthenticated: true,
+        isInitialized: true,
+        isLoading: false,
+        token: "fake",
+        refreshToken: null,
+        error: null,
+      },
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("Supprimer definitivement le ticket TK-20240003"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("does not show the hard delete action for AGENT on the same ticket", async () => {
+    const tickets = [
+      buildTicket({
+        id: 4,
+        ticketNumber: "TK-20240004",
+        title: "Ticket admin only",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList();
+
+    await waitFor(() => {
+      expect(screen.getByText("TK-20240004")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByLabelText("Supprimer definitivement le ticket TK-20240004"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a strong confirmation modal with ticket reference and title for ADMIN hard delete", async () => {
+    const tickets = [
+      buildTicket({
+        id: 5,
+        ticketNumber: "TK-20240005",
+        title: "Suppression definitive test",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 1,
+          role: "ADMIN",
+          firstName: "Admin",
+          lastName: "Root",
+          email: "admin@test.com",
+        },
+        isAuthenticated: true,
+        isInitialized: true,
+        isLoading: false,
+        token: "fake",
+        refreshToken: null,
+        error: null,
+      },
+    );
+
+    const deleteButton = await screen.findByLabelText(
+      "Supprimer definitivement le ticket TK-20240005",
+    );
+    fireEvent.click(deleteButton);
+
+    expect(screen.getByText("Supprimer definitivement ce ticket ?")).toBeInTheDocument();
+    expect(screen.getAllByText(/TK-20240005/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Titre :")).toBeInTheDocument();
+    expect(screen.getAllByText(/Suppression definitive test/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText(/Tapez SUPPRIMER/)).toBeInTheDocument();
   });
 });

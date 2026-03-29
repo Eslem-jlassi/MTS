@@ -1,0 +1,49 @@
+# =============================================================================
+# MTS TELECOM - MICROSERVICE IA - DÉPENDANCES PYTHON
+# =============================================================================
+# Installation: pip install -r requirements.txt
+#
+# PRODUCTION: Utiliser des versions figées pour la reproductibilité
+# Ex: fastapi==0.110.0 au lieu de fastapi>=0.110.0
+# =============================================================================
+
+# =============================================================================
+# FRAMEWORK WEB
+# =============================================================================
+fastapi>=0.110.0          # Framework web asynchrone moderne
+uvicorn[standard]>=0.27.0 # Serveur ASGI (production-ready)
+pydantic>=2.6.0           # Validation des données
+
+# =============================================================================
+# INTELLIGENCE ARTIFICIELLE
+# =============================================================================
+transformers>=4.37.0      # Hugging Face - Modèles BERT/RoBERTa
+torch>=2.2.0              # PyTorch (backend pour transformers)
+sentencepiece>=0.1.99     # Tokenization (requis par certains modèles)
+
+# =============================================================================
+# UTILITAIRES
+# =============================================================================
+python-multipart>=0.0.9   # Parsing de formulaires/fichiers (optionnel)
+httpx>=0.26.0             # Client HTTP asynchrone (pour tests)
+
+# =============================================================================
+# NOTES POUR LA SOUTENANCE PFE
+# =============================================================================
+# QUESTION JURY: "Pourquoi FastAPI et pas Flask?"
+# RÉPONSE:
+# ✓ Performance: FastAPI est basé sur Starlette (async)
+# ✓ Documentation auto: Swagger UI intégré
+# ✓ Validation: Pydantic valide automatiquement les données
+# ✓ Production-ready: Utilisé par Microsoft, Uber, Netflix
+#
+# QUESTION JURY: "Pourquoi ce modèle BERT?"
+# RÉPONSE:
+# ✓ Multilingue: Français, anglais, arabe (pour clients internationaux)
+# ✓ Spécialisé: Entraîné sur des avis clients (Amazon, Yelp)
+# ✓ Robuste: Gère les négations, le sarcasme, le contexte
+# ✓ Éprouvé: 2M+ téléchargements sur Hugging Face
+#
+# ALTERNATIVE (plus léger):
+# distilbert-base-multilingual-cased → 40% plus rapide, -30% précision
+# =============================================================================

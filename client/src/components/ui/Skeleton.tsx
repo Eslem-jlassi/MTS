@@ -19,21 +19,12 @@ const Skeleton: React.FC<SkeletonProps> = ({
 }) => {
   const base = "animate-pulse bg-ds-elevated rounded";
   const variantClass =
-    variant === "circular"
-      ? "rounded-full"
-      : variant === "text"
-      ? "rounded h-4"
-      : "rounded-lg";
+    variant === "circular" ? "rounded-full" : variant === "text" ? "rounded h-4" : "rounded-lg";
   const style: React.CSSProperties = {};
   if (width) style.width = typeof width === "number" ? `${width}px` : width;
   if (height) style.height = typeof height === "number" ? `${height}px` : height;
 
-  return (
-    <div
-      className={`${base} ${variantClass} ${className}`}
-      style={style}
-    />
-  );
+  return <div className={`${base} ${variantClass} ${className}`} style={style} />;
 };
 
 export function SkeletonCard() {

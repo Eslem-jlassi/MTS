@@ -29,6 +29,7 @@ public class IncidentServiceImpl implements IncidentService {
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final IncidentTimelineRepository timelineRepository;
+    private final com.billcom.mts.service.AuditService auditService;
 
     // =========================================================================
     // CRUD
@@ -157,6 +158,36 @@ public class IncidentServiceImpl implements IncidentService {
         Incident incident = incidentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
         return toResponse(incident);
+    }
+
+    @Override
+    @Transactional
+    public void hardDeleteIncidentAsAdmin(Long id, User currentUser, String ipAddress) {
+        log.info("Tentative de SUPPRESSION DEFINITIVE de l'incident ID: {} par admin: {} depuis IP: {}", 
+                 id, currentUser.getEmail(), ipAddress);
+
+        if (!com.billcom.mts.enums.Role.ADMIN.equals(currentUser.getRole())) {
+            throw new org.springframework.security.access.AccessDeniedException("Seul un ADMIN peut supprimer définitivement un incident.");
+        }
+
+        Incident incident = incidentRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+
+        String incidentNumber = incident.getIncidentNumber();
+
+        try {
+            auditService.log("Incident", id.toString(), "DELETE", currentUser,
+                "Suppression definitive " + incidentNumber, ipAddress);
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
+        }
+
+        // Casser les relations ManyToMany proprement pour eviter les problemes de contraintes
+        incident.getTickets().clear();
+        incident.getAffectedServices().clear();
+        incidentRepository.saveAndFlush(incident);
+
+        incidentRepository.delete(incident);
     }
 
     @Override

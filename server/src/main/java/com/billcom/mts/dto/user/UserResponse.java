@@ -25,6 +25,8 @@ public class UserResponse {
     private UserRole role;
     private String phone;
     private String profilePhotoUrl;
+    private String oauthProvider;
+    private Boolean emailVerified;
     private Boolean isActive;
     private LocalDateTime lastLoginAt;
     private LocalDateTime createdAt;

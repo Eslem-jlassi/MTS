@@ -4,16 +4,14 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { LayoutGrid, List, Ticket, AlertTriangle, Loader2 } from "lucide-react";
-import { ticketService } from "../api/ticketService";
+import { List, Loader2 } from "lucide-react";
 import { RootState, AppDispatch } from "../redux/store";
 import { fetchTickets } from "../redux/slices/ticketsSlice";
 import PageHeader from "../components/layout/PageHeader";
-import { Card, Button, Badge, EmptyState, ErrorState } from "../components/ui";
+import { Card, Button, Badge, ErrorState } from "../components/ui";
 import {
   TicketStatus,
   StatusLabels,
-  StatusColors,
   PriorityLabels,
   PriorityColors,
   type Ticket as TicketType,
@@ -52,7 +50,7 @@ const TicketsKanbanPage: React.FC = () => {
       fetchTickets({
         filters: {},
         page: { page: 0, size: 500, sort: "createdAt", direction: "DESC" },
-      })
+      }),
     );
   }, [dispatch]);
 
@@ -83,7 +81,14 @@ const TicketsKanbanPage: React.FC = () => {
       <div className="p-6">
         <ErrorState
           message="Impossible de charger les tickets."
-          onRetry={() => dispatch(fetchTickets({ filters: {}, page: { page: 0, size: 500, sort: "createdAt", direction: "DESC" } }))}
+          onRetry={() =>
+            dispatch(
+              fetchTickets({
+                filters: {},
+                page: { page: 0, size: 500, sort: "createdAt", direction: "DESC" },
+              }),
+            )
+          }
         />
       </div>
     );
@@ -130,9 +135,7 @@ const TicketsKanbanPage: React.FC = () => {
                         className="hover:shadow-md transition-shadow cursor-pointer border border-ds-border bg-ds-card"
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <span className="text-xs font-mono text-ds-muted">
-                            {t.ticketNumber}
-                          </span>
+                          <span className="text-xs font-mono text-ds-muted">{t.ticketNumber}</span>
                           {t.priority && (
                             <span
                               className="px-1.5 py-0.5 rounded text-xs font-medium shrink-0"

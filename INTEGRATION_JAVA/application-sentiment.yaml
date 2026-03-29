@@ -1,0 +1,35 @@
+# =============================================================================
+# MTS TELECOM - CONFIGURATION SPRING BOOT POUR MICROSERVICE
+# =============================================================================
+# Ajouter dans: server/src/main/resources/application.yaml
+# =============================================================================
+
+# Configuration du microservice d'analyse de sentiment
+app:
+  sentiment-service:
+    # URL du microservice Python FastAPI
+    # Développement: localhost
+    # Production Docker: http://sentiment-service:8000
+    # Kubernetes: http://sentiment-service.default.svc.cluster.local:8000
+    url: ${SENTIMENT_SERVICE_URL:http://localhost:8000}
+    
+    # Timeout en millisecondes (5 secondes)
+    # JURY: Expliquer pourquoi timeout important
+    # → Évite que le backend se bloque si le microservice Python est lent
+    timeout-ms: ${SENTIMENT_SERVICE_TIMEOUT:5000}
+    
+    # Activer/désactiver l'analyse de sentiment
+    # Utile pour tests ou démo sans démarrer le microservice Python
+    enabled: ${SENTIMENT_SERVICE_ENABLED:true}
+
+# Configuration WebClient (pour appels HTTP non-bloquants)
+spring:
+  webflux:
+    # Evite erreurs de codec en production
+    codecs:
+      max-in-memory-size: 10MB
+
+# Logs pour debugging
+logging:
+  level:
+    com.billcom.mts.client.SentimentAnalysisClient: DEBUG

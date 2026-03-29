@@ -110,7 +110,7 @@ export default function NotificationCenter() {
       try {
         await notificationService.markAsRead(notification.id);
         setNotifications((prev) =>
-          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n))
+          prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
         );
         setUnreadCount((c) => Math.max(0, c - 1));
       } catch (error) {
@@ -164,12 +164,12 @@ export default function NotificationCenter() {
       {/* Bell button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 rounded-lg text-ds-secondary hover:bg-ds-elevated transition-colors"
+        className="app-header-control app-toolbar-surface relative p-2 rounded-xl text-ds-secondary transition-colors"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-error-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-soft">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -183,7 +183,7 @@ export default function NotificationCenter() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] bg-ds-card border border-ds-border rounded-lg shadow-lg z-50"
+            className="app-user-menu-panel absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] border border-ds-border rounded-2xl z-50 overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-ds-border">
@@ -191,7 +191,7 @@ export default function NotificationCenter() {
                 <Bell className="w-4 h-4" />
                 Notifications
                 {unreadCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 text-xs font-bold">
+                  <span className="px-2 py-0.5 rounded-full border border-ds-border bg-ds-elevated text-primary text-xs font-bold">
                     {unreadCount}
                   </span>
                 )}
@@ -199,7 +199,7 @@ export default function NotificationCenter() {
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-1"
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
                 >
                   <Check size={14} />
                   Tout marquer comme lu
@@ -210,9 +210,7 @@ export default function NotificationCenter() {
             {/* Liste notifications */}
             <div className="max-h-96 overflow-y-auto">
               {loading ? (
-                <div className="p-8 text-center text-ds-muted text-sm">
-                  Chargement...
-                </div>
+                <div className="p-8 text-center text-ds-muted text-sm">Chargement...</div>
               ) : notifications.length === 0 ? (
                 <div className="p-8 text-center">
                   <Bell className="w-12 h-12 mx-auto mb-3 text-ds-muted opacity-30" />
@@ -224,8 +222,8 @@ export default function NotificationCenter() {
                     <button
                       key={notif.id}
                       onClick={() => handleNotificationClick(notif)}
-                      className={`w-full text-left p-4 hover:bg-ds-elevated transition-colors ${
-                        !notif.isRead ? "bg-primary-50/50 dark:bg-primary-900/10" : ""
+                      className={`app-notification-item w-full text-left p-4 transition-colors ${
+                        !notif.isRead ? "bg-[rgb(var(--sidebar-active-bg))]" : ""
                       }`}
                     >
                       <div className="flex gap-3">
@@ -236,13 +234,15 @@ export default function NotificationCenter() {
                               {notif.title}
                             </p>
                             {!notif.isRead && (
-                              <div className="w-2 h-2 rounded-full bg-primary-600 dark:bg-primary-500 shrink-0 mt-1.5" />
+                              <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />
                             )}
                           </div>
                           <p className="text-xs text-ds-secondary line-clamp-2 mt-1">
                             {notif.message}
                           </p>
-                          <p className="text-xs text-ds-muted mt-2">{getTimeAgo(notif.createdAt)}</p>
+                          <p className="text-xs text-ds-muted mt-2">
+                            {getTimeAgo(notif.createdAt)}
+                          </p>
                         </div>
                       </div>
                     </button>
@@ -258,7 +258,7 @@ export default function NotificationCenter() {
                   navigate("/notifications");
                   setIsOpen(false);
                 }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-ds-elevated rounded-lg transition-colors"
+                className="app-dropdown-link w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-primary rounded-xl transition-colors"
               >
                 Voir toutes les notifications
                 <ArrowRight size={16} />

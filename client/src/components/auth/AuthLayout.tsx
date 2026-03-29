@@ -121,7 +121,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
         rotate,
         style: pos as React.CSSProperties,
       })),
-    []
+    [],
   );
 
   return (
@@ -148,8 +148,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.04]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)",
+            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
           }}
         />
@@ -192,8 +191,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.65 }}
           >
-            Supervision intelligente et support automatisé pour opérateurs
-            télécoms
+            Supervision intelligente et support automatisé pour opérateurs télécoms
           </motion.p>
 
           {/* Footer */}

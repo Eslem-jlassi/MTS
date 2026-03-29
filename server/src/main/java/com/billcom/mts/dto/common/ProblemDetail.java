@@ -97,6 +97,16 @@ public class ProblemDetail {
             .build();
     }
 
+    public static ProblemDetail serviceUnavailable(String detail, String instancePath) {
+        return ProblemDetail.builder()
+            .title("Service Unavailable")
+            .status(503)
+            .detail(detail)
+            .instance(instancePath)
+            .timestamp(OffsetDateTime.now(ZoneOffset.UTC))
+            .build();
+    }
+
     /** Validation errors: map field name -> error message(s). */
     public ProblemDetail withValidationErrors(Map<String, ?> validationErrors) {
         if (properties == null) {

@@ -13,13 +13,7 @@ interface StatCardProps {
   className?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({
-  title,
-  value,
-  icon,
-  trend,
-  className = "",
-}) => {
+const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, className = "" }) => {
   return (
     <Card className={`flex items-start gap-4 ${className}`}>
       {icon && (

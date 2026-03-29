@@ -25,9 +25,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
     >
       {icon && <div className="mb-4 text-ds-muted">{icon}</div>}
       <h3 className="text-lg font-semibold text-ds-primary">{title}</h3>
-      {description && (
-        <p className="mt-1 text-sm text-ds-secondary max-w-sm">{description}</p>
-      )}
+      {description && <p className="mt-1 text-sm text-ds-secondary max-w-sm">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );

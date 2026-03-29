@@ -1,19 +1,48 @@
-# IDE
-.idea/
-.vscode/
-*.iml
+# Python
+.venv/
+__pycache__/
+*.pyc
 
-# OS
-.DS_Store
-Thumbs.db
+# Env
+.env
+.env.*
+!.env.example
+client/.env
+client/.env.local
+client/.env.development.local
+client/.env.production.local
+client/.env.test.local
+!client/.env.sample
+!client/.env.demo
+
+# Node
+node_modules/
+dist/
+build/
+
+# Java / Maven
+target/
+*.class
+.mvn/
+server/.m2/
 
 # Logs
 logs/
 *.log
 
-# Build output files (accidental)
-*_output*.txt
+# Uploads / generated files
+server/uploads/reports/*
+!server/uploads/reports/.gitkeep
 
-# Environment
-.env
-.env.local
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+# Python env
+**/venv/
+sentiment-service/venv/
+
+# Maven cache / nested server
+server/server/
+**/.m2/

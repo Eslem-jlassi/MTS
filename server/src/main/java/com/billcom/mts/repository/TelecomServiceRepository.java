@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repository for TelecomService entity operations.
@@ -26,6 +27,8 @@ public interface TelecomServiceRepository extends JpaRepository<TelecomService, 
     Page<TelecomService> findByIsActive(Boolean isActive, Pageable pageable);
 
     boolean existsByNameIgnoreCase(String name);
+
+    Optional<TelecomService> findFirstByNameIgnoreCase(String name);
 
     List<TelecomService> findByStatus(ServiceStatus status);
 

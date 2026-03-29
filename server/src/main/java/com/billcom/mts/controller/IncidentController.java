@@ -8,6 +8,7 @@ import com.billcom.mts.service.IncidentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +19,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/incidents")
@@ -204,5 +206,23 @@ public class IncidentController {
             @PathVariable Long serviceId,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(incidentService.unlinkService(id, serviceId, user));
+    }
+
+    @DeleteMapping("/{id}/hard-delete")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Supprimer définitivement un incident (Réservé aux administrateurs)")
+    public ResponseEntity<Map<String, String>> hardDeleteIncident(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest request) {
+        
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress == null) {
+            ipAddress = request.getRemoteAddr();
+        }
+
+        incidentService.hardDeleteIncidentAsAdmin(id, user, ipAddress);
+
+        return ResponseEntity.ok(Map.of("message", "Incident supprimé définitivement avec succès"));
     }
 }

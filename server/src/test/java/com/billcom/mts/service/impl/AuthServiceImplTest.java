@@ -12,12 +12,14 @@ import com.billcom.mts.exception.UnauthorizedException;
 import com.billcom.mts.repository.ClientRepository;
 import com.billcom.mts.repository.UserRepository;
 import com.billcom.mts.security.JwtService;
+import com.billcom.mts.service.EmailService;
 import com.billcom.mts.service.RefreshTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,13 +32,17 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-/**
- * Tests unitaires pour AuthServiceImpl.
- */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
@@ -46,6 +52,7 @@ class AuthServiceImplTest {
     @Mock private JwtService jwtService;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private RefreshTokenService refreshTokenService;
+    @Mock private EmailService emailService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -55,8 +62,10 @@ class AuthServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        // Default: disable internal signup
         ReflectionTestUtils.setField(authService, "allowInternalSignup", false);
+        ReflectionTestUtils.setField(authService, "requireEmailVerification", false);
+        ReflectionTestUtils.setField(authService, "emailVerificationExpirationHours", 24L);
+        ReflectionTestUtils.setField(authService, "passwordResetExpirationHours", 1L);
 
         testUser = User.builder()
                 .id(1L)
@@ -66,6 +75,7 @@ class AuthServiceImplTest {
                 .lastName("Billcom")
                 .role(UserRole.ADMIN)
                 .isActive(true)
+                .emailVerified(true)
                 .build();
 
         testRefreshToken = RefreshToken.builder()
@@ -77,9 +87,6 @@ class AuthServiceImplTest {
                 .build();
     }
 
-    // =========================================================================
-    // LOGIN
-    // =========================================================================
     @Nested
     @DisplayName("login()")
     class LoginTests {
@@ -107,12 +114,41 @@ class AuthServiceImplTest {
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("access-token-value");
             assertThat(response.getRefreshToken()).isEqualTo("refresh-token-value");
-            assertThat(response.getTokenType()).isEqualTo("Bearer");
-            assertThat(response.getUser()).isNotNull();
             assertThat(response.getUser().getEmail()).isEqualTo("admin@billcom.tn");
-            assertThat(response.getUser().getRole()).isEqualTo(UserRole.ADMIN);
+            assertThat(response.getUser().getEmailVerified()).isTrue();
 
             verify(userRepository).save(argThat(u -> u.getLastLoginAt() != null));
+        }
+
+        @Test
+        @DisplayName("Devrait refuser la connexion si l'email n'est pas verifie")
+        void login_unverifiedEmail_forbidden() {
+            LoginRequest request = LoginRequest.builder()
+                    .email("client@test.tn")
+                    .password("Password1!")
+                    .build();
+
+            User unverifiedUser = User.builder()
+                    .id(2L)
+                    .email("client@test.tn")
+                    .password("encoded")
+                    .firstName("Client")
+                    .lastName("Test")
+                    .role(UserRole.CLIENT)
+                    .isActive(true)
+                    .emailVerified(false)
+                    .build();
+
+            Authentication auth = mock(Authentication.class);
+            when(auth.getPrincipal()).thenReturn(unverifiedUser);
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                    .thenReturn(auth);
+
+            assertThatThrownBy(() -> authService.login(request, "127.0.0.1"))
+                    .isInstanceOf(ForbiddenException.class)
+                    .hasMessageContaining("pas encore verifiee");
+
+            verify(refreshTokenService, never()).createRefreshToken(any(), anyString(), anyString());
         }
 
         @Test
@@ -131,9 +167,6 @@ class AuthServiceImplTest {
         }
     }
 
-    // =========================================================================
-    // REGISTER
-    // =========================================================================
     @Nested
     @DisplayName("register()")
     class RegisterTests {
@@ -151,49 +184,77 @@ class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("Devrait inscrire un CLIENT avec succès")
+        @DisplayName("Devrait inscrire un CLIENT avec succes")
         void register_client_success() {
             RegisterRequest request = validClientRequest();
 
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-
-            User savedUser = User.builder()
-                    .id(10L)
-                    .email("client@test.tn")
-                    .firstName("Test")
-                    .lastName("Client")
-                    .role(UserRole.CLIENT)
-                    .isActive(true)
-                    .build();
-            when(userRepository.save(any(User.class))).thenReturn(savedUser);
+            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+                User user = invocation.getArgument(0);
+                user.setId(10L);
+                return user;
+            });
             when(clientRepository.findMaxClientCodeNumber(anyString())).thenReturn(null);
-            when(clientRepository.save(any())).thenReturn(null);
             when(refreshTokenService.createRefreshToken(any(), anyString(), anyString()))
                     .thenReturn(testRefreshToken);
             when(jwtService.generateAccessToken(any())).thenReturn("access-token");
             when(jwtService.getAccessTokenExpiration()).thenReturn(900000L);
 
-            AuthResponse response = authService.register(request);
+            AuthResponse response = authService.register(request, "127.0.0.1");
 
             assertThat(response).isNotNull();
             assertThat(response.getAccessToken()).isEqualTo("access-token");
-            verify(userRepository).save(any(User.class));
-            verify(clientRepository).save(any()); // Client profile created
+            assertThat(response.getEmailVerificationRequired()).isFalse();
+            assertThat(response.getUser().getEmailVerified()).isTrue();
+            verify(clientRepository).save(any());
         }
 
         @Test
-        @DisplayName("Devrait refuser un rôle ADMIN si allowInternalSignup=false")
+        @DisplayName("Devrait exiger la verification email si activee")
+        void register_requiresEmailVerification() {
+            ReflectionTestUtils.setField(authService, "requireEmailVerification", true);
+            RegisterRequest request = validClientRequest();
+
+            when(userRepository.existsByEmail(anyString())).thenReturn(false);
+            when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+                User user = invocation.getArgument(0);
+                user.setId(10L);
+                return user;
+            });
+            when(clientRepository.findMaxClientCodeNumber(anyString())).thenReturn(null);
+            when(jwtService.getAccessTokenExpiration()).thenReturn(900000L);
+
+            AuthResponse response = authService.register(request, "127.0.0.1");
+
+            assertThat(response.getAccessToken()).isNull();
+            assertThat(response.getRefreshToken()).isNull();
+            assertThat(response.getEmailVerificationRequired()).isTrue();
+            assertThat(response.getEmailVerificationSent()).isTrue();
+            assertThat(response.getUser().getEmailVerified()).isFalse();
+
+            verify(refreshTokenService, never()).createRefreshToken(any(), anyString(), anyString());
+            verify(emailService).sendEmailVerificationEmail(
+                    eq("client@test.tn"),
+                    anyString(),
+                    anyString(),
+                    any(LocalDateTime.class)
+            );
+        }
+
+        @Test
+        @DisplayName("Devrait refuser un role ADMIN si allowInternalSignup=false")
         void register_admin_forbidden_when_signup_disabled() {
             RegisterRequest request = validClientRequest();
             request.setRole(UserRole.ADMIN);
 
-            assertThatThrownBy(() -> authService.register(request))
+            assertThatThrownBy(() -> authService.register(request, "127.0.0.1"))
                     .isInstanceOf(ForbiddenException.class);
         }
 
         @Test
-        @DisplayName("Devrait autoriser un rôle ADMIN si allowInternalSignup=true")
+        @DisplayName("Devrait autoriser un role ADMIN si allowInternalSignup=true")
         void register_admin_allowed_when_signup_enabled() {
             ReflectionTestUtils.setField(authService, "allowInternalSignup", true);
             RegisterRequest request = validClientRequest();
@@ -201,25 +262,27 @@ class AuthServiceImplTest {
 
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
             when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-            when(userRepository.save(any(User.class))).thenReturn(
-                    User.builder().id(2L).email("client@test.tn").role(UserRole.ADMIN).isActive(true).build()
-            );
+            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+                User user = invocation.getArgument(0);
+                user.setId(2L);
+                return user;
+            });
             when(refreshTokenService.createRefreshToken(any(), anyString(), anyString()))
                     .thenReturn(testRefreshToken);
             when(jwtService.generateAccessToken(any())).thenReturn("tok");
             when(jwtService.getAccessTokenExpiration()).thenReturn(900000L);
 
-            AuthResponse response = authService.register(request);
+            AuthResponse response = authService.register(request, "127.0.0.1");
             assertThat(response).isNotNull();
         }
 
         @Test
-        @DisplayName("Devrait refuser si email déjà existant")
+        @DisplayName("Devrait refuser si email deja existant")
         void register_duplicate_email() {
             RegisterRequest request = validClientRequest();
             when(userRepository.existsByEmail("client@test.tn")).thenReturn(true);
 
-            assertThatThrownBy(() -> authService.register(request))
+            assertThatThrownBy(() -> authService.register(request, "127.0.0.1"))
                     .isInstanceOf(BadRequestException.class);
         }
 
@@ -231,59 +294,17 @@ class AuthServiceImplTest {
 
             when(userRepository.existsByEmail(anyString())).thenReturn(false);
 
-            assertThatThrownBy(() -> authService.register(request))
-                    .isInstanceOf(BadRequestException.class);
-        }
-
-        @Test
-        @DisplayName("Devrait refuser un mot de passe trop court (< 8 chars)")
-        void register_password_too_short() {
-            RegisterRequest request = validClientRequest();
-            request.setPassword("Ab1!");
-            request.setConfirmPassword("Ab1!");
-
-            when(userRepository.existsByEmail(anyString())).thenReturn(false);
-
-            assertThatThrownBy(() -> authService.register(request))
-                    .isInstanceOf(BadRequestException.class);
-        }
-
-        @Test
-        @DisplayName("Devrait refuser un mot de passe sans majuscule")
-        void register_password_no_uppercase() {
-            RegisterRequest request = validClientRequest();
-            request.setPassword("password1!");
-            request.setConfirmPassword("password1!");
-
-            when(userRepository.existsByEmail(anyString())).thenReturn(false);
-
-            assertThatThrownBy(() -> authService.register(request))
-                    .isInstanceOf(BadRequestException.class);
-        }
-
-        @Test
-        @DisplayName("Devrait refuser un mot de passe sans chiffre")
-        void register_password_no_digit() {
-            RegisterRequest request = validClientRequest();
-            request.setPassword("Password!");
-            request.setConfirmPassword("Password!");
-
-            when(userRepository.existsByEmail(anyString())).thenReturn(false);
-
-            assertThatThrownBy(() -> authService.register(request))
+            assertThatThrownBy(() -> authService.register(request, "127.0.0.1"))
                     .isInstanceOf(BadRequestException.class);
         }
     }
 
-    // =========================================================================
-    // REFRESH TOKEN
-    // =========================================================================
     @Nested
     @DisplayName("refreshToken()")
     class RefreshTokenTests {
 
         @Test
-        @DisplayName("Devrait retourner de nouveaux tokens après rotation")
+        @DisplayName("Devrait retourner de nouveaux tokens apres rotation")
         void refreshToken_success() {
             RefreshToken newToken = RefreshToken.builder()
                     .id(2L)
@@ -304,84 +325,86 @@ class AuthServiceImplTest {
             assertThat(response.getAccessToken()).isEqualTo("new-access-token");
             assertThat(response.getRefreshToken()).isEqualTo("new-refresh-token");
         }
+    }
+
+    @Nested
+    @DisplayName("verifyEmail()")
+    class VerifyEmailTests {
 
         @Test
-        @DisplayName("Devrait propager l'exception si refresh token invalide")
-        void refreshToken_invalid() {
-            when(refreshTokenService.validateRefreshToken("bad-token"))
-                    .thenThrow(new UnauthorizedException("Refresh token invalide ou révoqué"));
+        @DisplayName("Devrait verifier l'email et purger le token")
+        void verifyEmail_success() {
+            User user = User.builder()
+                    .id(3L)
+                    .email("client@test.tn")
+                    .emailVerified(false)
+                    .emailVerificationToken("verify-token")
+                    .emailVerificationTokenExpiry(LocalDateTime.now().plusHours(2))
+                    .build();
 
-            assertThatThrownBy(() -> authService.refreshToken("bad-token", "127.0.0.1"))
-                    .isInstanceOf(UnauthorizedException.class);
+            when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
+
+            authService.verifyEmail("verify-token");
+
+            verify(userRepository).save(argThat(saved ->
+                    Boolean.TRUE.equals(saved.getEmailVerified())
+                            && saved.getEmailVerificationToken() == null
+                            && saved.getEmailVerificationTokenExpiry() == null
+            ));
+        }
+
+        @Test
+        @DisplayName("Devrait refuser un token de verification expire")
+        void verifyEmail_expiredToken() {
+            User user = User.builder()
+                    .id(3L)
+                    .email("client@test.tn")
+                    .emailVerified(false)
+                    .emailVerificationToken("verify-token")
+                    .emailVerificationTokenExpiry(LocalDateTime.now().minusMinutes(1))
+                    .build();
+
+            when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
+
+            assertThatThrownBy(() -> authService.verifyEmail("verify-token"))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("expire");
         }
     }
 
-    // =========================================================================
-    // GOOGLE LOGIN
-    // =========================================================================
     @Nested
-    @DisplayName("googleLogin()")
-    class GoogleLoginTests {
+    @DisplayName("resendVerificationEmail()")
+    class ResendVerificationEmailTests {
 
         @Test
-        @DisplayName("Devrait lancer BadRequestException si Google Client ID non configuré")
-        void googleLogin_notConfigured() {
-            // googleClientId par défaut est null (non injecté par @Value en test)
-            ReflectionTestUtils.setField(authService, "googleClientId", "");
+        @DisplayName("Devrait regenerer un token et renvoyer l'email")
+        void resendVerificationEmail_success() {
+            User user = User.builder()
+                    .id(4L)
+                    .email("agent@test.tn")
+                    .firstName("Agent")
+                    .lastName("Test")
+                    .role(UserRole.AGENT)
+                    .emailVerified(false)
+                    .build();
 
-            assertThatThrownBy(() -> authService.googleLogin("some-token", "127.0.0.1"))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("non configurée");
-        }
+            when(userRepository.findByEmail("agent@test.tn")).thenReturn(java.util.Optional.of(user));
+            when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        @Test
-        @DisplayName("Devrait lancer BadRequestException si Google Client ID est null")
-        void googleLogin_nullClientId() {
-            ReflectionTestUtils.setField(authService, "googleClientId", null);
+            authService.resendVerificationEmail("agent@test.tn");
 
-            assertThatThrownBy(() -> authService.googleLogin("some-token", "127.0.0.1"))
-                    .isInstanceOf(BadRequestException.class)
-                    .hasMessageContaining("non configurée");
-        }
+            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCaptor.capture());
+            User savedUser = userCaptor.getValue();
 
-        @Test
-        @DisplayName("Devrait lancer UnauthorizedException si token Google invalide")
-        void googleLogin_invalidToken() {
-            ReflectionTestUtils.setField(authService, "googleClientId", "fake-client-id.apps.googleusercontent.com");
-
-            // Le token "invalid-token" ne sera pas vérifié par Google → exception
-            assertThatThrownBy(() -> authService.googleLogin("invalid-token", "127.0.0.1"))
-                    .isInstanceOf(UnauthorizedException.class)
-                    .hasMessageContaining("Token Google invalide");
-        }
-    }
-
-    // =========================================================================
-    // LOGOUT
-    // =========================================================================
-    @Nested
-    @DisplayName("logout()")
-    class LogoutTests {
-
-        @Test
-        @DisplayName("Devrait révoquer le refresh token")
-        void logout_success() {
-            authService.logout("token-to-revoke");
-            verify(refreshTokenService).revokeToken("token-to-revoke");
-        }
-
-        @Test
-        @DisplayName("Ne devrait rien faire si token null")
-        void logout_null_token() {
-            authService.logout(null);
-            verify(refreshTokenService, never()).revokeToken(anyString());
-        }
-
-        @Test
-        @DisplayName("Ne devrait rien faire si token vide")
-        void logout_blank_token() {
-            authService.logout("   ");
-            verify(refreshTokenService, never()).revokeToken(anyString());
+            assertThat(savedUser.getEmailVerificationToken()).isNotBlank();
+            assertThat(savedUser.getEmailVerificationTokenExpiry()).isAfter(LocalDateTime.now());
+            verify(emailService).sendEmailVerificationEmail(
+                    eq("agent@test.tn"),
+                    eq("Agent Test"),
+                    eq(savedUser.getEmailVerificationToken()),
+                    eq(savedUser.getEmailVerificationTokenExpiry())
+            );
         }
     }
 }

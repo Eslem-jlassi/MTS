@@ -1,220 +1,126 @@
-﻿# MTS Telecom Supervision System
+# MTS Telecom Supervision Platform
 
-**Système de supervision et ticketing intelligent pour opérateurs télécom**
+Plateforme intelligente de supervision des services telecoms et de support client.
 
-Projet de Fin d'Études (PFE) — Billcom Consulting / Ericsson, 2026
+Le depot contient une application React, un backend Spring Boot, trois briques IA Python, une base MySQL, un mode demo explicite et une premiere chaine de lancement/deploiement reproductible.
 
----
+## Modules presents
 
-## Tech Stack
+- Ticketing multi-profils avec historique, commentaires, pieces jointes, SLA et exports
+- Supervision des services telecoms, sante, topologie et historique de statut
+- Incidents, timeline, post-mortem et liaison tickets/services
+- Dashboards par role, rapports et audit
+- Gestion utilisateurs, clients, comptes, preferences et notifications
+- IA de sentiment/classification, detection de doublons et chatbot RAG
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 18, TypeScript, Redux Toolkit, Tailwind CSS, Material UI |
-| Backend | Spring Boot 3.2, Java 17, Spring Security, JWT, Hibernate |
-| Database | MySQL 8.0, Flyway migrations |
-| Build | Maven (backend), npm / react-scripts (frontend) |
-| Auth | JWT (HS256) + Google OAuth 2.0 |
-| Real-time | WebSocket (STOMP) |
-| Documentation | Swagger / OpenAPI 3 |
+## Structure du depot
 
-## Architecture
+- `client` : frontend React + TypeScript
+- `server` : backend Spring Boot + Flyway + WebSocket
+- `sentiment-service` : microservice IA de classification et sentiment
+- `duplicate-service` : microservice IA de detection de doublons
+- `ai-chatbot` : chatbot RAG et detection d'incidents massifs
+- `docker-compose.yml` : stack conteneurisee officielle
+- `scripts/` : scripts officiels `dev`, `demo`, `deploy`
+- `docs/` : documentation technique, soutenance, audit et archives
 
-```
-┌──────────────┐     HTTP/WS     ┌──────────────────┐     JPA      ┌─────────┐
-│   React SPA  │ ◄──────────────► │  Spring Boot API │ ◄──────────► │  MySQL  │
-│  (port 3000) │   REST + JWT    │   (port 8080)    │   Hibernate  │ (3306)  │
-└──────────────┘                  └──────────────────┘              └─────────┘
-```
+## Lancement officiel
 
-### RBAC Roles
+### Scenario local recommande
 
-| Role | Permissions |
-|------|------------|
-| **ADMIN** | Full system access, user management, SLA configuration |
-| **MANAGER** | Dashboard, reports, ticket assignment, escalation rules |
-| **AGENT** | Ticket processing, comments, status changes |
-| **CLIENT** | Create tickets, view own tickets, track status |
-
-### Core Modules
-
-- **Authentication** — JWT access/refresh tokens, Google OAuth, password reset, email verification
-- **Ticketing** — Full lifecycle (NEW → OPEN → IN_PROGRESS → PENDING → RESOLVED → CLOSED), SLA tracking, attachments, bulk operations, export (PDF/Excel/CSV)
-- **Incidents** — Incident management with timeline, post-mortem, service impact
-- **SLA Engine** — SLA policies, business hours, escalation rules, breach detection
-- **Dashboard** — KPI stats, agent performance, trend analysis
-- **Services** — Telecom service catalog, health monitoring, topology
-- **Notifications** — Real-time WebSocket notifications
-- **Audit Log** — Complete action trail for compliance
-- **Reports** — Generated reports (PDF/Excel)
-
----
-
-## Prerequisites
-
-- **Java 17** (JDK)
-- **Node.js 18+** and npm
-- **MySQL 8.0** (or Docker)
-- **Maven 3.8+**
-
-## Quick Start
-
-### 1. Database Setup
-
-**Option A — Docker (recommended):**
-```bash
-docker-compose up -d
-```
-This starts MySQL on port 3306 and phpMyAdmin on port 8081.
-
-**Option B — Local MySQL:**
-```sql
-CREATE DATABASE mts_telecom_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```bat
+scripts\dev\start-local.bat
 ```
 
-### 2. Backend
+Ce scenario demarre :
+
+1. MySQL et phpMyAdmin via Docker
+2. les 3 services IA en local
+3. le backend Spring Boot en local
+4. le frontend React en local
+
+### Scenario demo rapide
+
+```bat
+scripts\demo\start-demo-h2.bat
+```
+
+Ce scenario garde le frontend et les microservices IA en local, avec backend H2 pour une demo rapide sans MySQL Docker.
+
+### Scenario stack complete conteneurisee
 
 ```bash
-cd server
-mvn spring-boot:run
+docker compose up -d --build
 ```
 
-The backend starts on `http://localhost:8080`. Flyway automatically runs all database migrations on first start.
+Alternative Windows :
 
-API documentation: `http://localhost:8080/swagger-ui.html`
+```bat
+scripts\deploy\start-stack.bat
+```
 
-### 3. Frontend
+Arret :
 
 ```bash
-cd client
-npm install
-npm start
+docker compose down
 ```
 
-The frontend starts on `http://localhost:3000` and proxies API calls to port 8080.
+Ou :
 
----
-
-## Configuration
-
-### Backend — `server/src/main/resources/application.yaml`
-
-| Property | Default | Description |
-|----------|---------|-------------|
-| `DB_URL` | `jdbc:mysql://localhost:3306/mts_telecom_db` | JDBC connection URL |
-| `DB_USERNAME` | `root` | Database user |
-| `DB_PASSWORD` | `mts2026` | Database password |
-| `JWT_SECRET` | (dev default) | **Must override in production** |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Allowed frontend origins |
-| `GOOGLE_CLIENT_ID` | (configured) | Google OAuth client ID |
-
-### Frontend — `client/.env`
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `REACT_APP_API_URL` | `http://localhost:8080/api` | Backend API URL |
-| `REACT_APP_GOOGLE_OAUTH_CLIENT_ID` | (configured) | Google OAuth client ID |
-
----
-
-## Project Structure
-
-```
-├── client/                    # React frontend
-│   ├── src/
-│   │   ├── api/               # API service layer (Axios)
-│   │   ├── components/        # Reusable UI components
-│   │   ├── context/           # React contexts (Theme, Language, Toast)
-│   │   ├── hooks/             # Custom hooks
-│   │   ├── pages/             # Route pages
-│   │   ├── redux/             # Redux store + slices
-│   │   ├── types/             # TypeScript type definitions
-│   │   └── demo/              # Demo mode (dev only, disabled in production)
-│   └── package.json
-│
-├── server/                    # Spring Boot backend
-│   ├── src/main/java/com/billcom/mts/
-│   │   ├── config/            # Security, CORS, WebSocket, OpenAPI config
-│   │   ├── controller/        # REST controllers (14)
-│   │   ├── dto/               # Data Transfer Objects
-│   │   ├── entity/            # JPA entities (15+)
-│   │   ├── enums/             # Enum types
-│   │   ├── exception/         # Global exception handling (RFC 7807)
-│   │   ├── repository/        # Spring Data JPA repositories
-│   │   ├── security/          # JWT filter, service, user details
-│   │   ├── service/           # Business logic (interface + impl)
-│   │   └── validation/        # Custom validators
-│   ├── src/main/resources/
-│   │   ├── application.yaml   # Main configuration
-│   │   └── db/migration/      # Flyway SQL migrations (V1–V33)
-│   └── pom.xml
-│
-├── docs/                      # Documentation
-├── docker-compose.yml         # MySQL + phpMyAdmin
-└── README.md
+```bat
+scripts\deploy\stop-stack.bat
 ```
 
----
+## URLs utiles
 
-## API Endpoints
+| Composant | URL |
+|---|---|
+| Frontend local | `http://localhost:3000` |
+| Backend | `http://localhost:8080` |
+| Swagger | `http://localhost:8080/swagger-ui.html` |
+| phpMyAdmin | `http://localhost:8081` |
+| Sentiment IA | `http://127.0.0.1:8000/health` |
+| Doublons IA | `http://127.0.0.1:8001/health` |
+| Chatbot IA | `http://127.0.0.1:8002/health` |
 
-| Prefix | Controller | Auth Required |
-|--------|-----------|---------------|
-| `/api/auth` | AuthController | Public (login, register, Google) |
-| `/api/tickets` | TicketController | Yes |
-| `/api/users` | UserController | Yes (ADMIN for management) |
-| `/api/dashboard` | DashboardController | Yes |
-| `/api/services` | ServiceController | Yes |
-| `/api/incidents` | IncidentController | Yes |
-| `/api/sla-policies` | SlaPolicyController | Yes (ADMIN/MANAGER) |
-| `/api/sla-escalation` | SlaEscalationController | Yes |
-| `/api/reports` | ReportController | Yes (ADMIN/MANAGER) |
-| `/api/notifications` | NotificationController | Yes |
-| `/api/audit-logs` | AuditLogController | Yes (ADMIN) |
-| `/api/business-hours` | BusinessHoursController | Yes |
-| `/api/macros` | MacroController | Yes |
-| `/api/quick-replies` | QuickReplyTemplateController | Yes |
+## Comptes de demonstration
 
-Full API documentation available at `/swagger-ui.html` when backend is running.
+### MySQL / migrations Flyway
 
----
+- Emails seedes dans `V2__seed_data.sql`
+- Mot de passe commun : `Password1!`
 
-## Database
+### H2 / DataInitializer
 
-33 Flyway migrations (V1–V33) manage the schema. Key tables:
+- Emails seedes dans `DataInitializer`
+- Mot de passe commun : `password`
 
-- `users` — All system users with RBAC roles
-- `clients` — B2B client profiles
-- `tickets` — Support tickets with SLA tracking
-- `ticket_comments` — Ticket conversation thread
-- `ticket_history` — Immutable audit trail
-- `services` — Telecom service catalog
-- `incidents` — Incident management
-- `notifications` — User notifications
-- `audit_logs` — System-wide audit log
-- `sla_configs` — SLA policy definitions
-- `escalation_rules` — Escalation rules
-- `reports` — Generated reports
+## Mode demo frontend
 
-See [docs/database.md](docs/database.md) for the complete schema documentation.
+Le mode demo est volontairement explicite.
 
----
+- Activer : copier `client/.env.demo` vers `client/.env`, puis lancer `npm start`
+- Desactiver : remettre `REACT_APP_DEMO_MODE=false` ou utiliser `client/.env.sample`
+- Le mode demo ne s'active plus via `?demo=true`
+- Les routes non mockees doivent continuer a echouer visiblement pour ne pas masquer un bug API
 
-## Security Features
+## Documentation principale
 
-- **JWT Authentication** with access token (15min) + refresh token rotation (7 days)
-- **Google OAuth 2.0** with server-side ID token verification
-- **BCrypt** password hashing
-- **Password complexity** enforcement (8+ chars, uppercase, lowercase, digit)
-- **Rate limiting** on login (5/min), API (100/min), ticket creation (10/min)
-- **CORS** restricted to configured origins
-- **HTTP-only cookies** for token storage
-- **RFC 7807** error responses
-- **Audit logging** for all actions
-- **Request ID** tracking for debugging
+- [Index documentation](docs/README.md)
+- [Guide de lancement/deploiement](docs/DEPLOYMENT.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Contrats API](docs/API_CONTRACTS.md)
+- [Matrice RBAC](docs/RBAC_MATRIX.md)
+- [Base de donnees](docs/DATABASE.md)
+- [Guide soutenance](docs/DEMO_JURY.md)
+- [Checklist soutenance finale](docs/DEMO_JURY_FINAL_CHECKLIST.md)
+- [Readiness deploiement (Lot 8)](docs/final-audit/progress/lot-8-deploy-readiness.md)
+- [Progression des lots](docs/final-audit/progress/)
 
----
+## Notes importantes
 
-## License
-
-This project was developed as a PFE (Projet de Fin d'Études) for Billcom Consulting.
+- Le backend navigateur suit un modele `cookie-first` avec cookies HttpOnly.
+- La source de verite RBAC est le backend, pas l'UI.
+- `docker-compose.yml` est la source de verite du lancement conteneurise.
+- `INTEGRATION_DOCKER/docker-compose-full.yml` reste un fichier de compatibilite documentaire.
+- Les scripts historiques non officiels ont ete sortis du flux principal et archives dans `scripts/legacy/` quand ils n'etaient plus utiles au runtime.

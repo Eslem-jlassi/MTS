@@ -29,6 +29,12 @@ public class AuthResponse {
     @Schema(description = "Informations de l'utilisateur")
     private UserInfo user;
 
+    @Schema(description = "Indique si un compte doit verifier son adresse email avant connexion")
+    private Boolean emailVerificationRequired;
+
+    @Schema(description = "Indique si un email de verification a ete emis")
+    private Boolean emailVerificationSent;
+
     @Schema(description = "Informations résumées de l'utilisateur")
     @Data
     @Builder
@@ -49,6 +55,8 @@ public class AuthResponse {
         private String profilePhotoUrl;
         @Schema(description = "Fournisseur OAuth (GOOGLE, etc.) ou null si email/password", example = "GOOGLE")
         private String oauthProvider;
+        @Schema(description = "Adresse email deja verifiee", example = "true")
+        private Boolean emailVerified;
     }
 
     public static AuthResponse of(String accessToken, String refreshToken, Long expiresIn, UserInfo user) {
@@ -58,6 +66,8 @@ public class AuthResponse {
             .tokenType("Bearer")
             .expiresIn(expiresIn)
             .user(user)
+            .emailVerificationRequired(false)
+            .emailVerificationSent(false)
             .build();
     }
 }

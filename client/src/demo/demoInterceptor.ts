@@ -5,34 +5,47 @@
 // =============================================================================
 //
 // OBJECTIF:
-// Intercepter TOUTES les requêtes Axios en mode démo et retourner
-// des données mock réalistes SANS contacter le backend.
+// Intercepter les requetes Axios en mode demo et retourner
+// des donnees mock realistes pour les routes explicitement simulees.
+// Toute route non declaree remonte une erreur visible afin de ne pas
+// masquer un endpoint manquant ou un contrat API casse.
 //
 // FONCTIONNEMENT:
 // 1. installDemoInterceptor(axiosInstance) enregistre un request interceptor
-// 2. Chaque requête est comparée à une table de routes
-// 3. Si un match est trouvé, on retourne immédiatement une AxiosResponse mock
-// 4. Un délai artificiel (DEMO_LATENCY_MS) simule le réseau
+// 2. Chaque requÃªte est comparÃ©e Ã  une table de routes
+// 3. Si un match est trouvÃ©, on retourne immÃ©diatement une AxiosResponse mock
+// 4. Un dÃ©lai artificiel (DEMO_LATENCY_MS) simule le rÃ©seau
 //
 // AVANTAGE:
-// Zéro modification dans les services API existants.
+// ZÃ©ro modification dans les services API existants.
 // Le code de production reste intact.
 //
 // =============================================================================
 
-import { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import { DEMO_LATENCY_MS, DEMO_TOKEN, DEMO_USER } from "./demoConfig";
-import { DEMO_TICKETS, DEMO_INCIDENTS, DEMO_SERVICES, DEMO_USERS, DEMO_CLIENTS, DEMO_AUDIT_LOGS, DEMO_NOTIFICATIONS, DEMO_SLA_POLICIES, DEMO_AGENT_PERFORMANCE, DEMO_DASHBOARD_STATS } from "./demoData";
+import { AxiosError, AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { DEMO_LATENCY_MS, DEMO_REFRESH_TOKEN, DEMO_TOKEN, DEMO_USER } from "./demoConfig";
+import {
+  DEMO_TICKETS,
+  DEMO_INCIDENTS,
+  DEMO_SERVICES,
+  DEMO_USERS,
+  DEMO_CLIENTS,
+  DEMO_AUDIT_LOGS,
+  DEMO_NOTIFICATIONS,
+  DEMO_SLA_POLICIES,
+  DEMO_AGENT_PERFORMANCE,
+  DEMO_DASHBOARD_STATS,
+} from "./demoData";
 import type { PageResponse } from "../types";
 
 // =============================================================================
 // HELPERS
 // =============================================================================
 
-/** Simule un délai réseau */
+/** Simule un dÃ©lai rÃ©seau */
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Construit une PageResponse<T> à partir d'un array complet */
+/** Construit une PageResponse<T> Ã  partir d'un array complet */
 function toPage<T>(items: T[], pageNum = 0, pageSize = 20): PageResponse<T> {
   const start = pageNum * pageSize;
   const content = items.slice(start, start + pageSize);
@@ -53,15 +66,65 @@ function fakeResponse<T>(data: T, status = 200): AxiosResponse<T> {
   return {
     data,
     status,
-    statusText: "OK",
+    statusText: status >= 400 ? "ERROR" : "OK",
     headers: { "content-type": "application/json" },
     config: {} as InternalAxiosRequestConfig,
   };
 }
 
-/** Extrait l'id numérique d'un segment de path (ex: "/tickets/42" → 42) */
+/** Parse le body JSON si present */
+function parseBody(config: InternalAxiosRequestConfig): Record<string, unknown> {
+  if (!config.data) {
+    return {};
+  }
+
+  if (typeof config.data === "string") {
+    try {
+      return JSON.parse(config.data) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+
+  if (typeof config.data === "object") {
+    return config.data as Record<string, unknown>;
+  }
+
+  return {};
+}
+
+/** Genere une erreur explicite si une route n'est pas mockee en mode demo */
+function buildUnmockedRouteError(
+  method: HttpMethod,
+  url: string,
+  config: InternalAxiosRequestConfig,
+): AxiosError {
+  const response = fakeResponse(
+    {
+      type: "https://mts-telecom.local/problems/demo-route-not-mocked",
+      title: "Route non simulee en mode demo",
+      status: 501,
+      detail: `La route ${method.toUpperCase()} ${url} n'est pas prise en charge par le mode demonstration explicite. Desactivez REACT_APP_DEMO_MODE pour tester l'API reelle.`,
+      properties: {
+        demoMode: true,
+        route: `${method.toUpperCase()} ${url}`,
+      },
+    },
+    501,
+  );
+
+  return new AxiosError(
+    `Unmocked demo route: ${method.toUpperCase()} ${url}`,
+    "ERR_DEMO_ROUTE_NOT_MOCKED",
+    config,
+    undefined,
+    response,
+  );
+}
+
+/** Extrait l'id numÃ©rique d'un segment de path (ex: "/tickets/42" â†’ 42) */
 function extractId(url: string, prefix: string): number | null {
-  // Matches: /prefix/123 or /prefix/123/... 
+  // Matches: /prefix/123 or /prefix/123/...
   const regex = new RegExp(`${prefix}/(\\d+)`);
   const m = url.match(regex);
   return m ? parseInt(m[1], 10) : null;
@@ -84,19 +147,18 @@ type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 
 interface DemoRoute {
   method: HttpMethod;
-  /** Regex pattern à tester sur l'URL (sans baseURL) */
+  /** Regex pattern Ã  tester sur l'URL (sans baseURL) */
   pattern: RegExp;
-  /** Handler retournant les données mock */
+  /** Handler retournant les donnÃ©es mock */
   handler: (url: string, config: InternalAxiosRequestConfig) => unknown;
 }
 
 /**
- * Table de routage démo.
- * Chaque route intercepte un endpoint spécifique.
- * L'ordre est important : les patterns plus précis viennent en premier.
+ * Table de routage dÃ©mo.
+ * Chaque route intercepte un endpoint spÃ©cifique.
+ * L'ordre est important : les patterns plus prÃ©cis viennent en premier.
  */
 const DEMO_ROUTES: DemoRoute[] = [
-
   // ===========================================================================
   // AUTH
   // ===========================================================================
@@ -105,7 +167,36 @@ const DEMO_ROUTES: DemoRoute[] = [
     pattern: /\/auth\/login$/,
     handler: () => ({
       accessToken: DEMO_TOKEN,
-      refreshToken: "demo-refresh-token",
+      refreshToken: DEMO_REFRESH_TOKEN,
+      user: DEMO_USER,
+    }),
+  },
+  {
+    method: "post",
+    pattern: /\/auth\/register$/,
+    handler: () => ({
+      accessToken: DEMO_TOKEN,
+      refreshToken: DEMO_REFRESH_TOKEN,
+      user: DEMO_USER,
+    }),
+  },
+  {
+    method: "post",
+    pattern: /\/auth\/register\/admin$/,
+    handler: () => ({
+      tokenType: "Cookie",
+      user: {
+        ...DEMO_USER,
+        role: "CLIENT",
+      },
+    }),
+  },
+  {
+    method: "post",
+    pattern: /\/auth\/google$/,
+    handler: () => ({
+      accessToken: DEMO_TOKEN,
+      refreshToken: DEMO_REFRESH_TOKEN,
       user: DEMO_USER,
     }),
   },
@@ -115,8 +206,18 @@ const DEMO_ROUTES: DemoRoute[] = [
     handler: () => DEMO_USER,
   },
   {
+    method: "get",
+    pattern: /\/users\/me$/,
+    handler: () => DEMO_USER,
+  },
+  {
     method: "put",
     pattern: /\/auth\/me$/,
+    handler: () => DEMO_USER,
+  },
+  {
+    method: "put",
+    pattern: /\/users\/me$/,
     handler: () => DEMO_USER,
   },
   {
@@ -130,12 +231,42 @@ const DEMO_ROUTES: DemoRoute[] = [
     handler: () => ({}),
   },
   {
+    method: "put",
+    pattern: /\/users\/me\/change-password$/,
+    handler: () => ({ success: true }),
+  },
+  {
+    method: "post",
+    pattern: /\/users\/me\/avatar$/,
+    handler: () => DEMO_USER,
+  },
+  {
     method: "post",
     pattern: /\/auth\/refresh$/,
     handler: () => ({
       accessToken: DEMO_TOKEN,
-      refreshToken: "demo-refresh-token-new",
+      refreshToken: DEMO_REFRESH_TOKEN,
     }),
+  },
+  {
+    method: "post",
+    pattern: /\/auth\/forgot-password$/,
+    handler: () => ({ success: true }),
+  },
+  {
+    method: "post",
+    pattern: /\/auth\/reset-password$/,
+    handler: () => ({ success: true }),
+  },
+  {
+    method: "get",
+    pattern: /\/auth\/verify-email$/,
+    handler: () => ({ success: true }),
+  },
+  {
+    method: "post",
+    pattern: /\/auth\/resend-verification$/,
+    handler: () => ({ success: true }),
   },
 
   // ===========================================================================
@@ -260,13 +391,30 @@ const DEMO_ROUTES: DemoRoute[] = [
   {
     method: "post",
     pattern: /\/tickets\/\d+\/comments/,
-    handler: () => ({
-      id: 999,
-      content: "Commentaire démo ajouté",
-      authorId: DEMO_USER.id,
-      authorName: DEMO_USER.fullName,
-      createdAt: new Date().toISOString(),
-    }),
+    handler: (url, config) => {
+      const id = extractId(url, "/tickets");
+      const ticket = DEMO_TICKETS.find((t) => t.id === id) || DEMO_TICKETS[0];
+      const body = parseBody(config);
+      const newComment = {
+        id: 999,
+        ticketId: ticket.id,
+        content:
+          typeof body.content === "string" && body.content.trim()
+            ? body.content.trim()
+            : "Commentaire de suivi ajoute dans le mode demonstration.",
+        authorId: DEMO_USER.id,
+        authorName: DEMO_USER.fullName,
+        authorRole: DEMO_USER.role,
+        isInternal: false,
+        createdAt: new Date().toISOString(),
+      };
+
+      return {
+        ...ticket,
+        comments: [...(ticket.comments ?? []), newComment],
+        commentCount: (ticket.commentCount ?? ticket.comments?.length ?? 0) + 1,
+      };
+    },
   },
   {
     method: "post",
@@ -287,8 +435,8 @@ const DEMO_ROUTES: DemoRoute[] = [
     handler: () => ({
       ...DEMO_TICKETS[0],
       id: 999,
-      ticketNumber: "TKT-2026-DEMO",
-      title: "Nouveau ticket (démo)",
+      ticketNumber: "TKT-2026-00999",
+      title: "Incident telecom en qualification",
       createdAt: new Date().toISOString(),
     }),
   },
@@ -339,7 +487,13 @@ const DEMO_ROUTES: DemoRoute[] = [
     method: "get",
     pattern: /\/incidents\/\d+\/timeline/,
     handler: () => [
-      { id: 1, type: "NOTE", message: "Incident créé", createdAt: new Date().toISOString(), authorName: "Système" },
+      {
+        id: 1,
+        type: "NOTE",
+        message: "Incident crÃ©Ã©",
+        createdAt: new Date().toISOString(),
+        authorName: "SystÃ¨me",
+      },
     ],
   },
   {
@@ -361,8 +515,8 @@ const DEMO_ROUTES: DemoRoute[] = [
     handler: () => ({
       ...DEMO_INCIDENTS[0],
       id: 999,
-      incidentNumber: "INC-2026-DEMO",
-      title: "Nouvel incident (démo)",
+      incidentNumber: "INC-2026-00999",
+      title: "Incident telecom en cours de qualification",
     }),
   },
   {
@@ -391,7 +545,7 @@ const DEMO_ROUTES: DemoRoute[] = [
   },
 
   // ===========================================================================
-  // SERVICES TÉLÉCOM
+  // SERVICES TÃ‰LÃ‰COM
   // ===========================================================================
   {
     method: "get",
@@ -415,7 +569,7 @@ const DEMO_ROUTES: DemoRoute[] = [
     method: "get",
     pattern: /\/services\/\d+\/status-history(\/recent)?/,
     handler: () => [
-      { id: 1, status: "UP", timestamp: new Date().toISOString(), changedBy: "Système" },
+      { id: 1, status: "UP", timestamp: new Date().toISOString(), changedBy: "SystÃ¨me" },
     ],
   },
   {
@@ -437,7 +591,11 @@ const DEMO_ROUTES: DemoRoute[] = [
   {
     method: "post",
     pattern: /\/services$/,
-    handler: () => ({ ...DEMO_SERVICES[0], id: 999, name: "Nouveau service (démo)" }),
+    handler: () => ({
+      ...DEMO_SERVICES[0],
+      id: 999,
+      name: "Service telecom entreprise en preparation",
+    }),
   },
   {
     method: "put",
@@ -471,6 +629,11 @@ const DEMO_ROUTES: DemoRoute[] = [
   },
   {
     method: "get",
+    pattern: /\/users\/agents\/available$/,
+    handler: () => DEMO_USERS.filter((u) => u.role === "AGENT" && u.isActive !== false),
+  },
+  {
+    method: "get",
     pattern: /\/users\/role\/.+/,
     handler: (url) => {
       const role = url.split("/users/role/")[1]?.toUpperCase();
@@ -500,6 +663,82 @@ const DEMO_ROUTES: DemoRoute[] = [
       const id = extractId(url, "/users");
       return DEMO_USERS.find((u) => u.id === id) || DEMO_USERS[0];
     },
+  },
+  {
+    method: "put",
+    pattern: /\/users\/\d+\/role$/,
+    handler: (url) => {
+      const id = extractId(url, "/users");
+      return DEMO_USERS.find((u) => u.id === id) || DEMO_USERS[0];
+    },
+  },
+  {
+    method: "post",
+    pattern: /\/users\/\d+\/activate$/,
+    handler: (url) => {
+      const id = extractId(url, "/users");
+      return DEMO_USERS.find((u) => u.id === id) || DEMO_USERS[0];
+    },
+  },
+  {
+    method: "post",
+    pattern: /\/users\/\d+\/deactivate$/,
+    handler: (url) => {
+      const id = extractId(url, "/users");
+      return DEMO_USERS.find((u) => u.id === id) || DEMO_USERS[0];
+    },
+  },
+  {
+    method: "post",
+    pattern: /\/users\/\d+\/reset-password$/,
+    handler: () => ({ success: true }),
+  },
+  {
+    method: "put",
+    pattern: /\/users\/\d+\/password$/,
+    handler: () => ({ success: true }),
+  },
+  {
+    method: "post",
+    pattern: /\/users\/internal$/,
+    handler: (_url, config) => {
+      const body =
+        typeof config.data === "string" && config.data
+          ? JSON.parse(config.data)
+          : (config.data ?? {});
+
+      return {
+        ...DEMO_USERS[0],
+        id: Date.now(),
+        email: body.email ?? "nouvel.utilisateur@mts.com",
+        firstName: body.firstName ?? "Nouveau",
+        lastName: body.lastName ?? "Compte",
+        fullName: `${body.firstName ?? "Nouveau"} ${body.lastName ?? "Compte"}`,
+        phone: body.phone ?? "",
+        role: body.role ?? "AGENT",
+      };
+    },
+  },
+  {
+    method: "get",
+    pattern: /\/users\/me\/notification-preferences$/,
+    handler: () => ({
+      emailTicketAssigned: true,
+      emailTicketEscalation: true,
+      emailSlaWarning: true,
+      emailIncident: true,
+      emailReport: false,
+      pushTicketAssigned: true,
+      pushTicketEscalation: true,
+      pushSlaWarning: true,
+      pushIncident: true,
+      pushReport: false,
+    }),
+  },
+  {
+    method: "post",
+    pattern: /\/users\/me\/notification-preferences$/,
+    handler: () => ({ success: true }),
   },
   {
     method: "patch",
@@ -545,7 +784,7 @@ const DEMO_ROUTES: DemoRoute[] = [
   {
     method: "post",
     pattern: /\/clients$/,
-    handler: () => ({ ...DEMO_CLIENTS[0], id: 999, clientCode: "CLI-DEMO" }),
+    handler: () => ({ ...DEMO_CLIENTS[0], id: 999, clientCode: "CLI-2026-00999" }),
   },
   {
     method: "put",
@@ -589,7 +828,7 @@ const DEMO_ROUTES: DemoRoute[] = [
   },
 
   // ===========================================================================
-  // AUDIT LOGS  (⚠️ prefix = /api/audit-logs dans le service)
+  // AUDIT LOGS  (âš ï¸ prefix = /api/audit-logs dans le service)
   // ===========================================================================
   {
     method: "get",
@@ -645,7 +884,7 @@ const DEMO_ROUTES: DemoRoute[] = [
   {
     method: "post",
     pattern: /\/sla-policies$/,
-    handler: () => ({ ...DEMO_SLA_POLICIES[0], id: 999, name: "SLA Démo" }),
+    handler: () => ({ ...DEMO_SLA_POLICIES[0], id: 999, name: "SLA Renforce Support Entreprise" }),
   },
   {
     method: "put",
@@ -687,8 +926,14 @@ const DEMO_ROUTES: DemoRoute[] = [
     pattern: /\/sla-escalation\/rules$/,
     handler: () => [
       {
-        id: 1, name: "Escalade auto SLA 80%", triggerType: "AT_RISK", thresholdPercent: 80,
-        escalationLevel: 1, notifyRoles: "MANAGER", enabled: true, sortOrder: 1,
+        id: 1,
+        name: "Escalade auto SLA 80%",
+        triggerType: "AT_RISK",
+        thresholdPercent: 80,
+        escalationLevel: 1,
+        notifyRoles: "MANAGER",
+        enabled: true,
+        sortOrder: 1,
         createdAt: new Date().toISOString(),
       },
     ],
@@ -707,9 +952,15 @@ const DEMO_ROUTES: DemoRoute[] = [
     pattern: /\/business-hours(\?|$)/,
     handler: () => [
       {
-        id: 1, name: "Heures bureau standard", startHour: 8, endHour: 18,
-        workDays: "MON,TUE,WED,THU,FRI", timezone: "Africa/Casablanca",
-        isDefault: true, active: true, createdAt: new Date().toISOString(),
+        id: 1,
+        name: "Heures bureau standard",
+        startHour: 8,
+        endHour: 18,
+        workDays: "MON,TUE,WED,THU,FRI",
+        timezone: "Africa/Casablanca",
+        isDefault: true,
+        active: true,
+        createdAt: new Date().toISOString(),
       },
     ],
   },
@@ -717,9 +968,15 @@ const DEMO_ROUTES: DemoRoute[] = [
     method: "get",
     pattern: /\/business-hours\/\d+$/,
     handler: () => ({
-      id: 1, name: "Heures bureau standard", startHour: 8, endHour: 18,
-      workDays: "MON,TUE,WED,THU,FRI", timezone: "Africa/Casablanca",
-      isDefault: true, active: true, createdAt: new Date().toISOString(),
+      id: 1,
+      name: "Heures bureau standard",
+      startHour: 8,
+      endHour: 18,
+      workDays: "MON,TUE,WED,THU,FRI",
+      timezone: "Africa/Casablanca",
+      isDefault: true,
+      active: true,
+      createdAt: new Date().toISOString(),
     }),
   },
 
@@ -731,13 +988,22 @@ const DEMO_ROUTES: DemoRoute[] = [
     pattern: /\/macros(\?|$)/,
     handler: () => [
       {
-        id: 1, name: "Accusé de réception", content: "Bonjour {client}, votre ticket {ticketId} a bien été reçu.",
-        category: "accuse", variables: ["client", "ticketId"], createdAt: new Date().toISOString(),
+        id: 1,
+        name: "AccusÃ© de rÃ©ception",
+        content: "Bonjour {client}, votre ticket {ticketId} a bien Ã©tÃ© reÃ§u.",
+        category: "accuse",
+        variables: ["client", "ticketId"],
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
       {
-        id: 2, name: "Résolution standard", content: "Le problème a été résolu. N'hésitez pas à rouvrir ce ticket si nécessaire.",
-        category: "resolution", variables: [], createdAt: new Date().toISOString(),
+        id: 2,
+        name: "RÃ©solution standard",
+        content:
+          "Le problÃ¨me a Ã©tÃ© rÃ©solu. N'hÃ©sitez pas Ã  rouvrir ce ticket si nÃ©cessaire.",
+        category: "resolution",
+        variables: [],
+        createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
     ],
@@ -752,9 +1018,14 @@ const DEMO_ROUTES: DemoRoute[] = [
     handler: () => ({
       reports: [
         {
-          id: 1, title: "Rapport SLA Janvier 2026", type: "SLA",
-          status: "published", format: "PDF", generatedAt: new Date().toISOString(),
-          size: 245000, createdByName: "Mohammed Benali",
+          id: 1,
+          title: "Rapport executif de supervision",
+          type: "SLA",
+          status: "published",
+          format: "PDF",
+          generatedAt: new Date().toISOString(),
+          size: 245000,
+          createdByName: "Mohammed Benali",
         },
       ],
       totalElements: 1,
@@ -769,9 +1040,14 @@ const DEMO_ROUTES: DemoRoute[] = [
     method: "post",
     pattern: /\/reports\/generate/,
     handler: () => ({
-      id: 999, title: "Rapport Démo", type: "GENERAL",
-      status: "generated", format: "PDF", generatedAt: new Date().toISOString(),
-      size: 100000, createdByName: DEMO_USER.fullName,
+      id: 999,
+      title: "Rapport executif de supervision",
+      type: "GENERAL",
+      status: "generated",
+      format: "PDF",
+      generatedAt: new Date().toISOString(),
+      size: 100000,
+      createdByName: DEMO_USER.fullName,
     }),
   },
 ];
@@ -783,51 +1059,38 @@ const DEMO_ROUTES: DemoRoute[] = [
 /**
  * Installe l'intercepteur demo sur une instance Axios.
  *
- * En mode démo, CHAQUE requête est interceptée :
- * - Si une route match → réponse mock immédiate (+ délai artificiel)
- * - Si aucune route ne match → on laisse passer (fallback, évite les crashs)
+ * En mode demo, chaque requete est interceptee :
+ * - Si une route match -> reponse mock immediate (+ delai artificiel)
+ * - Si aucune route ne match -> erreur explicite pour ne pas masquer un trou API
  *
- * @param axiosInstance L'instance Axios (généralement `api` de client.ts)
- * @returns L'id de l'intercepteur (pour éventuel eject)
+ * @param axiosInstance L'instance Axios (gÃ©nÃ©ralement `api` de client.ts)
+ * @returns L'id de l'intercepteur (pour Ã©ventuel eject)
  */
 export function installDemoInterceptor(axiosInstance: AxiosInstance): number {
   console.info(
-    "%c🎭 MTS Demo Mode — Intercepteur installé. Toutes les requêtes retournent des données fictives.",
-    "color: #f59e0b; font-weight: bold; font-size: 14px;"
+    "%cMTS Demo Mode - intercepteur actif. Seules les routes explicitement simulees repondent en demo.",
+    "color: #f59e0b; font-weight: bold; font-size: 14px;",
   );
 
-  return axiosInstance.interceptors.request.use(
-    async (config: InternalAxiosRequestConfig) => {
-      const url = config.url || "";
-      const method = (config.method || "get").toLowerCase() as HttpMethod;
+  return axiosInstance.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+    const url = config.url || "";
+    const method = (config.method || "get").toLowerCase() as HttpMethod;
 
-      // Cherche une route qui match
-      const route = DEMO_ROUTES.find(
-        (r) => r.method === method && r.pattern.test(url)
-      );
+    const route = DEMO_ROUTES.find((r) => r.method === method && r.pattern.test(url));
 
-      if (route) {
-        // Simule un délai réseau
-        await delay(DEMO_LATENCY_MS);
+    if (route) {
+      await delay(DEMO_LATENCY_MS);
 
-        const data = route.handler(url, config);
+      const data = route.handler(url, config);
+      config.adapter = () => Promise.resolve(fakeResponse(data));
 
-        // On "court-circuite" Axios en lançant une erreur spéciale
-        // que notre adapter transformera en réponse.
-        // Technique: on utilise adapter custom pour retourner directement la réponse.
-        config.adapter = () => Promise.resolve(fakeResponse(data));
-
-        return config;
-      }
-
-      // Aucune route ne match → on trace un warning pour faciliter le debug
-      console.warn(`[Demo] ⚠️ Pas de mock pour: ${method.toUpperCase()} ${url}`);
-
-      // Fallback: retourne une réponse vide pour éviter les erreurs réseau
-      config.adapter = () => Promise.resolve(fakeResponse({}));
       return config;
     }
-  );
+
+    console.error(`[Demo] Route non simulee: ${method.toUpperCase()} ${url}`);
+    config.adapter = () => Promise.reject(buildUnmockedRouteError(method, url, config));
+    return config;
+  });
 }
 
 export default installDemoInterceptor;

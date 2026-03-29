@@ -52,9 +52,14 @@ public class AuditLog {
     private LocalDateTime timestamp;
 
     /**
-     * User who performed the action (nullable for system actions)
+     * User who performed the action (nullable for system actions).
+     * 
+     * FetchType.EAGER is used here intentionally because audit logs are
+     * always displayed with user information in the UI, and lazy loading
+     * caused LazyInitializationException when mapping to DTOs outside
+     * of the persistence context.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
     private User user;
 

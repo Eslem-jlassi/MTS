@@ -3,7 +3,7 @@
 // Billcom Consulting - PFE 2026
 // =============================================================================
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Search,
   Plus,
@@ -14,7 +14,6 @@ import {
   Globe,
   Database,
   RefreshCw,
-  X,
   Check,
   AlertTriangle,
   AlertCircle,
@@ -34,9 +33,10 @@ import {
   ServiceStatusColors,
   ServiceStatusBgColors,
 } from "../types";
-import Toast, { ToastMessage } from "../components/tickets/Toast";
-import { Card, Button, Badge, EmptyState, Skeleton } from "../components/ui";
+import { useToast } from "../context/ToastContext";
+import { Card, Button, Badge, EmptyState, Skeleton, Modal, ConfirmModal } from "../components/ui";
 import { getErrorMessage } from "../api/client";
+import { usePermissions } from "../hooks/usePermissions";
 
 // Helper: safe cast status
 const safeStatus = (s: TelecomService["status"]): ServiceStatus =>
@@ -82,6 +82,9 @@ type ViewMode = "cards" | "table";
 type FilterStatus = ServiceStatus | "ALL";
 
 export default function ServicesPage() {
+  const { canCreateService, canUpdateService, canUpdateServiceStatus, canDeleteService } =
+    usePermissions();
+  const toastCtx = useToast();
   const [services, setServices] = useState<TelecomService[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -92,8 +95,8 @@ export default function ServicesPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedService, setSelectedService] = useState<TelecomService | null>(null);
-  const [toast, setToast] = useState<ToastMessage | null>(null);
   const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const [createForm, setCreateForm] = useState<CreateServiceRequest>({
     name: "",
@@ -106,22 +109,22 @@ export default function ServicesPage() {
     description: string;
   }>({ name: "", category: ServiceCategory.OTHER, description: "" });
 
-  const fetchServices = async () => {
+  const fetchServices = useCallback(async () => {
     try {
       setLoading(true);
       const response = await telecomServiceService.getServices({ page: 0, size: 1000 });
       setServices(response.content ?? []);
     } catch (error) {
       console.error("Error fetching services:", error);
-      setToast({ message: getErrorMessage(error), type: "error" });
+      toastCtx.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
-  };
+  }, [toastCtx]);
 
   useEffect(() => {
     fetchServices();
-  }, []);
+  }, [fetchServices]);
 
   const filteredServices = services.filter((service) => {
     const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -137,7 +140,7 @@ export default function ServicesPage() {
       acc[st] = (acc[st] || 0) + 1;
       return acc;
     },
-    {} as Record<ServiceStatus, number>
+    {} as Record<ServiceStatus, number>,
   );
   const activeCount = services.filter((s) => s.isActive).length;
   const inactiveCount = services.filter((s) => !s.isActive).length;
@@ -146,12 +149,12 @@ export default function ServicesPage() {
     e.preventDefault();
     try {
       await telecomServiceService.createService(createForm);
-      setToast({ message: "Service créé avec succès", type: "success" });
+      toastCtx.success("Service créé avec succès");
       setShowCreateModal(false);
       setCreateForm({ name: "", category: ServiceCategory.OTHER, description: "" });
       fetchServices();
     } catch (error: unknown) {
-      setToast({ message: getErrorMessage(error), type: "error" });
+      toastCtx.error(getErrorMessage(error));
     }
   };
 
@@ -160,25 +163,28 @@ export default function ServicesPage() {
     if (!selectedService) return;
     try {
       await telecomServiceService.updateService(selectedService.id, editForm);
-      setToast({ message: "Service mis à jour avec succès", type: "success" });
+      toastCtx.success("Service mis à jour avec succès");
       setShowEditModal(false);
       setSelectedService(null);
       fetchServices();
     } catch (error: unknown) {
-      setToast({ message: getErrorMessage(error), type: "error" });
+      toastCtx.error(getErrorMessage(error));
     }
   };
 
   const handleDelete = async () => {
     if (!selectedService) return;
+    setDeleteLoading(true);
     try {
       await telecomServiceService.deleteService(selectedService.id);
-      setToast({ message: "Service supprimé avec succès", type: "success" });
+      toastCtx.success("Service supprimé avec succès");
       setShowDeleteModal(false);
       setSelectedService(null);
       fetchServices();
     } catch (error: unknown) {
-      setToast({ message: getErrorMessage(error), type: "error" });
+      toastCtx.error(getErrorMessage(error));
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -186,14 +192,14 @@ export default function ServicesPage() {
     try {
       if (service.isActive) {
         await telecomServiceService.deactivateService(service.id);
-        setToast({ message: "Service désactivé", type: "success" });
+        toastCtx.success("Service désactivé");
       } else {
         await telecomServiceService.activateService(service.id);
-        setToast({ message: "Service activé", type: "success" });
+        toastCtx.success("Service activé");
       }
       fetchServices();
     } catch (error: unknown) {
-      setToast({ message: getErrorMessage(error), type: "error" });
+      toastCtx.error(getErrorMessage(error));
     }
   };
 
@@ -202,10 +208,10 @@ export default function ServicesPage() {
     setStatusUpdatingId(service.id);
     try {
       await telecomServiceService.updateServiceStatus(service.id, newStatus);
-      setToast({ message: `Statut mis à jour : ${ServiceStatusLabels[newStatus]}`, type: "success" });
+      toastCtx.success(`Statut mis à jour : ${ServiceStatusLabels[newStatus]}`);
       fetchServices();
     } catch (error: unknown) {
-      setToast({ message: getErrorMessage(error), type: "error" });
+      toastCtx.error(getErrorMessage(error));
     } finally {
       setStatusUpdatingId(null);
     }
@@ -227,45 +233,46 @@ export default function ServicesPage() {
   };
 
   const inputClass =
-    "w-full px-3 py-2 border border-ds-border rounded-lg bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary/30 focus:border-primary";
+    "w-full px-3 py-2 border border-ds-border rounded-xl bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary/30 focus:border-primary";
 
   return (
     <div className="space-y-6">
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
-
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-ds-primary">
-            Gestion des Services
-          </h1>
-          <p className="text-ds-muted mt-1">
-            Services télécom supervisés par MTS
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-primary/10 dark:bg-primary/20 rounded-xl">
+            <Server className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-ds-primary">Gestion des Services</h1>
+            <p className="text-ds-muted text-sm mt-0.5">Services télécom supervisés par MTS</p>
+          </div>
         </div>
-        <Button variant="primary" icon={<Plus size={20} />} onClick={() => setShowCreateModal(true)}>
-          Nouveau Service
-        </Button>
+        {canCreateService && (
+          <Button
+            variant="primary"
+            icon={<Plus size={20} />}
+            onClick={() => setShowCreateModal(true)}
+          >
+            Nouveau Service
+          </Button>
+        )}
       </div>
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card padding="md">
+        <Card padding="md" className="group hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-ds-muted">Total</p>
-              <p className="text-2xl font-bold text-ds-primary mt-1">
-                {services.length}
-              </p>
+              <p className="text-2xl font-bold text-ds-primary mt-1">{services.length}</p>
             </div>
-            <div className="p-3 bg-primary/10 dark:bg-primary/30 rounded-lg">
+            <div className="p-3 bg-primary/10 dark:bg-primary/30 rounded-xl transition-transform duration-200 group-hover:scale-110">
               <Server className="w-6 h-6 text-primary dark:text-white" />
             </div>
           </div>
         </Card>
-        <Card padding="md">
+        <Card padding="md" className="group hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-ds-muted">Opérationnels</p>
@@ -273,12 +280,12 @@ export default function ServicesPage() {
                 {servicesByStatus[ServiceStatus.UP] ?? 0}
               </p>
             </div>
-            <div className="p-3 bg-green-100 dark:bg-green-900/40 rounded-lg">
+            <div className="p-3 bg-green-100 dark:bg-green-900/40 rounded-xl transition-transform duration-200 group-hover:scale-110">
               <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </Card>
-        <Card padding="md">
+        <Card padding="md" className="group hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-ds-muted">Dégradés / Panne</p>
@@ -287,12 +294,12 @@ export default function ServicesPage() {
                   (servicesByStatus[ServiceStatus.DOWN] ?? 0)}
               </p>
             </div>
-            <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-lg">
+            <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-xl transition-transform duration-200 group-hover:scale-110">
               <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
         </Card>
-        <Card padding="md">
+        <Card padding="md" className="group hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-ds-muted">Actifs / Inactifs</p>
@@ -300,7 +307,7 @@ export default function ServicesPage() {
                 {activeCount} / {inactiveCount}
               </p>
             </div>
-            <div className="p-3 bg-ds-elevated rounded-lg">
+            <div className="p-3 bg-ds-elevated rounded-xl transition-transform duration-200 group-hover:scale-110">
               <Power className="w-6 h-6 text-ds-secondary" />
             </div>
           </div>
@@ -325,7 +332,9 @@ export default function ServicesPage() {
               <select
                 value={filterCategory}
                 onChange={(e) =>
-                  setFilterCategory(e.target.value === "ALL" ? "ALL" : (e.target.value as ServiceCategory))
+                  setFilterCategory(
+                    e.target.value === "ALL" ? "ALL" : (e.target.value as ServiceCategory),
+                  )
                 }
                 className={inputClass}
               >
@@ -339,7 +348,9 @@ export default function ServicesPage() {
               <select
                 value={filterStatus}
                 onChange={(e) =>
-                  setFilterStatus(e.target.value === "ALL" ? "ALL" : (e.target.value as ServiceStatus))
+                  setFilterStatus(
+                    e.target.value === "ALL" ? "ALL" : (e.target.value as ServiceStatus),
+                  )
                 }
                 className={inputClass}
               >
@@ -368,7 +379,13 @@ export default function ServicesPage() {
                   <List size={20} />
                 </button>
               </div>
-              <Button variant="ghost" size="sm" onClick={fetchServices} loading={loading} icon={<RefreshCw size={18} />}>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchServices}
+                loading={loading}
+                icon={<RefreshCw size={18} />}
+              >
                 Actualiser
               </Button>
             </div>
@@ -421,9 +438,7 @@ export default function ServicesPage() {
                       {category.icon}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-ds-primary">
-                        {service.name}
-                      </h3>
+                      <h3 className="font-semibold text-ds-primary">{service.name}</h3>
                       <span className={`text-xs ${category.color}`}>{category.label}</span>
                     </div>
                   </div>
@@ -441,47 +456,61 @@ export default function ServicesPage() {
                   {service.description || "Aucune description"}
                 </p>
                 <div className="flex items-center justify-between pt-4 border-t border-ds-border">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleServiceActive(service)}
-                    className={
-                      service.isActive
-                        ? "text-green-700 dark:text-green-400"
-                        : "text-ds-muted"
-                    }
-                  >
-                    {service.isActive ? "Actif" : "Inactif"}
-                  </Button>
+                  {canUpdateService ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleServiceActive(service)}
+                      className={
+                        service.isActive ? "text-green-700 dark:text-green-400" : "text-ds-muted"
+                      }
+                    >
+                      {service.isActive ? "Actif" : "Inactif"}
+                    </Button>
+                  ) : (
+                    <Badge variant={service.isActive ? "success" : "neutral"}>
+                      {service.isActive ? "Actif" : "Inactif"}
+                    </Badge>
+                  )}
                   <div className="flex items-center gap-1">
-                    <select
-                      value={status}
-                      onChange={(e) => handleStatusChange(service, e.target.value as ServiceStatus)}
-                      disabled={statusUpdatingId === service.id}
-                      className="text-xs rounded border border-ds-border bg-ds-card text-ds-primary py-1.5 px-2"
-                    >
-                      {(Object.keys(ServiceStatus) as ServiceStatus[]).map((st) => (
-                        <option key={st} value={st}>
-                          {ServiceStatusLabels[st]}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(service)}
-                      className="p-2 text-primary hover:bg-primary/10 dark:text-secondary dark:hover:bg-primary/20 rounded-lg"
-                      title="Modifier"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openDeleteModal(service)}
-                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
-                      title="Supprimer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {canUpdateServiceStatus ? (
+                      <select
+                        value={status}
+                        onChange={(e) =>
+                          handleStatusChange(service, e.target.value as ServiceStatus)
+                        }
+                        disabled={statusUpdatingId === service.id}
+                        className="text-xs rounded border border-ds-border bg-ds-card text-ds-primary py-1.5 px-2"
+                      >
+                        {(Object.keys(ServiceStatus) as ServiceStatus[]).map((st) => (
+                          <option key={st} value={st}>
+                            {ServiceStatusLabels[st]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Badge variant="neutral">{ServiceStatusLabels[status]}</Badge>
+                    )}
+                    {canUpdateService && (
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(service)}
+                        className="p-2 text-primary hover:bg-primary/10 dark:text-secondary dark:hover:bg-primary/20 rounded-lg"
+                        title="Modifier"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    )}
+                    {canDeleteService && (
+                      <button
+                        type="button"
+                        onClick={() => openDeleteModal(service)}
+                        className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </Card>
@@ -492,24 +521,24 @@ export default function ServicesPage() {
         <Card padding="none">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-ds-card">
+              <thead className="bg-ds-elevated/50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                     Service
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                     Catégorie
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                     État
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                     Actif
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                     Tickets
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase">
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-ds-muted uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -525,9 +554,7 @@ export default function ServicesPage() {
                     >
                       <td className="px-4 py-3">
                         <div>
-                          <p className="font-medium text-ds-primary">
-                            {service.name}
-                          </p>
+                          <p className="font-medium text-ds-primary">{service.name}</p>
                           {service.description && (
                             <p className="text-xs text-ds-muted truncate max-w-xs">
                               {service.description}
@@ -536,61 +563,75 @@ export default function ServicesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex items-center gap-1 text-sm ${category.color}`}>
+                        <span
+                          className={`inline-flex items-center gap-1 text-sm ${category.color}`}
+                        >
                           {category.icon}
                           {category.label}
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <select
-                          value={status}
-                          onChange={(e) =>
-                            handleStatusChange(service, e.target.value as ServiceStatus)
-                          }
-                          disabled={statusUpdatingId === service.id}
-                          className={`text-sm rounded border border-ds-border bg-ds-card py-1 px-2 ${ServiceStatusColors[status]}`}
-                        >
-                          {(Object.keys(ServiceStatus) as ServiceStatus[]).map((st) => (
-                            <option key={st} value={st}>
-                              {ServiceStatusLabels[st]}
-                            </option>
-                          ))}
-                        </select>
+                        {canUpdateServiceStatus ? (
+                          <select
+                            value={status}
+                            onChange={(e) =>
+                              handleStatusChange(service, e.target.value as ServiceStatus)
+                            }
+                            disabled={statusUpdatingId === service.id}
+                            className={`text-sm rounded border border-ds-border bg-ds-card py-1 px-2 ${ServiceStatusColors[status]}`}
+                          >
+                            {(Object.keys(ServiceStatus) as ServiceStatus[]).map((st) => (
+                              <option key={st} value={st}>
+                                {ServiceStatusLabels[st]}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Badge variant="neutral">{ServiceStatusLabels[status]}</Badge>
+                        )}
                       </td>
                       <td className="px-4 py-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleServiceActive(service)}
-                        >
-                          {service.isActive ? (
-                            <Badge variant="success">Actif</Badge>
-                          ) : (
-                            <Badge variant="neutral">Inactif</Badge>
-                          )}
-                        </Button>
+                        {canUpdateService ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleServiceActive(service)}
+                          >
+                            {service.isActive ? (
+                              <Badge variant="success">Actif</Badge>
+                            ) : (
+                              <Badge variant="neutral">Inactif</Badge>
+                            )}
+                          </Button>
+                        ) : service.isActive ? (
+                          <Badge variant="success">Actif</Badge>
+                        ) : (
+                          <Badge variant="neutral">Inactif</Badge>
+                        )}
                       </td>
-                      <td className="px-4 py-3 text-ds-primary">
-                        {service.ticketCount ?? 0}
-                      </td>
+                      <td className="px-4 py-3 text-ds-primary">{service.ticketCount ?? 0}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(service)}
-                            className="p-2 text-primary hover:bg-primary/10 dark:text-secondary dark:hover:bg-primary/20 rounded-lg"
-                            title="Modifier"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openDeleteModal(service)}
-                            className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canUpdateService && (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(service)}
+                              className="p-2 text-primary hover:bg-primary/10 dark:text-secondary dark:hover:bg-primary/20 rounded-lg"
+                              title="Modifier"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDeleteService && (
+                            <button
+                              type="button"
+                              onClick={() => openDeleteModal(service)}
+                              className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
+                              title="Supprimer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -603,181 +644,128 @@ export default function ServicesPage() {
       )}
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-ds-card rounded-xl shadow-xl max-w-lg w-full">
-            <div className="p-4 sm:p-6 border-b border-ds-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-ds-primary">
-                Nouveau Service
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCreate} className="p-4 sm:p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Nom du service *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  className={inputClass}
-                  placeholder="Ex: BSCS Billing System"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Catégorie *
-                </label>
-                <select
-                  required
-                  value={createForm.category}
-                  onChange={(e) =>
-                    setCreateForm({ ...createForm, category: e.target.value as ServiceCategory })
-                  }
-                  className={inputClass}
-                >
-                  {Object.entries(categoryConfig).map(([cat, config]) => (
-                    <option key={cat} value={cat}>
-                      {config.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={createForm.description}
-                  onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
-                  className={inputClass}
-                  placeholder="Description du service..."
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="secondary" type="button" onClick={() => setShowCreateModal(false)}>
-                  Annuler
-                </Button>
-                <Button variant="primary" type="submit" icon={<Check className="w-4 h-4" />}>
-                  Créer
-                </Button>
-              </div>
-            </form>
+      <Modal
+        isOpen={canCreateService && showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Nouveau Service"
+        size="md"
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-ds-primary mb-1">
+              Nom du service *
+            </label>
+            <input
+              type="text"
+              required
+              value={createForm.name}
+              onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+              className={inputClass}
+              placeholder="Ex: BSCS Billing System"
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Catégorie *</label>
+            <select
+              required
+              value={createForm.category}
+              onChange={(e) =>
+                setCreateForm({ ...createForm, category: e.target.value as ServiceCategory })
+              }
+              className={inputClass}
+            >
+              {Object.entries(categoryConfig).map(([cat, config]) => (
+                <option key={cat} value={cat}>
+                  {config.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Description</label>
+            <textarea
+              rows={3}
+              value={createForm.description}
+              onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+              className={inputClass}
+              placeholder="Description du service..."
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" type="button" onClick={() => setShowCreateModal(false)}>
+              Annuler
+            </Button>
+            <Button variant="primary" type="submit" icon={<Check className="w-4 h-4" />}>
+              Créer
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Edit Modal */}
-      {showEditModal && selectedService && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-ds-card rounded-xl shadow-xl max-w-lg w-full">
-            <div className="p-4 sm:p-6 border-b border-ds-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-ds-primary">
-                Modifier le Service
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleEdit} className="p-4 sm:p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Nom du service
-                </label>
-                <input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Catégorie
-                </label>
-                <select
-                  value={editForm.category}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, category: e.target.value as ServiceCategory })
-                  }
-                  className={inputClass}
-                >
-                  {Object.entries(categoryConfig).map(([cat, config]) => (
-                    <option key={cat} value={cat}>
-                      {config.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="secondary" type="button" onClick={() => setShowEditModal(false)}>
-                  Annuler
-                </Button>
-                <Button variant="primary" type="submit" icon={<Check className="w-4 h-4" />}>
-                  Enregistrer
-                </Button>
-              </div>
-            </form>
+      <Modal
+        isOpen={canUpdateService && showEditModal && !!selectedService}
+        onClose={() => setShowEditModal(false)}
+        title="Modifier le Service"
+        size="md"
+      >
+        <form onSubmit={handleEdit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Nom du service</label>
+            <input
+              type="text"
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+              className={inputClass}
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Catégorie</label>
+            <select
+              value={editForm.category}
+              onChange={(e) =>
+                setEditForm({ ...editForm, category: e.target.value as ServiceCategory })
+              }
+              className={inputClass}
+            >
+              {Object.entries(categoryConfig).map(([cat, config]) => (
+                <option key={cat} value={cat}>
+                  {config.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ds-primary mb-1">Description</label>
+            <textarea
+              rows={3}
+              value={editForm.description}
+              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" type="button" onClick={() => setShowEditModal(false)}>
+              Annuler
+            </Button>
+            <Button variant="primary" type="submit" icon={<Check className="w-4 h-4" />}>
+              Enregistrer
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Delete Modal */}
-      {showDeleteModal && selectedService && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="p-3 bg-red-100 dark:bg-red-900/40 rounded-full">
-                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-ds-primary">
-                  Supprimer le service
-                </h3>
-                <p className="text-sm text-ds-muted">
-                  Cette action est irréversible.
-                </p>
-              </div>
-            </div>
-            <p className="text-ds-secondary mb-6">
-              Êtes-vous sûr de vouloir supprimer le service{" "}
-              <span className="font-semibold">{selectedService.name}</span> ?
-            </p>
-            <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-                Annuler
-              </Button>
-              <Button variant="danger" onClick={handleDelete} icon={<Trash2 className="w-4 h-4" />}>
-                Supprimer
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={canDeleteService && showDeleteModal && !!selectedService}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDelete}
+        title="Supprimer le service"
+        message={`Êtes-vous sûr de vouloir supprimer le service « ${selectedService?.name} » ? Cette action est irréversible.`}
+        confirmLabel="Supprimer"
+        variant="danger"
+        loading={deleteLoading}
+      />
     </div>
   );
 }

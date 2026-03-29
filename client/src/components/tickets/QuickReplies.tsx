@@ -3,14 +3,14 @@
 // =============================================================================
 /**
  * Composant dropdown avec recherche pour insérer des templates de réponse rapide.
- * 
+ *
  * CARACTÉRISTIQUES:
  * - Dropdown avec recherche fuzzy par nom / catégorie
  * - Groupement par catégorie
  * - Preview du contenu au hover/focus
  * - Variables substituées automatiquement ({client}, {ticketId}, etc.)
  * - Accessible au clavier (Arrow keys + Enter)
- * 
+ *
  * USAGE:
  * <QuickReplies
  *   context={{ client: "Acme", ticketId: "TK-001", service: "MPLS" }}
@@ -128,12 +128,10 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
       onSelect(substituted);
       setIsOpen(false);
     },
-    [context, onSelect]
+    [context, onSelect],
   );
 
-  const previewTemplate = previewId
-    ? templates.find((t) => t.id === previewId)
-    : null;
+  const previewTemplate = previewId ? templates.find((t) => t.id === previewId) : null;
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
@@ -144,9 +142,10 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
         className={`
           inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
           transition-all duration-200
-          ${isOpen
-            ? "bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
-            : "bg-ds-elevated text-ds-secondary hover:bg-ds-border hover:text-ds-primary"
+          ${
+            isOpen
+              ? "bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+              : "bg-ds-elevated text-ds-secondary hover:bg-ds-border hover:text-ds-primary"
           }
         `}
         title="Réponses rapides"
@@ -157,13 +156,14 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
 
       {/* Dropdown */}
       {isOpen && (
-        <div
-          className="absolute bottom-full left-0 mb-2 w-96 max-h-[420px] bg-ds-card rounded-xl border border-ds-border shadow-dropdown z-50 flex flex-col overflow-hidden"
-        >
+        <div className="absolute bottom-full left-0 mb-2 w-96 max-h-[420px] bg-ds-card rounded-xl border border-ds-border shadow-dropdown z-50 flex flex-col overflow-hidden">
           {/* Search */}
           <div className="p-3 border-b border-ds-border flex-shrink-0">
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-muted" />
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-muted"
+              />
               <input
                 ref={searchRef}
                 type="text"
@@ -180,9 +180,7 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
             {loading ? (
               <div className="p-6 text-center text-ds-muted text-sm">Chargement...</div>
             ) : filtered.length === 0 ? (
-              <div className="p-6 text-center text-ds-muted text-sm">
-                Aucun template trouvé
-              </div>
+              <div className="p-6 text-center text-ds-muted text-sm">Aucun template trouvé</div>
             ) : (
               <div className="py-1">
                 {Object.entries(grouped).map(([category, items]) => (
@@ -205,7 +203,8 @@ const QuickReplies: React.FC<QuickRepliesProps> = ({
                       >
                         <span
                           className={`flex-shrink-0 px-1.5 py-0.5 text-[10px] font-semibold rounded ${
-                            CATEGORY_COLORS[template.category as QuickReplyCategory] || CATEGORY_COLORS.custom
+                            CATEGORY_COLORS[template.category as QuickReplyCategory] ||
+                            CATEGORY_COLORS.custom
                           }`}
                         >
                           {template.category.slice(0, 3).toUpperCase()}

@@ -47,6 +47,22 @@ spring:
       max-file-size: 50MB
       max-request-size: 100MB
 
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:true}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:false}
+          connectiontimeout: ${MAIL_SMTP_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_SMTP_TIMEOUT_MS:10000}
+          writetimeout: ${MAIL_SMTP_WRITE_TIMEOUT_MS:10000}
+
 cors:
   allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001}
   # SECURITY WARNING: In production, restrict to specific domains only
@@ -103,13 +119,30 @@ resilience4j:
 app:
   google:
     client-id: ${GOOGLE_CLIENT_ID:348931794377-0ev901vacm9h6fnqfuqs5iv7kiikchge.apps.googleusercontent.com}
+  frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
+  mail:
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@mts-telecom.local}
+    from-name: ${MAIL_FROM_NAME:MTS Telecom}
+  auth:
+    require-email-verification: ${AUTH_REQUIRE_EMAIL_VERIFICATION:${MAIL_ENABLED:false}}
+    email-verification:
+      expiration-hours: ${EMAIL_VERIFICATION_EXPIRATION_HOURS:24}
+    password-reset:
+      expiration-hours: ${PASSWORD_RESET_EXPIRATION_HOURS:1}
 
 # Cookie configuration
 cookie:
-  secure: ${COOKIE_SECURE:false}  # Set to true in production (HTTPS)
+  secure: ${COOKIE_SECURE:true}  # Override to false only for local HTTP development
+
+auth:
+  expose-tokens-in-body: ${AUTH_EXPOSE_TOKENS_IN_BODY:false}
+
+websocket:
+  allowed-origin-patterns: ${WS_ALLOWED_ORIGIN_PATTERNS:http://localhost:3000,http://localhost:3001}
 
 mts:
-  allow-internal-signup: ${ALLOW_INTERNAL_SIGNUP:true}
+  allow-internal-signup: ${ALLOW_INTERNAL_SIGNUP:false}
   ticket:
     prefix: "TKT"
     number-format: "%s-%d-%05d"
@@ -126,3 +159,18 @@ springdoc:
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
+
+ai:
+  http:
+    connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${AI_READ_TIMEOUT_MS:10000}
+  autostart:
+    enabled: ${AI_AUTOSTART_ENABLED:true}
+    wait-timeout-ms: ${AI_AUTOSTART_WAIT_TIMEOUT_MS:180000}
+    poll-interval-ms: ${AI_AUTOSTART_POLL_INTERVAL_MS:1000}
+  sentiment:
+    base-url: ${AI_SENTIMENT_BASE_URL:http://127.0.0.1:8000}
+  duplicate:
+    base-url: ${AI_DUPLICATE_BASE_URL:http://127.0.0.1:8001}
+  chatbot:
+    base-url: ${AI_CHATBOT_BASE_URL:http://127.0.0.1:8002}

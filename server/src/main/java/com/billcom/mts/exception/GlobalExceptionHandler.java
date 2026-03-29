@@ -69,6 +69,14 @@ public class GlobalExceptionHandler {
             HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("Invalid request argument: {}", ex.getMessage());
+        return problem(
+            ProblemDetail.badRequest(ex.getMessage(), request.getRequestURI()),
+            HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ProblemDetail> handleUnauthorized(UnauthorizedException ex, HttpServletRequest request) {
         log.warn("Unauthorized: {}", ex.getMessage());
@@ -124,6 +132,14 @@ public class GlobalExceptionHandler {
             .contentType(PROBLEM_JSON)
             .header("Retry-After", String.valueOf(ex.getRetryAfterSeconds()))
             .body(detail);
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ProblemDetail> handleServiceUnavailable(ServiceUnavailableException ex, HttpServletRequest request) {
+        log.error("Service unavailable: {}", ex.getMessage());
+        return problem(
+            ProblemDetail.serviceUnavailable(ex.getMessage(), request.getRequestURI()),
+            HttpStatus.SERVICE_UNAVAILABLE);
     }
 
     // ==================== Authentication & Security ====================

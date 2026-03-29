@@ -27,16 +27,15 @@ export const fetchDashboardStats = createAsyncThunk<
   DashboardStats,
   DashboardFilters | void,
   { rejectValue: string }
->(
-  "dashboard/fetchStats",
-  async (filters, { rejectWithValue }) => {
-    try {
-      return await dashboardService.getStats(filters || undefined);
-    } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || "Erreur de chargement des statistiques");
-    }
+>("dashboard/fetchStats", async (filters, { rejectWithValue }) => {
+  try {
+    return await dashboardService.getStats(filters || undefined);
+  } catch (error: any) {
+    return rejectWithValue(
+      error.response?.data?.message || "Erreur de chargement des statistiques",
+    );
   }
-);
+});
 
 export const fetchAgentPerformance = createAsyncThunk<
   AgentPerformance[],
@@ -47,7 +46,7 @@ export const fetchAgentPerformance = createAsyncThunk<
     return await dashboardService.getAgentPerformance();
   } catch (error: any) {
     return rejectWithValue(
-      error.response?.data?.message || "Erreur de chargement des performances"
+      error.response?.data?.message || "Erreur de chargement des performances",
     );
   }
 });
