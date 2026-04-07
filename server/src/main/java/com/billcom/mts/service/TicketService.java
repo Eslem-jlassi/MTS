@@ -249,7 +249,16 @@ public interface TicketService {
      * Supprime dÃ©finitivement un ticket si les dÃ©pendances mÃ©tier rendent
      * l'opÃ©ration sÃ»re.
      */
-    void hardDeleteTicketAsAdmin(Long ticketId, User currentUser, String ipAddress);
+    void hardDeleteTicketAsAdmin(
+        Long ticketId,
+        User currentUser,
+        String ipAddress,
+        com.billcom.mts.dto.security.AdminHardDeleteRequest request);
+
+    /**
+     * Emet un challenge de verification (code email) pour les admins OAuth.
+     */
+    void issueHardDeleteChallenge(Long ticketId, User currentUser, String ipAddress);
 
     // =========================================================================
     // COMMENTAIRES

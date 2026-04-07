@@ -44,6 +44,7 @@ import { RootState } from "./redux/store";
 
 // Google OAuth - Authentification via Google (optionnel)
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { googleOAuthConfig } from "./config/googleOAuthConfig";
 
 // Demo Mode - Bandeau visuel quand le mode démo est actif
 import DemoBanner from "./demo/DemoBanner";
@@ -91,30 +92,21 @@ import KnowledgeBasePage from "./pages/KnowledgeBasePage"; // Base de connaissan
  * Récupéré depuis les variables d'environnement (.env)
  * Si non défini, utilise une chaîne vide (désactive Google OAuth)
  */
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_OAUTH_CLIENT_ID || "";
-const GOOGLE_OAUTH_ENABLED_FLAG = process.env.REACT_APP_GOOGLE_OAUTH_ENABLED === "true";
-const GOOGLE_OAUTH_ALLOWED_ORIGINS = (
-  process.env.REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS ||
-  "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
-)
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const GOOGLE_CLIENT_ID = googleOAuthConfig.clientId;
+const GOOGLE_OAUTH_ENABLED_FLAG = googleOAuthConfig.isEnabled;
+const GOOGLE_OAUTH_ALLOWED_ORIGINS = googleOAuthConfig.allowedOrigins;
 
 const isCurrentOriginAllowedForGoogleOAuth = (() => {
   if (typeof window === "undefined") return true;
   if (GOOGLE_OAUTH_ALLOWED_ORIGINS.length === 0) return true;
-  return GOOGLE_OAUTH_ALLOWED_ORIGINS.includes(window.location.origin);
+  return googleOAuthConfig.reason !== "origin-not-allowed";
 })();
 
 /**
  * Vérifie si Google OAuth est configuré pour éviter les erreurs CORS
  */
 export const isGoogleOAuthEnabled =
-  GOOGLE_OAUTH_ENABLED_FLAG &&
-  GOOGLE_CLIENT_ID &&
-  GOOGLE_CLIENT_ID.includes(".apps.googleusercontent.com") &&
-  isCurrentOriginAllowedForGoogleOAuth;
+  GOOGLE_OAUTH_ENABLED_FLAG && Boolean(GOOGLE_CLIENT_ID) && isCurrentOriginAllowedForGoogleOAuth;
 
 // =============================================================================
 // COMPOSANT: OptionalGoogleOAuthProvider - Wrapper conditionnel pour Google OAuth
@@ -398,6 +390,24 @@ export default function App() {
                   element={
                     <RoleBasedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
                       <SlaPage />
+                    </RoleBasedRoute>
+                  }
+                />
+                <Route
+                  path="sla-policies"
+                  element={
+                    <RoleBasedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                      <Navigate to="/sla" replace />
+                    </RoleBasedRoute>
+                  }
+                />
+
+                {/* Legacy admin shortcuts kept for backward compatibility */}
+                <Route
+                  path="categories"
+                  element={
+                    <RoleBasedRoute allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]}>
+                      <Navigate to="/services" replace />
                     </RoleBasedRoute>
                   }
                 />

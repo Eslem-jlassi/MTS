@@ -1,0 +1,103 @@
+import React from "react";
+import { render, screen, waitFor } from "@testing-library/react";
+import { Provider } from "react-redux";
+import { configureStore } from "@reduxjs/toolkit";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import TicketDetail from "./TicketDetail";
+
+jest.mock("../api", () => ({
+  ticketService: {
+    getTicketById: jest.fn(),
+    addComment: jest.fn(),
+    changeStatus: jest.fn(),
+    assignTicket: jest.fn(),
+    unassignTicket: jest.fn(),
+  },
+  userService: {
+    getAgents: jest.fn(),
+  },
+}));
+
+import { ticketService } from "../api";
+
+const buildStore = () =>
+  {
+    const preloadedState = {
+      auth: {
+        user: {
+          id: 2,
+          role: "MANAGER",
+          firstName: "Sara",
+          lastName: "El Fassi",
+          email: "manager@mts-telecom.ma",
+        },
+        token: "token",
+        refreshToken: null,
+        isAuthenticated: true,
+        isInitialized: true,
+        isLoading: false,
+        error: null,
+      },
+    };
+
+    return configureStore({
+      reducer: (state = preloadedState) => state,
+      preloadedState,
+    });
+  };
+
+describe("TicketDetail", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (ticketService.getTicketById as jest.Mock).mockResolvedValue({
+      id: 42,
+      ticketNumber: "TKT-2026-00042",
+      title: "Perte de connectivite fibre site principal",
+      description: "Le site principal est coupe depuis 08:30.",
+      status: "IN_PROGRESS",
+      priority: "CRITICAL",
+      category: "PANNE",
+      categoryLabel: "Panne",
+      clientCompanyName: "Atlas Distribution Maroc",
+      serviceName: "Fibre FTTH",
+      createdByName: "Samir Alaoui",
+      assignedToName: "Karim Ziani",
+      slaHours: 4,
+      deadline: "2026-04-03T12:30:00",
+      breachedSla: false,
+      overdue: false,
+      slaPercentage: 42.4,
+      slaWarning: false,
+      slaRemainingMinutes: 138,
+      createdAt: "2026-04-03T08:30:00",
+      comments: [],
+      history: [],
+      allowedTransitions: [],
+    });
+  });
+
+  it("loads and displays the requested ticket detail", async () => {
+    render(
+      <Provider store={buildStore()}>
+        <MemoryRouter
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+          initialEntries={["/tickets/42"]}
+        >
+          <Routes>
+            <Route path="/tickets/:id" element={<TicketDetail />} />
+          </Routes>
+        </MemoryRouter>
+      </Provider>,
+    );
+
+    await waitFor(() => {
+      expect(ticketService.getTicketById).toHaveBeenCalledWith(42);
+    });
+
+    expect(await screen.findByText("TKT-2026-00042")).toBeInTheDocument();
+    expect(screen.getByText("Perte de connectivite fibre site principal")).toBeInTheDocument();
+    expect(screen.getAllByText("Atlas Distribution Maroc").length).toBeGreaterThan(0);
+    expect(screen.getByText("Fibre FTTH")).toBeInTheDocument();
+    expect(screen.getByText(/SLA/i)).toBeInTheDocument();
+  });
+});

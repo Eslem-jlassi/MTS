@@ -19,6 +19,14 @@ describe("normalizeChatbotResponse", () => {
         missing_information: [],
         draft_ticket_title: "Perte de voix",
       },
+      model_version: "rag-chatbot-1.2.0",
+      fallback_mode: "rag_primary",
+      reasoning_steps: ["Top semantic score=0.920"],
+      recommended_actions: ["Verifier les incidents similaires sur VoIP Platform."],
+      risk_flags: ["MASS_INCIDENT_CANDIDATE"],
+      missing_information: ["heure de debut"],
+      sources: ["doc:ticket-1"],
+      latency_ms: 182.5,
       results: [
         {
           doc_type: "ticket",
@@ -36,6 +44,16 @@ describe("normalizeChatbotResponse", () => {
     expect(response.serviceDetectionConfidence).toBe("high");
     expect(response.responseLanguage).toBe("fr");
     expect(response.analysis?.draftTicketTitle).toBe("Perte de voix");
+    expect(response.modelVersion).toBe("rag-chatbot-1.2.0");
+    expect(response.fallbackMode).toBe("rag_primary");
+    expect(response.reasoningSteps).toEqual(["Top semantic score=0.920"]);
+    expect(response.recommendedActions).toEqual([
+      "Verifier les incidents similaires sur VoIP Platform.",
+    ]);
+    expect(response.riskFlags).toEqual(["MASS_INCIDENT_CANDIDATE"]);
+    expect(response.missingInformation).toEqual(["heure de debut"]);
+    expect(response.sources).toEqual(["doc:ticket-1"]);
+    expect(response.latencyMs).toBe(182.5);
     expect(response.results[0]).toEqual({
       docType: "ticket",
       title: "Perte de voix",
@@ -54,6 +72,9 @@ describe("normalizeChatbotResponse", () => {
     expect(response.serviceDetected).toBe("N/A");
     expect(response.responseLanguage).toBe("fr");
     expect(response.results).toEqual([]);
+    expect(response.modelVersion).toBe("rag-chatbot-1.2.0");
+    expect(response.reasoningSteps).toEqual([]);
+    expect(response.missingInformation).toEqual([]);
   });
 
   it("keeps English response language when returned by the backend", () => {

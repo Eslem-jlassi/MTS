@@ -1,10 +1,10 @@
 /**
- * DataTable - Table réutilisable avec tri, pagination
- * Phase 7 – UI/UX pro
+ * DataTable - Table reusable avec pagination et etats de chargement
  */
 
 import React from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Skeleton from "./Skeleton";
 
 export interface DataTableColumn<T> {
   key: string;
@@ -36,83 +36,112 @@ function DataTable<T>({
   totalPages = 0,
   totalElements = 0,
   onPageChange,
-  emptyMessage = "Aucune donnée",
+  emptyMessage = "Aucune donnee",
   compact = false,
 }: DataTableProps<T>) {
-  const paddingY = compact ? "py-2" : "py-3";
+  const paddingY = compact ? "py-2.5" : "py-3.5";
+  const loadingRows = Array.from({ length: compact ? 3 : 4 });
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-ds-border bg-ds-card shadow-card">
+    <div className="ds-table-shell">
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-ds-border bg-ds-elevated/50">
+          <tr className="ds-table-head border-b border-ds-border">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`px-4 ${paddingY} font-semibold text-ds-primary ${col.className || ""}`}
+                className={`ds-table-head-cell px-4 ${paddingY} ${col.className || ""}`}
               >
                 {col.label}
               </th>
             ))}
           </tr>
         </thead>
+
         <tbody>
-          {isLoading ? (
+          {isLoading
+            ? loadingRows.map((_, rowIndex) => (
+                <tr
+                  key={`loading-${rowIndex}`}
+                  className="border-b border-ds-border last:border-b-0"
+                >
+                  {columns.map((col) => (
+                    <td key={`${col.key}-${rowIndex}`} className={`px-4 ${paddingY}`}>
+                      <Skeleton
+                        variant="text"
+                        height={14}
+                        width={rowIndex % 2 === 0 ? "72%" : "55%"}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))
+            : null}
+
+          {!isLoading && data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-ds-muted">
-                Chargement...
+              <td colSpan={columns.length} className="px-4 py-12 text-center">
+                <div className="mx-auto flex max-w-md flex-col items-center gap-2">
+                  <div className="ds-icon-shell flex h-11 w-11 items-center justify-center rounded-2xl text-ds-muted">
+                    <span className="text-sm font-semibold">0</span>
+                  </div>
+                  <p className="text-sm font-semibold text-ds-primary">Aucun resultat</p>
+                  <p className="text-sm text-ds-secondary">{emptyMessage}</p>
+                </div>
               </td>
             </tr>
-          ) : data.length === 0 ? (
-            <tr>
-              <td colSpan={columns.length} className="px-4 py-8 text-center text-ds-muted">
-                {emptyMessage}
-              </td>
-            </tr>
-          ) : (
-            data.map((row) => (
-              <tr
-                key={keyExtractor(row)}
-                className="border-b border-ds-border last:border-b-0 hover:bg-ds-elevated/30 transition-colors"
-              >
-                {columns.map((col) => (
-                  <td
-                    key={col.key}
-                    className={`px-4 ${paddingY} text-ds-primary ${col.className || ""}`}
-                  >
-                    {col.render
-                      ? col.render(row)
-                      : (row as Record<string, unknown>)[col.key] != null
-                        ? String((row as Record<string, unknown>)[col.key])
-                        : "—"}
-                  </td>
-                ))}
-              </tr>
-            ))
-          )}
+          ) : null}
+
+          {!isLoading
+            ? data.map((row) => (
+                <tr
+                  key={keyExtractor(row)}
+                  className="ds-table-row border-b border-ds-border last:border-b-0"
+                >
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={`px-4 ${paddingY} align-middle text-ds-primary ${col.className || ""}`}
+                    >
+                      {col.render
+                        ? col.render(row)
+                        : (row as Record<string, unknown>)[col.key] != null
+                          ? String((row as Record<string, unknown>)[col.key])
+                          : "--"}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            : null}
         </tbody>
       </table>
+
       {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-ds-border bg-ds-elevated/30">
-          <span className="text-xs text-ds-muted">{totalElements} élément(s)</span>
+        <div className="flex items-center justify-between gap-3 border-t border-ds-border bg-ds-elevated/35 px-4 py-3">
+          <span className="text-xs font-medium uppercase tracking-[0.08em] text-ds-muted">
+            {totalElements} element(s)
+          </span>
+
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 0}
-              className="p-2 rounded-xl border border-ds-border text-ds-primary hover:bg-ds-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              aria-label="Page précédente"
+              className="rounded-xl border border-ds-border p-2 text-ds-primary transition-all duration-200 hover:bg-ds-card disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Page precedente"
             >
               <ChevronLeft size={18} />
             </button>
-            <span className="text-sm text-ds-secondary">
+
+            <span className="text-sm font-medium tabular-nums text-ds-secondary">
               Page {page + 1} / {totalPages}
             </span>
+
             <button
               type="button"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1}
-              className="p-2 rounded-xl border border-ds-border text-ds-primary hover:bg-ds-elevated disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="rounded-xl border border-ds-border p-2 text-ds-primary transition-all duration-200 hover:bg-ds-card disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Page suivante"
             >
               <ChevronRight size={18} />

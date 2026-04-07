@@ -36,6 +36,29 @@ public class ChatbotResponseDto {
     @JsonProperty("massive_incident_candidate")
     private MassiveIncidentCandidateDto massiveIncidentCandidate;
 
+    @JsonProperty("model_version")
+    private String modelVersion;
+
+    @JsonProperty("fallback_mode")
+    private String fallbackMode;
+
+    @JsonProperty("reasoning_steps")
+    private List<String> reasoningSteps = List.of();
+
+    @JsonProperty("recommended_actions")
+    private List<String> recommendedActions = List.of();
+
+    @JsonProperty("risk_flags")
+    private List<String> riskFlags = List.of();
+
+    @JsonProperty("missing_information")
+    private List<String> missingInformation = List.of();
+
+    private List<String> sources = List.of();
+
+    @JsonProperty("latency_ms")
+    private Double latencyMs;
+
     public static ChatbotResponseDto unavailable(String message) {
         ChatbotResponseDto response = new ChatbotResponseDto();
         response.setAvailable(false);
@@ -47,6 +70,14 @@ public class ChatbotResponseDto {
         response.setResponseLanguage("fr");
         response.setResults(List.of());
         response.setMassiveIncidentCandidate(null);
+        response.setModelVersion("rag-chatbot-1.2.0");
+        response.setFallbackMode("service_unavailable");
+        response.setReasoningSteps(List.of("Chatbot indisponible, fallback backend active."));
+        response.setRecommendedActions(List.of("Relancer le microservice ai-chatbot puis reessayer."));
+        response.setRiskFlags(List.of("SERVICE_UNAVAILABLE"));
+        response.setMissingInformation(List.of());
+        response.setSources(List.of("gateway-fallback"));
+        response.setLatencyMs(0.0);
         return response;
     }
 }

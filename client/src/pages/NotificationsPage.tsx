@@ -20,6 +20,7 @@ import type { Notification } from "../types";
 import { Card, Button, Badge } from "../components/ui";
 import { useToast } from "../context/ToastContext";
 import { getErrorMessage } from "../api/client";
+import { formatRelativeTime } from "../utils/formatters";
 
 type FilterType = "all" | "unread" | "read";
 type NotificationCategory = "all" | "tickets" | "sla" | "services" | "rapports";
@@ -362,7 +363,7 @@ export default function NotificationsPage() {
                       </div>
                       <p className="text-sm text-ds-secondary mb-2">{notif.message}</p>
                       <div className="flex items-center gap-3 text-xs text-ds-muted">
-                        <span>{getTimeAgo(notif.createdAt)}</span>
+                        <span>{formatRelativeTime(notif.createdAt)}</span>
                         {notif.typeLabel && (
                           <>
                             <span>•</span>

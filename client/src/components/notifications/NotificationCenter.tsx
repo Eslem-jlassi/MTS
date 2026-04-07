@@ -11,6 +11,7 @@ import { notificationService } from "../../api/notificationService";
 import type { Notification } from "../../types";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage } from "../../api/client";
+import { formatRelativeTime } from "../../utils/formatters";
 
 /**
  * NotificationCenter - Centre de notifications in-app avec dropdown.
@@ -241,7 +242,7 @@ export default function NotificationCenter() {
                             {notif.message}
                           </p>
                           <p className="text-xs text-ds-muted mt-2">
-                            {getTimeAgo(notif.createdAt)}
+                            {formatRelativeTime(notif.createdAt)}
                           </p>
                         </div>
                       </div>

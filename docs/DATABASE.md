@@ -68,7 +68,7 @@ Le backend utilise JPA/Hibernate pour les entites et Flyway pour versionner le s
 
 ## Migrations Flyway
 
-La chaine de migration actuelle va de `V1` a `V34`.
+La chaine de migration actuelle va de `V1` a `V38`.
 
 ### Jalons principaux
 
@@ -86,7 +86,9 @@ La chaine de migration actuelle va de `V1` a `V34`.
 | `V22` | rapports uploades/generes |
 | `V23` | company et audit |
 | `V24` a `V33` | indexes, business hours, escalade, quick replies, auth, perfs |
-| `V34` | seed complementaire chatbot/services |
+| `V34` a `V35` | seed complementaire chatbot/services, email verification |
+| `V36` a `V37` | harmonisation Sprint 1 des seeds demo, timezone et defaults business hours |
+| `V38` | champs de verification forte pour actions admin sensibles |
 
 ### Point important sur le chatbot
 
@@ -105,7 +107,7 @@ Le chatbot actuel repose sur le microservice `ai-chatbot` et non sur des tables 
 ### H2
 
 - `DataInitializer`
-- mot de passe seed : `password`
+- mot de passe seed : `Password1!`
 - dataset plus compact, coherent avec le domaine telecom
 
 ## Fichiers generes et runtime

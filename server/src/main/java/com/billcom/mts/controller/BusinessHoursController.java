@@ -70,7 +70,7 @@ public class BusinessHoursController {
                 .startHour(request.getStartHour())
                 .endHour(request.getEndHour())
                 .workDays(request.getWorkDays())
-                .timezone(request.getTimezone() != null ? request.getTimezone() : "Africa/Tunis")
+                .timezone(request.getTimezone() != null ? request.getTimezone() : "Europe/Paris")
                 .isDefault(request.getIsDefault() != null ? request.getIsDefault() : false)
                 .active(request.getActive() != null ? request.getActive() : true)
                 .build();

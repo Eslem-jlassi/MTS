@@ -59,10 +59,26 @@ Alternative Windows :
 scripts\deploy\start-stack.bat
 ```
 
+Cette commande lance egalement un smoke post-deploy.
+
 Arret :
 
 ```bash
 docker compose down
+```
+
+## Verification operationnelle
+
+Smoke post-deploy (manuel):
+
+```bat
+scripts\deploy\smoke-post-deploy.bat
+```
+
+Logs stack (backend/frontend/mysql/IA):
+
+```bat
+scripts\deploy\show-stack-logs.bat
 ```
 
 ## Verification post-lancement

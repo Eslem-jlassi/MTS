@@ -9,6 +9,7 @@ import com.billcom.mts.dto.auth.RegisterRequest;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.exception.UnauthorizedException;
 import com.billcom.mts.service.AuthService;
+import com.billcom.mts.service.AuthRateLimitService;
 import com.billcom.mts.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +48,7 @@ public class AuthController {
     public static final String REFRESH_TOKEN = "mts_refresh_token";
 
     private final AuthService authService;
+    private final AuthRateLimitService authRateLimitService;
     private final UserService userService;
     private final SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
 
@@ -63,7 +65,10 @@ public class AuthController {
             @Valid @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse response) {
-        AuthResponse authResponse = authService.register(request, resolveClientIp(httpRequest));
+        String clientIp = resolveClientIp(httpRequest);
+        authRateLimitService.checkRegister(clientIp);
+
+        AuthResponse authResponse = authService.register(request, clientIp);
         writeAuthCookies(authResponse, response);
         return sanitizeBrowserResponse(authResponse);
     }
@@ -85,7 +90,10 @@ public class AuthController {
             @Valid @RequestBody LoginRequest request,
             HttpServletRequest httpRequest,
             HttpServletResponse response) {
-        AuthResponse authResponse = authService.login(request, resolveClientIp(httpRequest));
+        String clientIp = resolveClientIp(httpRequest);
+        authRateLimitService.checkLogin(clientIp);
+
+        AuthResponse authResponse = authService.login(request, clientIp);
         writeAuthCookies(authResponse, response);
         return sanitizeBrowserResponse(authResponse);
     }
@@ -153,7 +161,9 @@ public class AuthController {
     @PostMapping("/forgot-password")
     @Operation(summary = "Envoie un email de reinitialisation du mot de passe")
     public ResponseEntity<Map<String, Boolean>> forgotPassword(
-            @Valid @RequestBody EmailAddressRequest request) {
+            @Valid @RequestBody EmailAddressRequest request,
+            HttpServletRequest httpRequest) {
+        authRateLimitService.checkForgotPassword(resolveClientIp(httpRequest));
         authService.forgotPassword(request.getEmail());
         return ResponseEntity.ok(Map.of("success", true));
     }
@@ -161,7 +171,9 @@ public class AuthController {
     @PostMapping("/reset-password")
     @Operation(summary = "Reinitialise le mot de passe avec un token")
     public ResponseEntity<Map<String, Boolean>> resetPassword(
-            @Valid @RequestBody PasswordResetConfirmRequest request) {
+            @Valid @RequestBody PasswordResetConfirmRequest request,
+            HttpServletRequest httpRequest) {
+        authRateLimitService.checkResetPassword(resolveClientIp(httpRequest));
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(Map.of("success", true));
     }
@@ -176,7 +188,9 @@ public class AuthController {
     @PostMapping("/resend-verification")
     @Operation(summary = "Renvoie l'email de verification")
     public ResponseEntity<Map<String, Boolean>> resendVerification(
-            @Valid @RequestBody EmailAddressRequest request) {
+            @Valid @RequestBody EmailAddressRequest request,
+            HttpServletRequest httpRequest) {
+        authRateLimitService.checkResendVerification(resolveClientIp(httpRequest));
         authService.resendVerificationEmail(request.getEmail());
         return ResponseEntity.ok(Map.of("success", true));
     }

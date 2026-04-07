@@ -39,6 +39,7 @@ import {
   getPasswordConfirmationError,
   getPasswordValidationError,
 } from "../utils/passwordValidation";
+import { formatDateTime } from "../utils/formatters";
 
 const roleConfig: Record<
   UserRole,
@@ -575,13 +576,7 @@ export default function UsersPage() {
                       </td>
                       <td className="px-5 py-3.5 text-sm text-ds-muted">
                         {user.lastLoginAt ? (
-                          new Date(user.lastLoginAt).toLocaleDateString("fr-FR", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })
+                          formatDateTime(user.lastLoginAt)
                         ) : (
                           <span className="italic">Jamais</span>
                         )}

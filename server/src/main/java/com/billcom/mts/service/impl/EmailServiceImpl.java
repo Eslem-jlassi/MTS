@@ -139,6 +139,38 @@ public class EmailServiceImpl implements EmailService {
                 true);
     }
 
+            @Override
+            public void sendSensitiveActionCodeEmail(
+                String toEmail,
+                String recipientName,
+                String verificationCode,
+                LocalDateTime expiresAt,
+                String actionLabel) {
+            String safeRecipientName = StringUtils.hasText(recipientName) ? recipientName.trim() : "Administrateur";
+            String safeActionLabel = StringUtils.hasText(actionLabel)
+                ? actionLabel.trim()
+                : "cette action sensible";
+            String expiresLabel = expiresAt != null ? DATE_FORMATTER.format(expiresAt) : "bientot";
+
+            sendEmail(
+                toEmail,
+                "Code de verification admin - MTS Telecom",
+                "Votre code de verification est: " + verificationCode,
+                """
+                <p>Bonjour %s,</p>
+                <p>Une verification supplementaire est requise pour %s.</p>
+                <p>Votre code de verification est :</p>
+                <p style=\"font-size: 24px; font-weight: bold; letter-spacing: 4px;\">%s</p>
+                <p>Ce code expire le <strong>%s</strong>.</p>
+                <p>Si vous n'etes pas a l'origine de cette operation, contactez immediatement un administrateur de securite.</p>
+                """.formatted(
+                    escapeHtml(safeRecipientName),
+                    escapeHtml(safeActionLabel),
+                    escapeHtml(verificationCode),
+                    escapeHtml(expiresLabel)),
+                true);
+            }
+
     private void sendEmail(
             String toEmail,
             String subject,

@@ -6,7 +6,7 @@ server:
 
 spring:
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/mts_telecom_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Africa/Tunis&useUnicode=true&characterEncoding=utf8}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/mts_telecom_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=utf8}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:mts2026}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -118,7 +118,7 @@ resilience4j:
 # Google OAuth - Client ID (same as frontend REACT_APP_GOOGLE_OAUTH_CLIENT_ID) for ID token verification
 app:
   google:
-    client-id: ${GOOGLE_CLIENT_ID:348931794377-0ev901vacm9h6fnqfuqs5iv7kiikchge.apps.googleusercontent.com}
+    client-id: ${GOOGLE_CLIENT_ID:}
   frontend-base-url: ${FRONTEND_BASE_URL:http://localhost:3000}
   mail:
     enabled: ${MAIL_ENABLED:false}
@@ -130,6 +130,24 @@ app:
       expiration-hours: ${EMAIL_VERIFICATION_EXPIRATION_HOURS:24}
     password-reset:
       expiration-hours: ${PASSWORD_RESET_EXPIRATION_HOURS:1}
+    sensitive-action:
+      code-expiration-minutes: ${AUTH_SENSITIVE_ACTION_CODE_EXPIRATION_MINUTES:10}
+    rate-limit:
+      login:
+        max-attempts: ${AUTH_RATE_LIMIT_LOGIN_MAX_ATTEMPTS:5}
+        window-seconds: ${AUTH_RATE_LIMIT_LOGIN_WINDOW_SECONDS:60}
+      register:
+        max-attempts: ${AUTH_RATE_LIMIT_REGISTER_MAX_ATTEMPTS:5}
+        window-seconds: ${AUTH_RATE_LIMIT_REGISTER_WINDOW_SECONDS:300}
+      forgot-password:
+        max-attempts: ${AUTH_RATE_LIMIT_FORGOT_MAX_ATTEMPTS:5}
+        window-seconds: ${AUTH_RATE_LIMIT_FORGOT_WINDOW_SECONDS:300}
+      reset-password:
+        max-attempts: ${AUTH_RATE_LIMIT_RESET_MAX_ATTEMPTS:10}
+        window-seconds: ${AUTH_RATE_LIMIT_RESET_WINDOW_SECONDS:300}
+      resend-verification:
+        max-attempts: ${AUTH_RATE_LIMIT_RESEND_MAX_ATTEMPTS:5}
+        window-seconds: ${AUTH_RATE_LIMIT_RESEND_WINDOW_SECONDS:300}
 
 # Cookie configuration
 cookie:
@@ -165,7 +183,7 @@ ai:
     connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:2000}
     read-timeout-ms: ${AI_READ_TIMEOUT_MS:10000}
   autostart:
-    enabled: ${AI_AUTOSTART_ENABLED:true}
+    enabled: ${AI_AUTOSTART_ENABLED:false}
     wait-timeout-ms: ${AI_AUTOSTART_WAIT_TIMEOUT_MS:180000}
     poll-interval-ms: ${AI_AUTOSTART_POLL_INTERVAL_MS:1000}
   sentiment:

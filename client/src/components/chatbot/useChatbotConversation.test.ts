@@ -372,4 +372,25 @@ describe("useChatbotConversation persistence", () => {
 
     expect(assistantMessage?.responseLanguage).toBe("en");
   });
+
+  it("shows a visible assistant fallback when the AI backend is unavailable", async () => {
+    askMock.mockRejectedValue(new Error("Le chatbot IA est indisponible."));
+
+    const { result } = renderHook(() => useChatbotConversation("user-ai-down"));
+
+    await act(async () => {
+      await result.current.sendMessage("Analyse cette panne fibre.");
+    });
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toContain("indisponible");
+    });
+
+    const assistantMessage = [...result.current.messages]
+      .reverse()
+      .find((message) => message.role === "assistant" && message.isError);
+
+    expect(assistantMessage?.content).toContain("Je n'ai pas pu joindre le backend IA.");
+    expect(assistantMessage?.content).toContain("Le chatbot IA est indisponible.");
+  });
 });

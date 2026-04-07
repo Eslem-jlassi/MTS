@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 @Service("chatbotServiceClient")
 public class ChatbotService extends AiGatewaySupport {
 
@@ -33,6 +35,7 @@ public class ChatbotService extends AiGatewaySupport {
     }
 
     public ChatbotResponseDto askChatbot(String question, Integer topK, String preferredLanguage) {
+        long startedAt = System.nanoTime();
         ChatbotRequestDto request = new ChatbotRequestDto(question, topK != null ? topK : 5, preferredLanguage);
         String unavailableMessage = "Le chatbot IA est indisponible pour le moment. Verifiez que `ai-chatbot` tourne sur "
                 + chatbotBaseUrl
@@ -47,6 +50,27 @@ public class ChatbotService extends AiGatewaySupport {
                 body -> {
                     body.setAvailable(true);
                     body.setMessage(null);
+                    if (body.getModelVersion() == null || body.getModelVersion().isBlank()) {
+                        body.setModelVersion("rag-chatbot-1.2.0");
+                    }
+                    if (body.getFallbackMode() == null || body.getFallbackMode().isBlank()) {
+                        body.setFallbackMode("gateway_unspecified");
+                    }
+                    if (body.getReasoningSteps() == null) {
+                        body.setReasoningSteps(List.of());
+                    }
+                    if (body.getRecommendedActions() == null) {
+                        body.setRecommendedActions(List.of());
+                    }
+                    if (body.getRiskFlags() == null) {
+                        body.setRiskFlags(List.of());
+                    }
+                    if (body.getMissingInformation() == null) {
+                        body.setMissingInformation(List.of());
+                    }
+                    if (body.getSources() == null) {
+                        body.setSources(List.of());
+                    }
                 },
                 this::unavailableResponse,
                 "Le chatbot IA a repondu avec un corps vide.",
@@ -54,14 +78,20 @@ public class ChatbotService extends AiGatewaySupport {
                 "Le chatbot IA a rencontre une erreur temporaire. Reessayez apres avoir relance le microservice."
         );
 
+        double elapsedMs = (System.nanoTime() - startedAt) / 1_000_000.0;
+        if (chatbotResponse.getLatencyMs() == null || chatbotResponse.getLatencyMs() <= 0.0) {
+            chatbotResponse.setLatencyMs(elapsedMs);
+        }
+
         enrichWithMassiveIncidentCandidate(question, chatbotResponse);
         return chatbotResponse;
     }
 
     public MassiveIncidentDetectionResponseDto detectMassiveIncidents(MassiveIncidentDetectionRequestDto request) {
+        long startedAt = System.nanoTime();
         MassiveIncidentDetectionRequestDto payload = request != null ? request : new MassiveIncidentDetectionRequestDto();
 
-        return post(
+        MassiveIncidentDetectionResponseDto response = post(
                 SERVICE_NAME,
                 chatbotBaseUrl,
                 "/massive-incidents/detect",
@@ -77,12 +107,42 @@ public class ChatbotService extends AiGatewaySupport {
                     if (body.getEvaluatedTickets() == null) {
                         body.setEvaluatedTickets(0);
                     }
+                    if (body.getConfidence() == null || body.getConfidence().isBlank()) {
+                        body.setConfidence("low");
+                    }
+                    if (body.getModelVersion() == null || body.getModelVersion().isBlank()) {
+                        body.setModelVersion("massive-detector-1.1.0");
+                    }
+                    if (body.getFallbackMode() == null || body.getFallbackMode().isBlank()) {
+                        body.setFallbackMode("gateway_unspecified");
+                    }
+                    if (body.getReasoningSteps() == null) {
+                        body.setReasoningSteps(List.of());
+                    }
+                    if (body.getRecommendedActions() == null) {
+                        body.setRecommendedActions(List.of());
+                    }
+                    if (body.getRiskFlags() == null) {
+                        body.setRiskFlags(List.of());
+                    }
+                    if (body.getMissingInformation() == null) {
+                        body.setMissingInformation(List.of());
+                    }
+                    if (body.getSources() == null) {
+                        body.setSources(List.of());
+                    }
                 },
                 ignored -> MassiveIncidentDetectionResponseDto.empty(),
                 "Le detecteur d'incidents massifs a repondu avec un corps vide.",
                 "Le detecteur d'incidents massifs est indisponible pour le moment.",
                 "Le detecteur d'incidents massifs a rencontre une erreur temporaire."
         );
+
+        double elapsedMs = (System.nanoTime() - startedAt) / 1_000_000.0;
+        if (response.getLatencyMs() == null || response.getLatencyMs() <= 0.0) {
+            response.setLatencyMs(elapsedMs);
+        }
+        return response;
     }
 
     public AiServiceHealthDto healthCheck() {

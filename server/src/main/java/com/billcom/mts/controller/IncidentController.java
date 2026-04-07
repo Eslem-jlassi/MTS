@@ -1,6 +1,7 @@
 package com.billcom.mts.controller;
 
 import com.billcom.mts.dto.incident.*;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.IncidentStatus;
 import com.billcom.mts.enums.Severity;
@@ -214,15 +215,33 @@ public class IncidentController {
     public ResponseEntity<Map<String, String>> hardDeleteIncident(
             @PathVariable Long id,
             @AuthenticationPrincipal User user,
-            HttpServletRequest request) {
+            @Valid @RequestBody AdminHardDeleteRequest deleteRequest,
+            HttpServletRequest httpRequest) {
         
+        String ipAddress = httpRequest.getHeader("X-Forwarded-For");
+        if (ipAddress == null) {
+            ipAddress = httpRequest.getRemoteAddr();
+        }
+
+        incidentService.hardDeleteIncidentAsAdmin(id, user, ipAddress, deleteRequest);
+
+        return ResponseEntity.ok(Map.of("message", "Incident supprimé définitivement avec succès"));
+    }
+
+    @PostMapping("/{id}/hard-delete/challenge")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Envoie un code de verification email pour une suppression definitive d'incident")
+    public ResponseEntity<Map<String, String>> issueHardDeleteChallenge(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest request) {
+
         String ipAddress = request.getHeader("X-Forwarded-For");
         if (ipAddress == null) {
             ipAddress = request.getRemoteAddr();
         }
 
-        incidentService.hardDeleteIncidentAsAdmin(id, user, ipAddress);
-
-        return ResponseEntity.ok(Map.of("message", "Incident supprimé définitivement avec succès"));
+        incidentService.issueHardDeleteChallenge(id, user, ipAddress);
+        return ResponseEntity.ok(Map.of("message", "Code de verification envoye"));
     }
 }

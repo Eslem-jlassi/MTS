@@ -37,11 +37,7 @@ function shouldPersistBrowserSession(response: AuthResponse, user: UserResponse)
 
 function persistOrClearSession(response: AuthResponse, user: UserResponse): void {
   if (shouldPersistBrowserSession(response, user)) {
-    authStorage.saveSession(
-      response.accessToken ?? null,
-      response.refreshToken ?? null,
-      user,
-    );
+    authStorage.saveSession(response.accessToken ?? null, response.refreshToken ?? null, user);
     return;
   }
 

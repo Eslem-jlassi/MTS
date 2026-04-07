@@ -1,0 +1,8 @@
+NAME                      IMAGE                   COMMAND                  SERVICE             CREATED        STATUS                             PORTS
+pfe-ai-chatbot-1          pfe-ai-chatbot          "uvicorn app:app --h…"   ai-chatbot          17 hours ago   Up 4 hours (healthy)               0.0.0.0:8002->8002/tcp, [::]:8002->8002/tcp
+pfe-backend-1             pfe-backend             "sh -c 'java $JAVA_O…"   backend             17 hours ago   Up 16 seconds (health: starting)   0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp
+pfe-duplicate-service-1   pfe-duplicate-service   "uvicorn app.main:ap…"   duplicate-service   17 hours ago   Up 17 hours (healthy)              0.0.0.0:8001->8001/tcp, [::]:8001->8001/tcp
+pfe-frontend-1            pfe-frontend            "/docker-entrypoint.…"   frontend            17 hours ago   Up 17 seconds (health: starting)   0.0.0.0:3000->80/tcp, [::]:3000->80/tcp
+pfe-mysql-1               mysql:8.0               "docker-entrypoint.s…"   mysql               17 hours ago   Up 17 hours (healthy)              0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp
+pfe-phpmyadmin-1          phpmyadmin:5.2          "/docker-entrypoint.…"   phpmyadmin          17 hours ago   Up 17 hours                        0.0.0.0:8081->80/tcp, [::]:8081->80/tcp
+pfe-sentiment-service-1   pfe-sentiment-service   "uvicorn app.main:ap…"   sentiment-service   17 hours ago   Up 17 hours (healthy)              0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp

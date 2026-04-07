@@ -5,6 +5,7 @@ import com.billcom.mts.dto.ticket.TicketCommentRequest;
 import com.billcom.mts.dto.ticket.TicketCreateRequest;
 import com.billcom.mts.dto.ticket.TicketResponse;
 import com.billcom.mts.dto.ticket.TicketStatusChangeRequest;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.*;
 import com.billcom.mts.enums.*;
 import com.billcom.mts.exception.BadRequestException;
@@ -51,6 +52,7 @@ class TicketServiceImplTest {
     @Mock private NotificationRepository notificationRepository;
     @Mock private IncidentRepository incidentRepository;
     @Mock private SlaTimelineRepository slaTimelineRepository;
+        @Mock private com.billcom.mts.service.SensitiveActionVerificationService sensitiveActionVerificationService;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -772,10 +774,21 @@ class TicketServiceImplTest {
                         when(incidentRepository.countByTickets_Id(100L)).thenReturn(0L);
                         when(notificationRepository.deleteByReferenceTypeAndReferenceId("TICKET", 100L)).thenReturn(2L);
 
-                        ticketService.hardDeleteTicketAsAdmin(100L, adminUser, "127.0.0.1");
+                        ticketService.hardDeleteTicketAsAdmin(
+                                100L,
+                                adminUser,
+                                "127.0.0.1",
+                                hardDeleteRequest(100L)
+                        );
 
                         verify(ticketRepository).delete(testTicket);
                         verify(notificationRepository).deleteByReferenceTypeAndReferenceId("TICKET", 100L);
+                        verify(sensitiveActionVerificationService).verifyHardDeleteAuthorization(
+                                eq(adminUser),
+                                eq(100L),
+                                any(AdminHardDeleteRequest.class),
+                                contains("ticket")
+                        );
                         assertThat(Files.exists(ticketFolder)).isFalse();
                 }
 
@@ -788,7 +801,12 @@ class TicketServiceImplTest {
                         when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
                         when(commentRepository.countByTicketId(100L)).thenReturn(2L);
 
-                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(100L, adminUser, "127.0.0.1"))
+                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(
+                                100L,
+                                adminUser,
+                                "127.0.0.1",
+                                hardDeleteRequest(100L)
+                        ))
                                 .isInstanceOf(BadRequestException.class)
                                 .hasMessageContaining("commentaires");
                         verify(ticketRepository, never()).delete(any(Ticket.class));
@@ -808,7 +826,12 @@ class TicketServiceImplTest {
                         when(incidentRepository.countByTicketId(100L)).thenReturn(1L);
                         when(incidentRepository.countByTickets_Id(100L)).thenReturn(0L);
 
-                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(100L, adminUser, "127.0.0.1"))
+                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(
+                                100L,
+                                adminUser,
+                                "127.0.0.1",
+                                hardDeleteRequest(100L)
+                        ))
                                 .isInstanceOf(BadRequestException.class)
                                 .hasMessageContaining("incident");
                         verify(ticketRepository, never()).delete(any(Ticket.class));
@@ -843,4 +866,12 @@ class TicketServiceImplTest {
             assertThat(rate).isEqualTo(1.0);
         }
     }
+
+        private AdminHardDeleteRequest hardDeleteRequest(long id) {
+                return AdminHardDeleteRequest.builder()
+                                .confirmationKeyword("SUPPRIMER")
+                                .confirmationTargetId(String.valueOf(id))
+                                .currentPassword("Password1!")
+                                .build();
+        }
 }

@@ -25,6 +25,7 @@ import { AuditLog, AuditLogSearchParams } from "../types";
 import { useNavigate } from "react-router-dom";
 import { Card, Badge, Modal } from "../components/ui";
 import type { BadgeVariant } from "../components/ui/Badge";
+import { formatDateTime } from "../utils/formatters";
 
 /**
  * AuditLogPage - Console d'audit complète pour les admins (RGPD/ISO 27001).
@@ -380,7 +381,7 @@ const AuditLogPage: React.FC = () => {
                     className="hover:bg-ds-elevated/50 cursor-pointer transition-colors"
                   >
                     <td className="px-4 py-3 text-xs text-ds-secondary whitespace-nowrap">
-                      {formatTimestamp(log.timestamp)}
+                      {formatDateTime(log.timestamp)}
                     </td>
                     <td className="px-4 py-3 text-xs">
                       {log.systemAction ? (
@@ -478,7 +479,7 @@ const AuditLogPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs font-medium text-ds-muted mb-1">Timestamp</p>
-                <p className="text-sm text-ds-primary">{formatTimestamp(selectedLog.timestamp)}</p>
+                <p className="text-sm text-ds-primary">{formatDateTime(selectedLog.timestamp)}</p>
               </div>
               <div>
                 <p className="text-xs font-medium text-ds-muted mb-1">Utilisateur</p>

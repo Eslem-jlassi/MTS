@@ -33,21 +33,21 @@ public class OpenApiConfig {
                         .title("MTS Telecom Supervision API")
                         .version("1.0.0")
                         .description("""
-                                API REST du système de supervision télécom MTS — Billcom Consulting.
-                                
+                                API REST du systeme de supervision telecom MTS Telecom, realise avec Billcom Consulting.
+
                                 **Authentification :** JWT Bearer Token (access 15 min + refresh 7 jours).
                                 Utilisez l'endpoint POST /api/auth/login pour obtenir un token,
                                 puis ajoutez-le dans le header Authorization.
-                                
-                                **Rôles :** CLIENT · AGENT_SUPPORT · MANAGER · ADMIN
+
+                                **Roles :** CLIENT · AGENT · MANAGER · ADMIN
                                 """)
                         .contact(new Contact()
-                                .name("Billcom Consulting")
-                                .url("https://billcom.tn")
-                                .email("contact@billcom.tn"))
+                                .name("MTS Telecom / Billcom Consulting")
+                                .url("https://mts-telecom.ma")
+                                .email("contact@mts-telecom.ma"))
                         .license(new License()
-                                .name("Propriétaire — PFE 2026")
-                                .url("https://billcom.tn")))
+                                .name("Projet interne - PFE 2026")
+                                .url("https://mts-telecom.ma")))
                 .addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
     }
 }

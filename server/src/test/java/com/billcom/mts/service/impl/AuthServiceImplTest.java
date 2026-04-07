@@ -224,7 +224,6 @@ class AuthServiceImplTest {
                 return user;
             });
             when(clientRepository.findMaxClientCodeNumber(anyString())).thenReturn(null);
-            when(jwtService.getAccessTokenExpiration()).thenReturn(900000L);
 
             AuthResponse response = authService.register(request, "127.0.0.1");
 
@@ -370,6 +369,24 @@ class AuthServiceImplTest {
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("expire");
         }
+
+        @Test
+        @DisplayName("Devrait ignorer la verification si le compte est deja verifie")
+        void verifyEmail_alreadyVerified_noop() {
+            User user = User.builder()
+                    .id(5L)
+                    .email("verified@test.tn")
+                    .emailVerified(true)
+                    .emailVerificationToken("verify-token")
+                    .emailVerificationTokenExpiry(LocalDateTime.now().plusHours(2))
+                    .build();
+
+            when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
+
+            authService.verifyEmail("verify-token");
+
+            verify(userRepository, never()).save(any(User.class));
+        }
     }
 
     @Nested
@@ -405,6 +422,26 @@ class AuthServiceImplTest {
                     eq(savedUser.getEmailVerificationToken()),
                     eq(savedUser.getEmailVerificationTokenExpiry())
             );
+        }
+
+        @Test
+        @DisplayName("Devrait ignorer le renvoi si l'email est deja verifie")
+        void resendVerificationEmail_alreadyVerified_noop() {
+            User user = User.builder()
+                    .id(6L)
+                    .email("verified@test.tn")
+                    .firstName("Verified")
+                    .lastName("User")
+                    .role(UserRole.CLIENT)
+                    .emailVerified(true)
+                    .build();
+
+            when(userRepository.findByEmail("verified@test.tn")).thenReturn(java.util.Optional.of(user));
+
+            authService.resendVerificationEmail("verified@test.tn");
+
+            verify(userRepository, never()).save(any(User.class));
+            verify(emailService, never()).sendEmailVerificationEmail(anyString(), anyString(), anyString(), any(LocalDateTime.class));
         }
     }
 }

@@ -184,6 +184,7 @@ async def classify(request: ClassificationRequest):
     try:
         result = classify_ticket(request)
         elapsed = round((time.time() - start_time) * 1000, 1)
+        result.latency_ms = elapsed
         logger.info(f"Classification terminée en {elapsed}ms")
         return result
 

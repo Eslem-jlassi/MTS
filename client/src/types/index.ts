@@ -262,6 +262,13 @@ export interface AuthResponse {
   emailVerificationSent?: boolean;
 }
 
+export interface AdminHardDeleteRequestPayload {
+  confirmationKeyword: string;
+  confirmationTargetId: string;
+  currentPassword?: string;
+  verificationCode?: string;
+}
+
 // =============================================================================
 // TYPES CLIENT
 // =============================================================================

@@ -32,7 +32,7 @@
 ### H2
 
 - [ ] memes emails
-- [ ] mot de passe commun : `password`
+- [ ] mot de passe commun : `Password1!`
 
 ## Parcours a montrer
 

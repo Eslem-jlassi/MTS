@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
-import { Tabs, Tab } from "../ui";
+import { Tabs, Tab, Card, Badge, EmptyState } from "../ui";
 import Drawer from "../ui/Drawer";
 import QuickReplies from "./QuickReplies";
 import { getErrorMessage } from "../../api/client";
@@ -65,6 +65,15 @@ import {
   Copy,
   Link2,
 } from "lucide-react";
+import {
+  formatDateTime as formatDateTimeValue,
+  formatDurationMinutes,
+  formatFileSize as formatFileSizeValue,
+  formatHours,
+  formatNumberValue,
+  formatPercent,
+  formatSlaRemaining as formatSlaRemainingValue,
+} from "../../utils/formatters";
 
 // =============================================================================
 // TYPES & PROPS
@@ -685,6 +694,41 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   const isAssignmentLocked =
     ticket !== null &&
     [TicketStatus.RESOLVED, TicketStatus.CLOSED, TicketStatus.CANCELLED].includes(ticket.status);
+  const visibleCommentsCount = comments.filter((c) => !c.isInternal || isStaff).length;
+  const activityCount = comments.length + history.length;
+  const attachmentCount = ticket?.attachments?.length || 0;
+  const headerMetrics = ticket
+    ? [
+        {
+          label: "SLA",
+          value: formatSlaRemainingValue(ticket.slaRemainingMinutes),
+          helper: formatPercent(ticket.slaPercentage || 0),
+          tone: ticket.breachedSla || ticket.overdue ? "danger" : ticket.slaWarning ? "warning" : "success",
+          icon: <Clock size={16} />,
+        },
+        {
+          label: "Assignation",
+          value: ticket.assignedToName || "Non assigne",
+          helper: canAssign && isAssignmentLocked ? "Verrouillee" : ticket.assignedToId ? "En cours" : "A traiter",
+          tone: ticket.assignedToId ? "info" : "neutral",
+          icon: <UserPlus size={16} />,
+        },
+        {
+          label: "Activite",
+          value: `${activityCount}`,
+          helper: `${visibleCommentsCount} commentaire(s) visibles`,
+          tone: activityCount > 0 ? "default" : "neutral",
+          icon: <Activity size={16} />,
+        },
+        {
+          label: "Pieces jointes",
+          value: `${attachmentCount}`,
+          helper: attachmentCount > 0 ? "Disponibles" : "Aucune",
+          tone: attachmentCount > 0 ? "info" : "neutral",
+          icon: <Paperclip size={16} />,
+        },
+      ]
+    : [];
 
   // ==========================================================================
   // TAB RENDERERS
@@ -694,13 +738,14 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     if (!ticket) return null;
     return (
       <div className="space-y-5">
-        {/* ---- Infos rapides en grille ---- */}
-        <div className="grid grid-cols-2 gap-4">
+        <SectionCard
+          icon={<FileText size={18} />}
+          title="Pilotage du ticket"
+          subtitle="Statut, priorite, categorie et assignation."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
           {/* Statut — dropdown inline */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-ds-muted uppercase tracking-wider">
-              Statut
-            </label>
+          <FieldPanel label="Statut" helper="Transitions disponibles sans quitter le drawer.">
             {canChangeStatus &&
             ticket.allowedTransitions &&
             ticket.allowedTransitions.length > 0 ? (
@@ -744,33 +789,31 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 {sCfg.label}
               </div>
             )}
-          </div>
+          </FieldPanel>
 
           {/* Priorité — badge */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-ds-muted uppercase tracking-wider">
-              Priorité
-            </label>
+          <FieldPanel label="Priorité" helper="Niveau de traitement attendu.">
             <div className={`px-3 py-2 rounded-lg text-sm font-medium ${pCfg.bg} ${pCfg.text}`}>
               {pCfg.label}
             </div>
-          </div>
+          </FieldPanel>
 
           {/* Catégorie */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-ds-muted uppercase tracking-wider">
-              Catégorie
-            </label>
+          <FieldPanel label="Catégorie" helper="Classification métier du ticket.">
             <div className="px-3 py-2 rounded-lg text-sm bg-ds-elevated text-ds-primary">
               {ticket.categoryLabel || CategoryLabels[ticket.category] || ticket.category}
             </div>
-          </div>
+          </FieldPanel>
 
           {/* Assignation */}
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-ds-muted uppercase tracking-wider">
-              Assigné à
-            </label>
+          <FieldPanel
+            label="Assignation"
+            helper={
+              canAssign
+                ? "Affectation modifiable tant que le ticket reste ouvert."
+                : "Lecture seule selon votre role."
+            }
+          >
             {canAssign ? (
               <div className="relative">
                 <button
@@ -852,44 +895,53 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 {ticket.assignedToName || "Non assigné"}
               </div>
             )}
+          </FieldPanel>
           </div>
-        </div>
+        </SectionCard>
 
         {/* ---- Informations client ---- */}
-        <div className="bg-ds-elevated/50 rounded-xl p-4 space-y-2">
-          <h4 className="text-xs font-semibold text-ds-muted uppercase tracking-wider mb-2">
-            Informations
-          </h4>
-          <InfoRow label="Client" value={ticket.clientName || ticket.clientCompanyName || "—"} />
-          <InfoRow label="Entreprise" value={ticket.clientCompanyName || "—"} />
-          <InfoRow label="Service" value={ticket.serviceName || "—"} />
-          <InfoRow label="Créé par" value={ticket.createdByName || "—"} />
-          <InfoRow label="Créé le" value={formatDate(ticket.createdAt)} />
-          {ticket.resolvedAt && <InfoRow label="Résolu le" value={formatDate(ticket.resolvedAt)} />}
-          {ticket.closedAt && <InfoRow label="Fermé le" value={formatDate(ticket.closedAt)} />}
-        </div>
+        <SectionCard
+          icon={<Inbox size={18} />}
+          title="Contexte support"
+          subtitle="Client, service et horodatages utiles."
+        >
+          <div className="grid gap-3 sm:grid-cols-2">
+            <InlineFact label="Client" value={ticket.clientName || ticket.clientCompanyName || "-"} />
+            <InlineFact label="Entreprise" value={ticket.clientCompanyName || "-"} />
+            <InlineFact label="Service" value={ticket.serviceName || "-"} />
+            <InlineFact label="Créé par" value={ticket.createdByName || "-"} />
+            <InlineFact label="Créé le" value={formatDateTimeValue(ticket.createdAt)} />
+            {ticket.resolvedAt && (
+              <InlineFact label="Résolu le" value={formatDateTimeValue(ticket.resolvedAt)} />
+            )}
+            {ticket.closedAt && (
+              <InlineFact label="Fermé le" value={formatDateTimeValue(ticket.closedAt)} />
+            )}
+          </div>
+        </SectionCard>
 
         {/* ---- Description ---- */}
-        <div className="space-y-2">
-          <h4 className="text-xs font-semibold text-ds-muted uppercase tracking-wider">
-            Description
-          </h4>
-          <div className="bg-ds-elevated/50 rounded-xl p-4">
+        <SectionCard
+          icon={<MessageSquare size={18} />}
+          title="Signalement"
+          subtitle="Description initiale du besoin ou de l'incident."
+        >
+          <div className="rounded-2xl border border-ds-border/70 bg-ds-elevated/45 p-4">
             <p className="text-sm text-ds-primary whitespace-pre-wrap leading-relaxed">
               {ticket.description || (
                 <span className="text-ds-muted italic">Aucune description fournie.</span>
               )}
             </p>
           </div>
-        </div>
+        </SectionCard>
 
         {/* ---- Classification IA (auto-chargée) ---- */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-ds-muted uppercase tracking-wider flex items-center gap-1">
-              <Brain size={12} /> Proposition IA
-            </h4>
-            {sentiment && (
+        <SectionCard
+          icon={<Brain size={18} />}
+          title="Proposition IA"
+          subtitle="Synthèse automatique pour accélérer la qualification du ticket."
+          action={
+            sentiment ? (
               <button
                 onClick={async () => {
                   setSentimentLoading(true);
@@ -907,7 +959,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   }
                 }}
                 disabled={sentimentLoading}
-                className="text-xs flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-50 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30"
               >
                 {sentimentLoading ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -916,8 +968,9 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 )}
                 Ré-analyser
               </button>
-            )}
-          </div>
+            ) : undefined
+          }
+        >
 
           {/* Loading state */}
           {sentimentLoading && !sentiment && (
@@ -980,7 +1033,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   </span>
                 </div>
                 <span className="text-xs font-mono bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded-full">
-                  Confiance : {Math.round(sentiment.confidence * 100)}%
+                  Confiance : {formatPercent(sentiment.confidence * 100)}
                 </span>
               </div>
 
@@ -1012,17 +1065,92 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 
               {/* Ligne 3 : Raisonnement */}
               <p className="text-xs text-ds-muted italic leading-relaxed">{sentiment.reasoning}</p>
+
+              {(sentiment.reasoning_steps?.length || 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
+                    Etapes explicables
+                  </p>
+                  <ul className="space-y-1">
+                    {sentiment.reasoning_steps?.slice(0, 4).map((step, index) => (
+                      <li key={`sentiment-step-${index}`} className="text-xs text-ds-primary">
+                        • {step}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(sentiment.recommended_actions?.length || 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
+                    Actions recommandees
+                  </p>
+                  <ul className="space-y-1">
+                    {sentiment.recommended_actions?.slice(0, 3).map((action, index) => (
+                      <li key={`sentiment-action-${index}`} className="text-xs text-ds-primary">
+                        • {action}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(sentiment.risk_flags?.length || 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {sentiment.risk_flags?.map((flag) => (
+                    <span
+                      key={flag}
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                    >
+                      {flag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {(sentiment.missing_information?.length || 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
+                    Informations manquantes
+                  </p>
+                  <ul className="space-y-1">
+                    {sentiment.missing_information?.map((item) => (
+                      <li key={item} className="text-xs text-ds-primary">
+                        • {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-1.5 text-[11px] text-ds-muted">
+                {sentiment.model_version && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
+                    modele: {sentiment.model_version}
+                  </span>
+                )}
+                {sentiment.fallback_mode && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
+                    mode: {sentiment.fallback_mode}
+                  </span>
+                )}
+                {typeof sentiment.latency_ms === "number" && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
+                    latence: {formatNumberValue(sentiment.latency_ms, { maximumFractionDigits: 1 })} ms
+                  </span>
+                )}
+              </div>
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* ---- Détection de Doublons IA ---- */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-semibold text-ds-muted uppercase tracking-wider flex items-center gap-1">
-              <Copy size={12} /> Doublons IA
-            </h4>
-          </div>
+        <SectionCard
+          icon={<Copy size={18} />}
+          title="Doublons IA"
+          subtitle="Recherche de tickets proches pour qualifier un doublon ou un incident de masse."
+        >
 
           {/* Loading */}
           {duplicatesLoading && (
@@ -1095,7 +1223,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 )}
                 {duplicates.duplicate_confidence > 0 && (
                   <span className="text-xs font-mono bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded-full">
-                    Score max : {Math.round(duplicates.duplicate_confidence * 100)}%
+                    Score max : {formatPercent(duplicates.duplicate_confidence * 100)}
                   </span>
                 )}
               </div>
@@ -1123,7 +1251,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                               : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                         }`}
                       >
-                        {Math.round(match.similarity_score * 100)}%
+                        {formatPercent(match.similarity_score * 100)}
                       </span>
                     </div>
                   ))}
@@ -1134,9 +1262,90 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
               <p className="text-xs text-ds-muted italic leading-relaxed">
                 {duplicates.recommendation}
               </p>
+
+              {(duplicates.reasoning_steps?.length || 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
+                    Etapes explicables
+                  </p>
+                  <ul className="space-y-1">
+                    {duplicates.reasoning_steps?.slice(0, 4).map((step, index) => (
+                      <li key={`duplicate-step-${index}`} className="text-xs text-ds-primary">
+                        • {step}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(duplicates.recommended_actions?.length || 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
+                    Actions recommandees
+                  </p>
+                  <ul className="space-y-1">
+                    {duplicates.recommended_actions?.slice(0, 3).map((action, index) => (
+                      <li key={`duplicate-action-${index}`} className="text-xs text-ds-primary">
+                        • {action}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(duplicates.risk_flags?.length || 0) > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {duplicates.risk_flags?.map((flag) => (
+                    <span
+                      key={flag}
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
+                    >
+                      {flag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {(duplicates.missing_information?.length || 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
+                    Informations manquantes
+                  </p>
+                  <ul className="space-y-1">
+                    {duplicates.missing_information?.map((item) => (
+                      <li key={item} className="text-xs text-ds-primary">
+                        • {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-1.5 text-[11px] text-ds-muted">
+                {duplicates.model_version && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
+                    modele: {duplicates.model_version}
+                  </span>
+                )}
+                {duplicates.fallback_mode && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
+                    mode: {duplicates.fallback_mode}
+                  </span>
+                )}
+                {typeof duplicates.latency_ms === "number" && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
+                    latence: {formatNumberValue(duplicates.latency_ms, { maximumFractionDigits: 1 })} ms
+                  </span>
+                )}
+                {(duplicates.sources?.length || 0) > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
+                    sources: {duplicates.sources?.slice(0, 2).join(" | ")}
+                  </span>
+                )}
+              </div>
             </div>
           )}
-        </div>
+        </SectionCard>
 
         {/* ---- Resolution ---- */}
         {ticket.resolution &&
@@ -1167,7 +1376,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   )}
                   {ticket.timeSpentMinutes !== undefined && (
                     <span>
-                      <strong>Temps passé :</strong> {ticket.timeSpentMinutes} min
+                      <strong>Temps passé :</strong>{" "}
+                      {formatDurationMinutes(ticket.timeSpentMinutes)}
                     </span>
                   )}
                   {ticket.impact && (
@@ -1187,7 +1397,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
               SLA
             </span>
             <span className={`text-sm font-semibold ${getSlaColor()}`}>
-              {formatSlaRemaining(ticket.slaRemainingMinutes)}
+              {formatSlaRemainingValue(ticket.slaRemainingMinutes)}
             </span>
           </div>
           <div className="w-full bg-ds-page rounded-full h-2">
@@ -1197,8 +1407,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             />
           </div>
           <div className="flex justify-between mt-1 text-xs text-ds-muted">
-            <span>{ticket.slaHours}h accordées</span>
-            <span>{(ticket.slaPercentage || 0).toFixed(0)}%</span>
+            <span>{formatHours(ticket.slaHours)} accordées</span>
+            <span>{formatPercent(ticket.slaPercentage || 0)}</span>
           </div>
         </div>
       </div>
@@ -1262,7 +1472,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                     )}
                   </div>
                   <span className="text-xs text-ds-muted flex-shrink-0">
-                    {formatDateShort(item.date)}
+                    {formatDateTimeValue(item.date)}
                   </span>
                 </div>
 
@@ -1347,7 +1557,9 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-ds-muted">{formatDateShort(c.createdAt)}</span>
+                  <span className="text-xs text-ds-muted">
+                    {formatDateTimeValue(c.createdAt)}
+                  </span>
                 </div>
                 <p className="text-sm text-ds-primary whitespace-pre-wrap leading-relaxed pl-9">
                   {c.content}
@@ -1493,7 +1705,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 : "Dans les délais"}
           </h3>
           <p className={`text-2xl font-mono font-bold mt-1 ${getSlaColor()}`}>
-            {formatSlaRemaining(ticket.slaRemainingMinutes)}
+            {formatSlaRemainingValue(ticket.slaRemainingMinutes)}
           </p>
         </div>
 
@@ -1502,7 +1714,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           <div className="flex justify-between text-xs text-ds-muted mb-1">
             <span>0%</span>
             <span className={`font-semibold ${getSlaColor()}`}>
-              {(ticket.slaPercentage || 0).toFixed(0)}%
+              {formatPercent(ticket.slaPercentage || 0)}
             </span>
             <span>100%</span>
           </div>
@@ -1519,18 +1731,18 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           <h4 className="text-xs font-semibold text-ds-muted uppercase tracking-wider">
             Détails SLA
           </h4>
-          <InfoRow label="Délai accordé" value={`${ticket.slaHours || 0}h`} />
+          <InfoRow label="Délai accordé" value={formatHours(ticket.slaHours || 0)} />
           <InfoRow
             label="Deadline"
-            value={formatDate(ticket.deadline)}
+            value={formatDateTimeValue(ticket.deadline)}
             highlight={ticket.breachedSla}
           />
           <InfoRow
             label="Temps restant"
-            value={formatSlaRemaining(ticket.slaRemainingMinutes)}
+            value={formatSlaRemainingValue(ticket.slaRemainingMinutes)}
             highlight={ticket.breachedSla}
           />
-          <InfoRow label="Progression" value={`${(ticket.slaPercentage || 0).toFixed(1)}%`} />
+          <InfoRow label="Progression" value={formatPercent(ticket.slaPercentage || 0)} />
           <InfoRow
             label="Dépassé"
             value={ticket.breachedSla ? "Oui" : "Non"}
@@ -1543,9 +1755,13 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           <h4 className="text-xs font-semibold text-ds-muted uppercase tracking-wider">
             Chronologie
           </h4>
-          <InfoRow label="Créé le" value={formatDate(ticket.createdAt)} />
-          {ticket.resolvedAt && <InfoRow label="Résolu le" value={formatDate(ticket.resolvedAt)} />}
-          {ticket.closedAt && <InfoRow label="Fermé le" value={formatDate(ticket.closedAt)} />}
+          <InfoRow label="Créé le" value={formatDateTimeValue(ticket.createdAt)} />
+          {ticket.resolvedAt && (
+            <InfoRow label="Résolu le" value={formatDateTimeValue(ticket.resolvedAt)} />
+          )}
+          {ticket.closedAt && (
+            <InfoRow label="Fermé le" value={formatDateTimeValue(ticket.closedAt)} />
+          )}
         </div>
       </div>
     );
@@ -1600,8 +1816,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-ds-primary truncate">{att.fileName}</p>
                     <p className="text-xs text-ds-muted">
-                      {formatFileSize(att.fileSize)} · {att.uploadedByName || "—"} ·{" "}
-                      {formatDateShort(att.createdAt)}
+                      {formatFileSizeValue(att.fileSize)} · {att.uploadedByName || "—"} ·{" "}
+                      {formatDateTimeValue(att.createdAt)}
                     </p>
                   </div>
                 </div>
@@ -1668,7 +1884,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   <p className="text-xs text-ds-secondary mt-0.5 italic">{h.details}</p>
                 )}
                 <p className="text-xs text-ds-muted mt-1">
-                  {h.userName || "Système"} — {formatDate(h.createdAt)}
+                  {h.userName || "Système"} — {formatDateTimeValue(h.createdAt)}
                 </p>
               </div>
             </div>
@@ -1856,51 +2072,65 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             )}
 
             {/* ---- Sticky header ---- */}
-            <div className="px-5 pt-4 pb-3 border-b border-ds-border flex-shrink-0">
-              <div className="flex items-start justify-between gap-3">
+            <div className="px-5 pt-4 pb-4 border-b border-ds-border flex-shrink-0 bg-gradient-to-b from-primary-50/60 via-ds-card to-ds-card dark:from-primary-950/10 dark:via-ds-card dark:to-ds-card">
+              <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono text-ds-muted">{ticket.ticketNumber}</span>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <Badge variant="neutral" size="sm">
+                      {ticket.ticketNumber}
+                    </Badge>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${sCfg.bg} ${sCfg.text}`}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${sCfg.bg} ${sCfg.text}`}
                     >
                       {sCfg.label}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pCfg.bg} ${pCfg.text}`}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-semibold ${pCfg.bg} ${pCfg.text}`}
                     >
                       {pCfg.label}
                     </span>
                   </div>
-                  <h2 className="text-lg font-bold text-ds-primary leading-tight truncate">
+                  <h2 className="text-xl font-bold text-ds-primary leading-tight">
                     {ticket.title}
                   </h2>
-                  <p className="text-xs text-ds-muted mt-0.5">
+                  <p className="text-sm text-ds-secondary mt-1 leading-6">
                     {ticket.clientCompanyName || ticket.clientName} · {ticket.serviceName || "—"}
                   </p>
                 </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <button
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="p-2 rounded-lg text-ds-muted hover:text-ds-primary hover:bg-ds-elevated transition-all"
+                    className="p-2.5 rounded-xl border border-ds-border text-ds-muted hover:text-ds-primary hover:bg-ds-elevated transition-all"
                     title="Rafraîchir"
                   >
                     <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
                   </button>
                   <button
                     onClick={onClose}
-                    className="p-2 rounded-lg text-ds-muted hover:text-ds-primary hover:bg-ds-elevated transition-all"
+                    className="p-2.5 rounded-xl border border-ds-border text-ds-muted hover:text-ds-primary hover:bg-ds-elevated transition-all"
                     title="Fermer"
                   >
                     <X size={18} />
                   </button>
                 </div>
               </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {headerMetrics.map((metric) => (
+                  <MetricTile
+                    key={metric.label}
+                    label={metric.label}
+                    value={metric.value}
+                    helper={metric.helper}
+                    icon={metric.icon}
+                    tone={metric.tone as "default" | "success" | "warning" | "danger" | "info" | "neutral"}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* ---- Tabs bar ---- */}
-            <div className="px-5 flex-shrink-0 overflow-x-auto">
+            <div className="px-5 pt-2 flex-shrink-0 overflow-x-auto bg-ds-card/95">
               <Tabs
                 tabs={buildTabs(ticket)}
                 activeKey={activeTab}
@@ -1940,18 +2170,135 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 // SUB-COMPONENT
 // =============================================================================
 
+const SectionCard: React.FC<{
+  icon?: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+  tone?: "default" | "success";
+}> = ({ icon, title, subtitle, action, children, className = "", tone = "default" }) => (
+  <Card
+    className={`overflow-hidden border ${
+      tone === "success"
+        ? "border-green-200 dark:border-green-800 bg-green-50/70 dark:bg-green-900/15"
+        : "border-ds-border/80 bg-ds-card/80"
+    } ${className}`}
+  >
+    <div className="flex items-start justify-between gap-4 border-b border-ds-border/70 pb-4">
+      <div className="flex items-start gap-3 min-w-0">
+        {icon && (
+          <div className="ds-icon-shell flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-primary-600 dark:text-primary-300">
+            {icon}
+          </div>
+        )}
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold tracking-tight text-ds-primary">{title}</h3>
+          {subtitle && <p className="mt-1 text-sm text-ds-secondary">{subtitle}</p>}
+        </div>
+      </div>
+      {action && <div className="flex-shrink-0">{action}</div>}
+    </div>
+    <div className="mt-4">{children}</div>
+  </Card>
+);
+
+const FieldPanel: React.FC<{ label: string; helper?: string; children: React.ReactNode }> = ({
+  label,
+  helper,
+  children,
+}) => (
+  <div className="rounded-2xl border border-ds-border/70 bg-ds-elevated/45 p-3 space-y-2">
+    <div>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">{label}</p>
+      {helper && <p className="mt-1 text-xs text-ds-secondary">{helper}</p>}
+    </div>
+    {children}
+  </div>
+);
+
+const MetricTile: React.FC<{
+  label: string;
+  value: string;
+  helper?: string;
+  icon?: React.ReactNode;
+  tone?: "default" | "success" | "warning" | "danger" | "info" | "neutral";
+}> = ({ label, value, helper, icon, tone = "default" }) => {
+  const toneClasses: Record<string, string> = {
+    default: "border-primary-200/70 bg-primary-50/80 dark:border-primary-500/20 dark:bg-primary-500/10",
+    success: "border-green-200/70 bg-green-50/80 dark:border-green-500/20 dark:bg-green-500/10",
+    warning: "border-orange-200/70 bg-orange-50/80 dark:border-orange-500/20 dark:bg-orange-500/10",
+    danger: "border-red-200/70 bg-red-50/80 dark:border-red-500/20 dark:bg-red-500/10",
+    info: "border-sky-200/70 bg-sky-50/80 dark:border-sky-500/20 dark:bg-sky-500/10",
+    neutral: "border-ds-border/80 bg-ds-elevated/70",
+  };
+
+  return (
+    <div className={`rounded-2xl border p-3 ${toneClasses[tone]}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">{label}</p>
+          <p className="mt-2 text-base font-semibold text-ds-primary break-words">{value}</p>
+          {helper && <p className="mt-1 text-xs text-ds-secondary">{helper}</p>}
+        </div>
+        {icon && <div className="text-ds-muted flex-shrink-0">{icon}</div>}
+      </div>
+    </div>
+  );
+};
+
+const TicketEmptyState: React.FC<{
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}> = ({ icon, title, description, action }) => (
+  <div className="rounded-2xl border border-ds-border/70 bg-ds-elevated/35">
+    <EmptyState icon={icon} title={title} description={description} action={action} className="py-10" />
+  </div>
+);
+
+const InlineFact: React.FC<{
+  label: string;
+  value: string;
+  tone?: "default" | "success";
+}> = ({ label, value, tone = "default" }) => (
+  <div
+    className={`rounded-2xl border px-3.5 py-3 ${
+      tone === "success"
+        ? "border-green-200/70 bg-white/70 dark:border-green-700/60 dark:bg-green-950/20"
+        : "border-ds-border/70 bg-ds-elevated/50"
+    }`}
+  >
+    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ds-muted">{label}</p>
+    <p className="mt-1 text-sm font-medium text-ds-primary break-words">{value}</p>
+  </div>
+);
+
+const InsightState: React.FC<{
+  tone?: "info" | "danger";
+  children: React.ReactNode;
+}> = ({ tone = "info", children }) => (
+  <div
+    className={`rounded-2xl border px-4 py-3 text-sm flex items-center gap-3 ${
+      tone === "danger"
+        ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+        : "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300"
+    }`}
+  >
+    {children}
+  </div>
+);
+
 const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> = ({
   label,
   value,
   highlight,
 }) => (
-  <div className="flex justify-between text-sm">
+  <div className="grid grid-cols-[minmax(0,120px)_1fr] gap-3 text-sm items-start">
     <span className="text-ds-muted">{label}</span>
-    <span
-      className={`font-medium text-right max-w-[60%] truncate ${
-        highlight ? "text-red-600 dark:text-red-400" : "text-ds-primary"
-      }`}
-    >
+    <span className={`font-medium text-right break-words ${highlight ? "text-red-600 dark:text-red-400" : "text-ds-primary"}`}>
       {value}
     </span>
   </div>

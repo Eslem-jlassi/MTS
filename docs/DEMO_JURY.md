@@ -38,7 +38,7 @@ scripts\demo\start-demo-h2.bat
 
 ### Si vous lancez le profil H2
 
-- mot de passe commun : `password`
+- mot de passe commun : `Password1!`
 - memes emails que ci-dessus
 
 ## 3. Parcours a montrer

@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * AuditLogService - Gestion centralisée des logs d'audit (RGPD, ISO 27001).
@@ -197,6 +198,13 @@ public class AuditLogService {
      */
     public Page<AuditLog> getAll(Pageable pageable) {
         return auditLogRepository.findAll(pageable);
+    }
+
+    /**
+     * Get a specific audit log by id.
+     */
+    public Optional<AuditLog> getById(Long id) {
+        return auditLogRepository.findById(id);
     }
 
     /**

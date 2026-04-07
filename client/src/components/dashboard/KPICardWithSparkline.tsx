@@ -5,6 +5,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { ResponsiveContainer, Tooltip, Area, AreaChart } from "recharts";
 import Card from "../ui/Card";
+import { formatPercent } from "../../utils/formatters";
 
 interface KPICardWithSparklineProps {
   title: string;
@@ -76,8 +77,7 @@ const KPICardWithSparkline: React.FC<KPICardWithSparklineProps> = ({
                       : "text-red-600 dark:text-red-400"
                   }
                 >
-                  {pctChange >= 0 ? "+" : ""}
-                  {pctChange.toFixed(1)}% {previousLabel}
+                  {formatPercent(pctChange, { signed: true })} {previousLabel}
                 </span>
               )}
               {trend7d != null && <span className="text-ds-muted">7j: {trend7d}</span>}

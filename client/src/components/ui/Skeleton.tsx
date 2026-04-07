@@ -17,7 +17,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
   width,
   height,
 }) => {
-  const base = "animate-pulse bg-ds-elevated rounded";
+  const base = "ds-skeleton rounded";
   const variantClass =
     variant === "circular" ? "rounded-full" : variant === "text" ? "rounded h-4" : "rounded-lg";
   const style: React.CSSProperties = {};
@@ -29,7 +29,7 @@ const Skeleton: React.FC<SkeletonProps> = ({
 
 export function SkeletonCard() {
   return (
-    <div className="bg-ds-card rounded-xl border border-ds-border p-6">
+    <div className="ds-panel p-6">
       <div className="flex items-center justify-between">
         <div className="space-y-2 flex-1">
           <Skeleton variant="text" width="40%" />
@@ -43,8 +43,8 @@ export function SkeletonCard() {
 
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="bg-ds-card rounded-xl border border-ds-border overflow-hidden">
-      <div className="p-4 border-b border-ds-border flex gap-4">
+    <div className="ds-table-shell overflow-hidden">
+      <div className="ds-table-head flex gap-4 border-b border-ds-border p-4">
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} variant="text" width={`${80 + i * 20}px`} height={16} />
         ))}

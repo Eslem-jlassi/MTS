@@ -34,6 +34,10 @@ const normalizeAnalysis = (analysis?: ChatbotApiAnalysis | null): ChatbotAnalysi
 const normalizeChatbotResponse = (data: ChatbotApiResponse | undefined): ChatbotResponse => {
   const apiData = data ?? ({} as Partial<ChatbotApiResponse>);
   const results = Array.isArray(apiData.results) ? apiData.results : [];
+  const normalizedAnalysis = normalizeAnalysis(apiData.analysis);
+  const normalizedMissingInformation = Array.isArray(apiData.missing_information)
+    ? apiData.missing_information
+    : normalizedAnalysis?.missingInformation || [];
 
   return {
     available: apiData.available,
@@ -44,7 +48,7 @@ const normalizeChatbotResponse = (data: ChatbotApiResponse | undefined): Chatbot
     serviceDetected: apiData.service_detected ?? "N/A",
     serviceDetectionConfidence: apiData.service_detection_confidence ?? "low",
     responseLanguage: apiData.response_language === "en" ? "en" : "fr",
-    analysis: normalizeAnalysis(apiData.analysis),
+    analysis: normalizedAnalysis,
     results: results.map((result) => ({
       docType: result.doc_type,
       title: result.title,
@@ -67,6 +71,16 @@ const normalizeChatbotResponse = (data: ChatbotApiResponse | undefined): Chatbot
           recommendation: apiData.massive_incident_candidate.recommendation,
         }
       : null,
+    modelVersion: apiData.model_version || "rag-chatbot-1.2.0",
+    fallbackMode: apiData.fallback_mode || "gateway_unspecified",
+    reasoningSteps: Array.isArray(apiData.reasoning_steps) ? apiData.reasoning_steps : [],
+    recommendedActions: Array.isArray(apiData.recommended_actions)
+      ? apiData.recommended_actions
+      : [],
+    riskFlags: Array.isArray(apiData.risk_flags) ? apiData.risk_flags : [],
+    missingInformation: normalizedMissingInformation,
+    sources: Array.isArray(apiData.sources) ? apiData.sources : [],
+    latencyMs: typeof apiData.latency_ms === "number" ? apiData.latency_ms : undefined,
   };
 };
 

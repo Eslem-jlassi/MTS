@@ -155,4 +155,41 @@ describe("ChatbotResponseSections integration", () => {
     expect(screen.getByText("Suggested actions")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Review SLA risk" })).toBeInTheDocument();
   });
+
+  it("renders enriched AI metadata sections when provided by backend contract", () => {
+    render(
+      <ChatbotResponseSections
+        message={buildAssistantMessage({
+          modelVersion: "rag-chatbot-1.2.0",
+          fallbackMode: "rag_primary",
+          latencyMs: 154.3,
+          reasoningSteps: [
+            "Top semantic score=0.920.",
+            "Service detecte=BSCS Billing System, confidence=high.",
+          ],
+          recommendedActions: [
+            "Verifier les incidents similaires sur BSCS Billing System avant changement en production.",
+          ],
+          riskFlags: ["MASS_INCIDENT_CANDIDATE"],
+          missingInformation: ["heure de debut"],
+          sources: ["doc:ticket-001"],
+          analysis: {
+            summary: "Diagnostic probable sur BSCS.",
+            impact: "Impact probable.",
+            nextAction: "Verifier les incidents similaires.",
+            clarificationNeeded: true,
+            missingInformation: [],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText("Etapes de raisonnement")).toBeInTheDocument();
+    expect(screen.getByText("Recommandations IA")).toBeInTheDocument();
+    expect(screen.getByText("Drapeaux de risque")).toBeInTheDocument();
+    expect(screen.getByText("Version modele")).toBeInTheDocument();
+    expect(screen.getByText("Mode fallback")).toBeInTheDocument();
+    expect(screen.getByText("Sources")).toBeInTheDocument();
+    expect(screen.getByText("heure de debut")).toBeInTheDocument();
+  });
 });

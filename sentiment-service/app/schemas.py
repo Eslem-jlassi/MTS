@@ -74,6 +74,11 @@ class ClassificationResponse(BaseModel):
       - confidence  : score de confiance entre 0.0 et 1.0
       - reasoning   : explication courte de la décision
     """
+    available: bool = Field(
+        default=True,
+        description="Indique si le service IA est disponible",
+        examples=[True],
+    )
     category: str = Field(
         ...,
         description="Catégorie suggérée pour le ticket",
@@ -115,6 +120,42 @@ class ClassificationResponse(BaseModel):
         ...,
         description="Explication courte de la suggestion",
         examples=["Mots-clés réseau/lenteur détectés + sentiment négatif → PANNE_RESEAU / HIGH"],
+    )
+    model_version: Optional[str] = Field(
+        default=None,
+        description="Version du modèle IA utilisé",
+        examples=["sentiment-hybrid-2.1.0"],
+    )
+    fallback_mode: Optional[str] = Field(
+        default=None,
+        description="Mode IA actif : hybrid ou rules_only",
+        examples=["hybrid"],
+    )
+    reasoning_steps: list[str] = Field(
+        default_factory=list,
+        description="Étapes explicables du raisonnement IA",
+    )
+    recommended_actions: list[str] = Field(
+        default_factory=list,
+        description="Actions recommandées pour l'agent",
+    )
+    risk_flags: list[str] = Field(
+        default_factory=list,
+        description="Risques détectés à monitorer",
+    )
+    missing_information: list[str] = Field(
+        default_factory=list,
+        description="Informations manquantes à collecter",
+    )
+    sources: list[str] = Field(
+        default_factory=list,
+        description="Sources ayant contribué à la décision",
+    )
+    latency_ms: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        description="Temps de traitement du microservice en millisecondes",
+        examples=[183.4],
     )
 
 

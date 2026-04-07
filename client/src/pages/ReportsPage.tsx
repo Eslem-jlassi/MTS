@@ -30,6 +30,7 @@ import { telecomServiceService } from "../api/telecomServiceService";
 import { clientService } from "../api/clientService";
 import { Card, Button, EmptyState } from "../components/ui";
 import { getErrorMessage } from "../api/client";
+import { formatDateRange, formatFileSize, formatPercent } from "../utils/formatters";
 
 // =============================================================================
 // CONFIGURATION
@@ -81,6 +82,46 @@ interface ServiceOption {
 interface ClientOption {
   id: number;
   companyName: string;
+}
+
+function ExecutiveSummaryContent({ summary }: { summary: string }) {
+  const lines = summary
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="space-y-3">
+      {lines.map((line, index) => {
+        const isSection = line.startsWith("===");
+        const isAlert = line.toUpperCase().includes("ALERTE");
+        const content = isSection ? line.replace(/=/g, "").trim() : line.replace(/^[-•]\s*/, "");
+
+        if (isSection) {
+          return (
+            <div key={`${content}-${index}`} className="border-b border-ds-border pb-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ds-muted">
+                {content}
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <div
+            key={`${content}-${index}`}
+            className={`rounded-lg border px-4 py-3 text-sm leading-relaxed ${
+              isAlert
+                ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-700/40 dark:bg-amber-900/20 dark:text-amber-100"
+                : "border-ds-border bg-ds-elevated/60 text-ds-secondary"
+            }`}
+          >
+            {isAlert ? content : `• ${content}`}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // =============================================================================
@@ -398,7 +439,7 @@ export default function ReportsPage() {
             onClick={() => setShowUploadModal(true)}
             className="shadow-lg hover:shadow-xl transition-all font-semibold text-base px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
           >
-            📤 Importer un Rapport
+            Importer un rapport
           </Button>
         </div>
       </div>
@@ -412,8 +453,8 @@ export default function ReportsPage() {
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-              <h2 className="text-lg font-semibold text-ds-primary">Résumé Exécutif</h2>
-              <span className="text-xs text-ds-muted">— {selectedReport.title}</span>
+              <h2 className="text-lg font-semibold text-ds-primary">Resume executif</h2>
+              <span className="text-xs text-ds-muted">- {selectedReport.title}</span>
             </div>
             <button
               type="button"
@@ -424,13 +465,13 @@ export default function ReportsPage() {
             </button>
           </div>
           {selectedReport.executiveSummary ? (
-            <pre className="whitespace-pre-wrap text-sm text-ds-secondary font-mono bg-ds-elevated rounded-lg p-4 max-h-96 overflow-y-auto">
-              {selectedReport.executiveSummary}
-            </pre>
+            <div className="max-h-96 overflow-y-auto">
+              <ExecutiveSummaryContent summary={selectedReport.executiveSummary} />
+            </div>
           ) : (
             <p className="text-sm text-ds-muted italic">
-              Aucun résumé exécutif disponible pour ce rapport. Les rapports uploadés manuellement
-              n'incluent pas de résumé automatique.
+              Aucun resume executif disponible pour ce rapport. Les rapports importes manuellement
+              n'incluent pas de resume automatique.
             </p>
           )}
         </Card>
@@ -481,11 +522,11 @@ export default function ReportsPage() {
         ) : filteredReports.length === 0 ? (
           <EmptyState
             icon={<FileText className="w-12 h-12" />}
-            title="Aucun rapport trouvé"
-            description="Ajustez les filtres ou générez votre premier rapport."
+            title="Aucun rapport trouve"
+            description="Ajustez les filtres ou generez votre premier rapport."
             action={
               <Button variant="primary" onClick={() => setShowGenerateModal(true)}>
-                Générer un rapport
+                Generer un rapport
               </Button>
             }
           />
@@ -544,7 +585,7 @@ export default function ReportsPage() {
                           <div className="min-w-0">
                             <p className="font-medium text-ds-primary truncate">{report.title}</p>
                             <p className="text-xs text-ds-muted">
-                              {report.formattedFileSize || report.fileName}
+                              {report.formattedFileSize || formatFileSize(report.fileSize)}
                             </p>
                           </div>
                         </div>
@@ -568,7 +609,7 @@ export default function ReportsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-ds-muted">
-                        {report.formattedPeriod || `${report.periodStart} – ${report.periodEnd}`}
+                        {report.formattedPeriod || formatDateRange(report.periodStart, report.periodEnd)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
@@ -594,7 +635,7 @@ export default function ReportsPage() {
                               type="button"
                               onClick={() => handleViewSummary(report)}
                               className="p-2 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg"
-                              title="Voir le résumé exécutif"
+                              title="Voir le resume executif"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
@@ -611,7 +652,7 @@ export default function ReportsPage() {
                             type="button"
                             onClick={() => openReuploadModal(report)}
                             className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg"
-                            title="Re-uploader le fichier PDF"
+                            title="Remplacer le fichier PDF"
                           >
                             <Upload className="w-4 h-4" />
                           </button>
@@ -709,9 +750,9 @@ function KpiCards({ reports, lastGenerated }: { reports: Report[]; lastGenerated
           <KpiCard label="Incidents" value={kpi.incidentsCount ?? 0} color="purple" />
           <KpiCard label="Inc. critiques" value={kpi.incidentsCritical ?? 0} color="red" />
           <KpiCard
-            label="SLA %"
+            label="Conformité SLA"
             value={
-              kpi.slaCompliancePct !== undefined ? `${kpi.slaCompliancePct.toFixed(1)}%` : "N/A"
+              kpi.slaCompliancePct !== undefined ? formatPercent(kpi.slaCompliancePct) : "N/A"
             }
             color={
               kpi.slaCompliancePct !== undefined
@@ -852,7 +893,7 @@ function GenerateModal({
           </button>
         </div>
         <p className="text-sm text-ds-muted mb-4">
-          Rapport basé sur les tickets et incidents. Inclut un résumé exécutif automatique.
+          Rapport base sur les tickets et incidents. Inclut un resume executif automatique.
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -1097,7 +1138,7 @@ function UploadModal({
               <Upload className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-ds-primary">📤 Importer un Rapport</h3>
+              <h3 className="text-xl font-bold text-ds-primary">Importer un rapport</h3>
               <p className="text-sm text-ds-muted mt-0.5">Uploadez un rapport PDF existant</p>
             </div>
           </div>
@@ -1125,7 +1166,7 @@ function UploadModal({
             />
             {form.file && (
               <p className="text-sm text-green-600 dark:text-green-400 mt-2 font-medium flex items-center gap-1">
-                ✓ {form.file.name} ({(form.file.size / 1024).toFixed(1)} Ko)
+                ✓ {form.file.name} ({formatFileSize(form.file.size)})
               </p>
             )}
             <p className="text-xs text-ds-muted mt-2">Format PDF uniquement, max 10 Mo</p>
@@ -1214,7 +1255,7 @@ function UploadModal({
               icon={<Upload className="w-4 h-4" />}
               className="px-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg font-semibold"
             >
-              📤 Importer le Rapport
+              Importer le rapport
             </Button>
           </div>
         </form>
@@ -1248,7 +1289,7 @@ function ReuploadModal({
               <Upload className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-ds-primary">🔄 Re-uploader le Fichier</h3>
+              <h3 className="text-xl font-bold text-ds-primary">Remplacer le fichier</h3>
               <p className="text-sm text-ds-muted mt-0.5">Remplacer le PDF du rapport</p>
             </div>
           </div>
@@ -1271,7 +1312,7 @@ function ReuploadModal({
                 {report.fileName}
               </span>
               <span className="text-ds-muted">•</span>
-              <span>{report.formattedFileSize || `${(report.fileSize / 1024).toFixed(1)} Ko`}</span>
+              <span>{report.formattedFileSize || formatFileSize(report.fileSize)}</span>
             </div>
           </div>
 
@@ -1290,7 +1331,7 @@ function ReuploadModal({
             />
             {file && (
               <p className="text-sm text-green-600 dark:text-green-400 mt-2 font-medium flex items-center gap-1">
-                ✓ {file.name} ({(file.size / 1024).toFixed(1)} Ko)
+                ✓ {file.name} ({formatFileSize(file.size)})
               </p>
             )}
             <p className="text-xs text-ds-muted mt-2">

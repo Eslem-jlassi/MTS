@@ -19,6 +19,14 @@ export interface ChatbotApiResponse {
   analysis?: ChatbotApiAnalysis | null;
   results: ChatbotApiResult[];
   massive_incident_candidate?: ChatbotApiMassiveIncidentCandidate | null;
+  model_version?: string;
+  fallback_mode?: string;
+  reasoning_steps?: string[];
+  recommended_actions?: string[];
+  risk_flags?: string[];
+  missing_information?: string[];
+  sources?: string[];
+  latency_ms?: number;
 }
 
 export interface ChatbotApiAnalysis {
@@ -68,6 +76,14 @@ export interface ChatbotResponse {
   analysis?: ChatbotAnalysis | null;
   results: ChatbotResult[];
   massiveIncidentCandidate?: ChatbotMassiveIncidentCandidate | null;
+  modelVersion?: string;
+  fallbackMode?: string;
+  reasoningSteps?: string[];
+  recommendedActions?: string[];
+  riskFlags?: string[];
+  missingInformation?: string[];
+  sources?: string[];
+  latencyMs?: number;
 }
 
 export interface ChatbotAnalysis {
@@ -126,6 +142,14 @@ export interface ChatMessageModel {
   analysis?: ChatbotAnalysis | null;
   results?: ChatbotResult[];
   massiveIncidentCandidate?: ChatbotMassiveIncidentCandidate | null;
+  modelVersion?: string;
+  fallbackMode?: string;
+  reasoningSteps?: string[];
+  recommendedActions?: string[];
+  riskFlags?: string[];
+  missingInformation?: string[];
+  sources?: string[];
+  latencyMs?: number;
   isLoading?: boolean;
   isError?: boolean;
 }

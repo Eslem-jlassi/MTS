@@ -155,6 +155,40 @@ const massiveIncidentActions = (language: ChatLanguage): ChatbotSuggestedAction[
         },
       ];
 
+const aiRecommendedActions = (
+  message: ChatMessageModel,
+  language: ChatLanguage,
+): ChatbotSuggestedAction[] => {
+  const actions = Array.isArray(message.recommendedActions)
+    ? message.recommendedActions.filter((item) => typeof item === "string" && item.trim().length > 0)
+    : [];
+
+  return actions.slice(0, 3).map((item, index) => ({
+    id: `ai-recommended-${index + 1}`,
+    label:
+      language === "en"
+        ? `AI recommendation ${index + 1}`
+        : `Recommendation IA ${index + 1}`,
+    message: item,
+  }));
+};
+
+const deduplicateActions = (actions: ChatbotSuggestedAction[]): ChatbotSuggestedAction[] => {
+  const deduplicated: ChatbotSuggestedAction[] = [];
+  const seen = new Set<string>();
+
+  for (const action of actions) {
+    const fingerprint = `${action.label}::${action.message}`.trim().toLowerCase();
+    if (seen.has(fingerprint)) {
+      continue;
+    }
+    seen.add(fingerprint);
+    deduplicated.push(action);
+  }
+
+  return deduplicated;
+};
+
 export const resolveSuggestedActions = (message: ChatMessageModel): ChatbotSuggestedAction[] => {
   if (
     message.role !== "assistant" ||
@@ -168,16 +202,20 @@ export const resolveSuggestedActions = (message: ChatMessageModel): ChatbotSugge
   const normalizedConfidence = normalizeConfidence(message.confidence);
   const service = resolveServiceLabel(message);
   const language = resolveChatLanguage(message.responseLanguage, "fr");
+  const recommendedByAi = aiRecommendedActions(message, language);
 
   if (!normalizedConfidence && !service) {
     return [];
   }
 
   if (normalizedConfidence === "low") {
-    return lowConfidenceActions(service, language);
+    return deduplicateActions([...recommendedByAi, ...lowConfidenceActions(service, language)]);
   }
 
-  const actions = mediumHighConfidenceActions(service, language);
+  const actions = deduplicateActions([
+    ...recommendedByAi,
+    ...mediumHighConfidenceActions(service, language),
+  ]);
 
   if (message.massiveIncidentCandidate) {
     return [...massiveIncidentActions(language), ...actions];

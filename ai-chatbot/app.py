@@ -2,10 +2,12 @@ import pickle
 from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
+import time
+import threading
 
 import faiss
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 from chat_response_builder import (
     build_answer_from_analysis,
@@ -27,6 +29,8 @@ INDEX_DIR = BASE_DIR / "index"
 INDEX_FILE = INDEX_DIR / "rag_faiss.index"
 METADATA_FILE = INDEX_DIR / "rag_metadata.pkl"
 EMBEDDING_MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
+CHATBOT_MODEL_VERSION = "rag-chatbot-1.2.0"
+MASSIVE_DETECTION_MODEL_VERSION = "massive-detector-1.1.0"
 
 app = FastAPI(title="API Chatbot IA Telecom", version="1.1.0")
 
@@ -35,24 +39,48 @@ index = None
 metadata = []
 model = None
 ticket_records = []
+runtime_loading = False
+runtime_loaded = False
 
-try:
-    print("Chargement de l'index FAISS...")
-    index = faiss.read_index(str(INDEX_FILE))
 
-    print("Chargement des metadonnees...")
-    with open(METADATA_FILE, "rb") as metadata_stream:
-        metadata = pickle.load(metadata_stream)
+def initialize_runtime() -> None:
+    global startup_error, index, metadata, model, ticket_records, runtime_loading, runtime_loaded
 
-    print("Chargement du modele d'embeddings...")
-    model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-    ticket_records = load_ticket_records()
-except Exception as error:  # pragma: no cover - startup fallback
-    startup_error = f"{type(error).__name__}: {error}"
-    index = None
-    metadata = []
-    model = None
-    ticket_records = []
+    runtime_loading = True
+    runtime_loaded = False
+    startup_error = None
+
+    try:
+        print("Chargement de l'index FAISS...")
+        loaded_index = faiss.read_index(str(INDEX_FILE))
+
+        print("Chargement des metadonnees...")
+        with open(METADATA_FILE, "rb") as metadata_stream:
+            loaded_metadata = pickle.load(metadata_stream)
+
+        print("Chargement du modele d'embeddings...")
+        loaded_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        loaded_ticket_records = load_ticket_records()
+
+        index = loaded_index
+        metadata = loaded_metadata
+        model = loaded_model
+        ticket_records = loaded_ticket_records
+        runtime_loaded = True
+    except Exception as error:  # pragma: no cover - startup fallback
+        startup_error = f"{type(error).__name__}: {error}"
+        index = None
+        metadata = []
+        model = None
+        ticket_records = []
+    finally:
+        runtime_loading = False
+
+
+@app.on_event("startup")
+def startup_event() -> None:
+    # Keep API bootstrap fast: heavy model loading runs in background.
+    threading.Thread(target=initialize_runtime, daemon=True).start()
 
 
 class ChatRequest(BaseModel):
@@ -93,6 +121,14 @@ class ChatResponse(BaseModel):
     analysis: ChatAnalysisResponse
     results: List[SearchResult]
     massive_incident_candidate: Optional["MassiveIncidentCandidateResponse"] = None
+    model_version: str = CHATBOT_MODEL_VERSION
+    fallback_mode: str = "rag_primary"
+    reasoning_steps: List[str] = Field(default_factory=list)
+    recommended_actions: List[str] = Field(default_factory=list)
+    risk_flags: List[str] = Field(default_factory=list)
+    missing_information: List[str] = Field(default_factory=list)
+    sources: List[str] = Field(default_factory=list)
+    latency_ms: Optional[float] = None
 
 
 class MassiveIncidentDetectionRequest(BaseModel):
@@ -121,9 +157,19 @@ class MassiveIncidentCandidateResponse(BaseModel):
 
 
 class MassiveIncidentDetectionResponse(BaseModel):
+    available: bool = True
     evaluated_tickets: int
     candidates_found: int
     candidates: List[MassiveIncidentCandidateResponse]
+    confidence: str = "low"
+    model_version: str = MASSIVE_DETECTION_MODEL_VERSION
+    fallback_mode: str = "cluster_primary"
+    reasoning_steps: List[str] = Field(default_factory=list)
+    recommended_actions: List[str] = Field(default_factory=list)
+    risk_flags: List[str] = Field(default_factory=list)
+    missing_information: List[str] = Field(default_factory=list)
+    sources: List[str] = Field(default_factory=list)
+    latency_ms: Optional[float] = None
 
 
 def _normalize_text(value: Optional[str]) -> str:
@@ -177,6 +223,181 @@ def _build_recommendation(candidate, language: str = "fr") -> str:
         f"Preparer un ticket global de supervision pour {candidate.detected_service}, "
         "valider l'impact transverse puis confirmer avant toute creation definitive en production."
     )
+
+
+def _resolve_chat_fallback_mode(confidence: str, service_detection_confidence: str) -> str:
+    if confidence == "low":
+        return "low_confidence_guardrail"
+    if service_detection_confidence == "low":
+        return "service_ambiguity_guardrail"
+    return "rag_primary"
+
+
+def _build_chat_reasoning_steps(
+    analysis: ChatAnalysisResponse,
+    confidence: str,
+    service_detected: str,
+    top_score: float,
+    has_results: bool,
+    fallback_mode: str,
+) -> List[str]:
+    steps = [
+        f"Top semantic score={top_score:.3f} ({'results_found' if has_results else 'no_results'}).",
+        f"Service detecte={service_detected}, confidence={confidence}.",
+        f"Mode de robustesse actif={fallback_mode}.",
+    ]
+
+    if analysis.probable_cause:
+        steps.append("Cause probable extraite depuis les documents les plus proches.")
+    if analysis.known_resolution:
+        steps.append("Resolution connue proposee avec validation humaine requise.")
+    if analysis.clarification_needed:
+        steps.append("Des informations complementaires sont necessaires avant action definitive.")
+
+    return steps
+
+
+def _build_chat_recommended_actions(
+    analysis: ChatAnalysisResponse,
+    confidence: str,
+    service_detected: str,
+    massive_candidate: Optional[MassiveIncidentCandidateResponse],
+    language: str,
+) -> List[str]:
+    actions: List[str] = []
+
+    if analysis.next_action:
+        actions.append(analysis.next_action)
+
+    if confidence == "low":
+        actions.append(
+            "Complete the context (service, symptoms, timeline, impact) before escalation."
+            if language == "en"
+            else "Completer le contexte (service, symptomes, chronologie, impact) avant escalation."
+        )
+    else:
+        actions.append(
+            f"Verify similar incidents on {service_detected} before production changes."
+            if language == "en"
+            else f"Verifier les incidents similaires sur {service_detected} avant changement en production."
+        )
+
+    if massive_candidate and massive_candidate.recommendation:
+        actions.append(massive_candidate.recommendation)
+
+    deduplicated: List[str] = []
+    seen = set()
+    for action in actions:
+        normalized = (action or "").strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduplicated.append(action.strip())
+
+    return deduplicated[:5]
+
+
+def _build_chat_risk_flags(
+    confidence: str,
+    service_detection_confidence: str,
+    analysis: ChatAnalysisResponse,
+    massive_candidate: Optional[MassiveIncidentCandidateResponse],
+) -> List[str]:
+    risk_flags: List[str] = []
+
+    if confidence == "low":
+        risk_flags.append("LOW_CONFIDENCE")
+    if service_detection_confidence == "low":
+        risk_flags.append("SERVICE_AMBIGUITY")
+    if analysis.clarification_needed:
+        risk_flags.append("MISSING_CONTEXT")
+    if massive_candidate:
+        risk_flags.append("MASS_INCIDENT_CANDIDATE")
+
+    return risk_flags
+
+
+def _build_chat_sources(raw_results: List[dict]) -> List[str]:
+    sources: List[str] = []
+    seen = set()
+
+    for result in raw_results[:5]:
+        doc_id = (result.get("doc_id") or "").strip()
+        title = (result.get("title") or "").strip()
+        source = f"doc:{doc_id}" if doc_id else f"title:{title}"
+        if not source or source in seen:
+            continue
+        seen.add(source)
+        sources.append(source)
+
+    return sources
+
+
+def _resolve_detection_confidence(candidates: List[MassiveIncidentCandidateResponse]) -> str:
+    if not candidates:
+        return "low"
+    return (candidates[0].confidence_level or "low").lower()
+
+
+def _build_detection_reasoning_steps(
+    request: MassiveIncidentDetectionRequest,
+    response_candidates: List[MassiveIncidentCandidateResponse],
+) -> List[str]:
+    steps = [
+        f"Fenetre={request.hours_back}h, similarite>={request.similarity_threshold}, cluster_min={request.min_cluster_size}.",
+        f"Candidats retenus={len(response_candidates)}.",
+    ]
+
+    if response_candidates:
+        top = response_candidates[0]
+        steps.append(
+            f"Top candidat={top.detected_service}, cluster={top.cluster_size}, score={top.confidence_score:.3f}."
+        )
+
+    return steps
+
+
+def _build_detection_actions(
+    response_candidates: List[MassiveIncidentCandidateResponse],
+    language: str,
+) -> List[str]:
+    if not response_candidates:
+        return [
+            "Continue monitoring and gather more correlated tickets."
+            if language == "en"
+            else "Poursuivre la surveillance et collecter plus de tickets correles."
+        ]
+
+    top = response_candidates[0]
+    actions = [top.recommendation]
+    actions.append(
+        "Validate with supervision before opening a major-incident bridge."
+        if language == "en"
+        else "Valider avec la supervision avant ouverture d'un pont incident majeur."
+    )
+    return actions
+
+
+def _build_detection_risk_flags(response_candidates: List[MassiveIncidentCandidateResponse]) -> List[str]:
+    if not response_candidates:
+        return ["NO_MASS_CLUSTER_DETECTED"]
+
+    risk_flags = ["MASS_INCIDENT_CANDIDATE"]
+    top = response_candidates[0]
+    if (top.confidence_level or "").lower() == "high":
+        risk_flags.append("HIGH_CLUSTER_CONFIDENCE")
+    if top.cluster_size >= 5:
+        risk_flags.append("HIGH_TICKET_VOLUME")
+    return risk_flags
+
+
+def _build_detection_sources(response_candidates: List[MassiveIncidentCandidateResponse]) -> List[str]:
+    sources: List[str] = []
+    for candidate in response_candidates[:3]:
+        sources.append(f"service:{candidate.detected_service}")
+        for ticket_id in candidate.ticket_ids[:5]:
+            sources.append(f"ticket:{ticket_id}")
+    return sources
 
 
 def _rank_and_filter_candidates(
@@ -256,14 +477,39 @@ def _run_massive_incident_detection(
         for item in ranked_candidates
     ]
 
+    detection_confidence = _resolve_detection_confidence(response_candidates)
+    fallback_mode = "no_cluster_detected" if not response_candidates else "cluster_primary"
+    reasoning_steps = _build_detection_reasoning_steps(request, response_candidates)
+    recommended_actions = _build_detection_actions(response_candidates, language)
+    risk_flags = _build_detection_risk_flags(response_candidates)
+    sources = _build_detection_sources(response_candidates)
+
     return MassiveIncidentDetectionResponse(
+        available=True,
         evaluated_tickets=len(ticket_records),
         candidates_found=len(response_candidates),
         candidates=response_candidates,
+        confidence=detection_confidence,
+        model_version=MASSIVE_DETECTION_MODEL_VERSION,
+        fallback_mode=fallback_mode,
+        reasoning_steps=reasoning_steps,
+        recommended_actions=recommended_actions,
+        risk_flags=risk_flags,
+        missing_information=[],
+        sources=sources,
     )
 
 
 def ensure_runtime_ready() -> None:
+    if runtime_loading and model is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Le moteur du chatbot IA est en cours d'initialisation. "
+                "Reessayez dans quelques instants."
+            ),
+        )
+
     if startup_error or index is None or model is None:
         raise HTTPException(
             status_code=503,
@@ -281,17 +527,24 @@ def root():
 
 @app.get("/health")
 def health():
+    status = "starting" if runtime_loading and model is None else "ok"
+    if startup_error:
+        status = "degraded"
+
     return {
-        "status": "ok" if not startup_error else "degraded",
+        "status": status,
         "documents_indexed": len(metadata),
         "ticket_records_loaded": len(ticket_records),
         "model_name": EMBEDDING_MODEL_NAME,
+        "runtime_loading": runtime_loading,
+        "runtime_loaded": runtime_loaded,
         "startup_error": startup_error,
     }
 
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
+    start_time = time.time()
     ensure_runtime_ready()
     response_language = resolve_response_language(request.question, request.preferred_language)
 
@@ -351,6 +604,32 @@ def chat(request: ChatRequest):
         if detection_response.candidates_found > 0:
             massive_incident_candidate = detection_response.candidates[0]
 
+    fallback_mode = _resolve_chat_fallback_mode(confidence, service_detection_confidence)
+    reasoning_steps = _build_chat_reasoning_steps(
+        analysis,
+        confidence,
+        service_detected,
+        top_score,
+        len(raw_results) > 0,
+        fallback_mode,
+    )
+    missing_information = analysis.missing_information if analysis.missing_information else []
+    recommended_actions = _build_chat_recommended_actions(
+        analysis,
+        confidence,
+        service_detected,
+        massive_incident_candidate,
+        response_language,
+    )
+    risk_flags = _build_chat_risk_flags(
+        confidence,
+        service_detection_confidence,
+        analysis,
+        massive_incident_candidate,
+    )
+    sources = _build_chat_sources(raw_results)
+    latency_ms = round((time.time() - start_time) * 1000, 1)
+
     return ChatResponse(
         answer=answer,
         confidence=confidence,
@@ -372,11 +651,20 @@ def chat(request: ChatRequest):
         ),
         results=api_results,
         massive_incident_candidate=massive_incident_candidate,
+        model_version=CHATBOT_MODEL_VERSION,
+        fallback_mode=fallback_mode,
+        reasoning_steps=reasoning_steps,
+        recommended_actions=recommended_actions,
+        risk_flags=risk_flags,
+        missing_information=missing_information,
+        sources=sources,
+        latency_ms=latency_ms,
     )
 
 
 @app.post("/massive-incidents/detect", response_model=MassiveIncidentDetectionResponse)
 def detect_massive_incidents(request: MassiveIncidentDetectionRequest):
+    start_time = time.time()
     ensure_runtime_ready()
 
     try:
@@ -384,7 +672,9 @@ def detect_massive_incidents(request: MassiveIncidentDetectionRequest):
             request.query_hint or "",
             request.preferred_language,
         )
-        return _run_massive_incident_detection(request, response_language)
+        response = _run_massive_incident_detection(request, response_language)
+        response.latency_ms = round((time.time() - start_time) * 1000, 1)
+        return response
     except ValueError as error:
         raise HTTPException(
             status_code=400,

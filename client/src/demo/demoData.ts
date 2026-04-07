@@ -93,7 +93,7 @@ export const DEMO_USERS: UserResponse[] = [
   },
   {
     id: 2,
-    email: "sara.manager@mts-telecom.ma",
+    email: "manager@mts-telecom.ma",
     firstName: "Sara",
     lastName: "El Fassi",
     fullName: "Sara El Fassi",
@@ -796,7 +796,7 @@ export const DEMO_AUDIT_LOGS: AuditLog[] = [
     id: 2,
     timestamp: hoursAgo(2),
     userName: "Sara El Fassi",
-    userEmail: "sara.manager@mts-telecom.ma",
+    userEmail: "manager@mts-telecom.ma",
     userId: 2,
     action: "TICKET_ASSIGNED",
     actionLabel: "Ticket assigné",

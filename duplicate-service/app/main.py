@@ -188,6 +188,7 @@ async def detect(request: DuplicateRequest):
     try:
         result = detect_duplicates(request)
         elapsed = round((time.time() - start_time) * 1000, 1)
+        result.latency_ms = elapsed
         logger.info(f"Détection terminée en {elapsed}ms — {len(result.matched_tickets)} match(es)")
         return result
 

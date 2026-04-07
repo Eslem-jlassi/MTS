@@ -4,11 +4,20 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Plus, RefreshCw, Filter, ChevronUp, Shield, Activity, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Plus,
+  RefreshCw,
+  Filter,
+  ChevronUp,
+  Shield,
+  Activity,
+  Trash2,
+} from "lucide-react";
 import { incidentService } from "../api/incidentService";
 import { usePermissions } from "../hooks/usePermissions";
 import { useToast } from "../context/ToastContext";
-import type { Incident } from "../types";
+import type { Incident, UserRole } from "../types";
 import {
   IncidentStatusLabels,
   SeverityLabels,
@@ -17,6 +26,9 @@ import {
   Severity,
 } from "../types";
 import { Card, Button, EmptyState, ErrorState, Badge, ConfirmModal } from "../components/ui";
+import { formatDateTime } from "../utils/formatters";
+import { useSelector } from "react-redux";
+import { RootState } from "../redux/store";
 
 function formatDate(s: string | undefined): string {
   if (!s) return "—";
@@ -56,15 +68,44 @@ export default function IncidentsPage() {
 
   const { canDeleteIncident } = usePermissions();
   const toast = useToast();
-  
+
   const [incidentToDelete, setIncidentToDelete] = useState<Incident | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteTargetIdInput, setDeleteTargetIdInput] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteVerificationCode, setDeleteVerificationCode] = useState("");
+  const [isSendingDeleteCode, setIsSendingDeleteCode] = useState(false);
+
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const isAdmin = currentUser?.role === ("ADMIN" as UserRole);
+  const isOauthAdmin = Boolean(isAdmin && currentUser?.oauthProvider);
 
   const handleDeleteConfirm = async () => {
     if (!incidentToDelete) return;
+
+    if (deleteTargetIdInput.trim() !== String(incidentToDelete.id)) {
+      toast.error("L'identifiant exact de l'incident est requis.");
+      return;
+    }
+
+    if (!isOauthAdmin && !deletePassword.trim()) {
+      toast.error("Saisissez votre mot de passe administrateur pour confirmer.");
+      return;
+    }
+
+    if (isOauthAdmin && !deleteVerificationCode.trim()) {
+      toast.error("Saisissez le code de verification recu par email.");
+      return;
+    }
+
     setIsDeleting(true);
     try {
-      await incidentService.hardDeleteIncident(incidentToDelete.id);
+      await incidentService.hardDeleteIncident(incidentToDelete.id, {
+        confirmationKeyword: "SUPPRIMER",
+        confirmationTargetId: String(incidentToDelete.id),
+        currentPassword: isOauthAdmin ? undefined : deletePassword,
+        verificationCode: isOauthAdmin ? deleteVerificationCode : undefined,
+      });
       toast.success(`Incident ${incidentToDelete.incidentNumber} supprimé définitivement`);
       setIncidentToDelete(null);
       load();
@@ -72,6 +113,20 @@ export default function IncidentsPage() {
       toast.error(err?.response?.data?.message || err?.message || "Erreur lors de la suppression");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleRequestDeleteChallenge = async () => {
+    if (!incidentToDelete) return;
+
+    setIsSendingDeleteCode(true);
+    try {
+      await incidentService.requestHardDeleteChallenge(incidentToDelete.id);
+      toast.success("Un code de verification a ete envoye sur votre email administrateur.");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || err?.response?.data?.message || "Envoi du code impossible");
+    } finally {
+      setIsSendingDeleteCode(false);
     }
   };
 
@@ -92,6 +147,19 @@ export default function IncidentsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (incidentToDelete) {
+      setDeleteTargetIdInput("");
+      setDeletePassword("");
+      setDeleteVerificationCode("");
+      return;
+    }
+
+    setDeleteTargetIdInput("");
+    setDeletePassword("");
+    setDeleteVerificationCode("");
+  }, [incidentToDelete]);
 
   const filtered = useMemo(() => {
     let list = incidents;
@@ -130,17 +198,81 @@ export default function IncidentsPage() {
         message={
           incidentToDelete ? (
             <>
-              <p>Vous êtes sur le point de supprimer définitivement l'incident <strong>{incidentToDelete.incidentNumber}</strong>.</p>
-              <p className="mt-2 text-sm">Cette action est <strong>irréversible</strong> et supprimera également toutes les notes et relations associées (les tickets liés seront conservés mais détachés).</p>
+              <p>
+                Vous êtes sur le point de supprimer définitivement l'incident{" "}
+                <strong>{incidentToDelete.incidentNumber}</strong>.
+              </p>
+              <p className="mt-2 text-sm">
+                Cette action est <strong>irréversible</strong> et supprimera également toutes les
+                notes et relations associées (les tickets liés seront conservés mais détachés).
+              </p>
+              <div className="mt-3 space-y-3 rounded-xl border border-ds-border bg-ds-surface/70 p-3 text-left">
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                    Identifiant exact de l'incident
+                  </label>
+                  <input
+                    type="text"
+                    value={deleteTargetIdInput}
+                    onChange={(event) => setDeleteTargetIdInput(event.target.value)}
+                    className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                    placeholder={`Tapez ${incidentToDelete.id}`}
+                    autoComplete="off"
+                  />
+                </div>
+
+                {isOauthAdmin ? (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Code de verification email
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={deleteVerificationCode}
+                        onChange={(event) => setDeleteVerificationCode(event.target.value)}
+                        className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                        placeholder="Code a 6 chiffres"
+                        autoComplete="one-time-code"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRequestDeleteChallenge}
+                        disabled={isSendingDeleteCode || isDeleting}
+                      >
+                        {isSendingDeleteCode ? "Envoi..." : "Envoyer un code"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Mot de passe administrateur
+                    </label>
+                    <input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(event) => setDeletePassword(event.target.value)}
+                      className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                      placeholder="Confirmez avec votre mot de passe"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                )}
+              </div>
             </>
-          ) : ""
+          ) : (
+            ""
+          )
         }
         confirmLabel="Supprimer"
         cancelLabel="Annuler"
         variant="danger"
         loading={isDeleting}
         confirmationKeyword="SUPPRIMER"
-        confirmationHint="Tapez SUPPRIMER pour confirmer."
+        confirmationHint="Tapez SUPPRIMER, puis confirmez l'ID exact et la re-authentification admin."
       />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -346,7 +478,7 @@ export default function IncidentsPage() {
                       )}
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-sm text-ds-secondary">
-                      {formatDate(inc.startedAt)}
+                      {formatDateTime(inc.startedAt)}
                     </td>
                     <td className="px-4 sm:px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-3">

@@ -29,6 +29,11 @@ import {
   CriticalityLabels,
   SeverityLabels,
 } from "../types";
+import {
+  formatDateTime,
+  formatDurationMinutes,
+  formatPercent,
+} from "../utils/formatters";
 
 const statusIcon: Record<ServiceStatus, React.ReactNode> = {
   [ServiceStatus.UP]: <CheckCircle2 size={20} />,
@@ -197,7 +202,7 @@ const HealthMonitoringPage: React.FC = () => {
             </div>
             <div>
               <p className="text-xs text-ds-secondary uppercase tracking-wider">Santé globale</p>
-              <p className="text-2xl font-bold text-ds-primary">{healthPct}%</p>
+              <p className="text-2xl font-bold text-ds-primary">{formatPercent(healthPct)}</p>
             </div>
           </div>
         </Card>
@@ -350,7 +355,7 @@ const HealthMonitoringPage: React.FC = () => {
                               <span
                                 className={`text-sm font-medium ${s.availabilityPct >= 99 ? "text-green-600 dark:text-green-400" : s.availabilityPct >= 95 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}
                               >
-                                {s.availabilityPct.toFixed(1)}%
+                                {formatPercent(s.availabilityPct)}
                               </span>
                             ) : (
                               <span className="text-sm text-ds-muted">—</span>
@@ -428,10 +433,12 @@ const HealthMonitoringPage: React.FC = () => {
                   {selectedService.availabilityPct != null && (
                     <div>
                       <dt className="text-ds-muted flex items-center gap-1">
-                        <TrendingUp size={12} /> Dispo.
+                        <TrendingUp size={12} /> Disponibilite
                       </dt>
                       <dd className="font-medium text-ds-primary">
-                        {selectedService.availabilityPct.toFixed(2)}%
+                        {formatPercent(selectedService.availabilityPct, {
+                          maximumFractionDigits: 2,
+                        })}
                       </dd>
                     </div>
                   )}
@@ -447,7 +454,7 @@ const HealthMonitoringPage: React.FC = () => {
                     <div>
                       <dt className="text-ds-muted">MTTR</dt>
                       <dd className="font-medium text-ds-primary">
-                        {selectedService.mttrMinutes} min
+                        {formatDurationMinutes(selectedService.mttrMinutes)}
                       </dd>
                     </div>
                   )}
@@ -504,12 +511,7 @@ const HealthMonitoringPage: React.FC = () => {
                             )}
                             <p className="text-xs text-ds-muted mt-0.5">
                               {entry.changedByName && `${entry.changedByName} — `}
-                              {new Date(entry.createdAt).toLocaleDateString("fr-FR", {
-                                day: "2-digit",
-                                month: "short",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatDateTime(entry.createdAt)}
                             </p>
                           </div>
                         </li>

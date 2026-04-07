@@ -36,6 +36,7 @@ import {
   ServiceStatusColors,
   ServiceStatusBgColors,
 } from "../../types";
+import { formatRelativeTime, formatTime } from "../../utils/formatters";
 
 // =============================================================================
 // TYPES
@@ -184,7 +185,7 @@ const ActivityTimeline: React.FC<{ tickets: TicketType[] }> = ({ tickets }) => {
               </div>
             </div>
             <span className="flex-shrink-0 text-xs text-ds-muted whitespace-nowrap mt-0.5">
-              {relativeTime(t.updatedAt || t.createdAt)}
+              {formatRelativeTime(t.updatedAt || t.createdAt)}
             </span>
           </motion.li>
         ))}
@@ -353,10 +354,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
               MAJ{" "}
-              {new Date(lastUpdated).toLocaleTimeString("fr-FR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatTime(lastUpdated)}
             </span>
           )}
           <button

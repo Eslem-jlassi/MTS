@@ -88,6 +88,7 @@ from .schemas import (
 from .utils import combine_ticket_text, get_duplicate_level, is_within_time_window
 
 logger = logging.getLogger(__name__)
+MODEL_VERSION = "duplicate-detector-1.1.0"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -309,6 +310,80 @@ def build_recommendation(
         return "Aucun doublon détecté. Traiter le ticket normalement."
 
 
+def _build_reasoning_steps(
+    mode: str,
+    best_score: float,
+    high_count: int,
+    medium_count: int,
+    similar_in_window: int,
+    dup_threshold: float,
+    sim_threshold: float,
+) -> list[str]:
+    return [
+        f"Mode d'encodage actif={mode}.",
+        f"Score max={best_score:.3f}, seuil doublon={dup_threshold:.3f}, seuil similaire={sim_threshold:.3f}.",
+        f"Tickets HIGH={high_count}, MEDIUM={medium_count}, similaires dans la fenetre temporelle={similar_in_window}.",
+    ]
+
+
+def _build_recommended_actions(
+    is_duplicate: bool,
+    possible_mass_incident: bool,
+    same_service: bool,
+) -> list[str]:
+    actions: list[str] = []
+
+    if possible_mass_incident:
+        actions.append("Ouvrir un suivi incident global et prevenir la supervision.")
+    if is_duplicate:
+        actions.append("Verifier puis lier/fusionner le ticket avec le ticket parent.")
+    if same_service:
+        actions.append("Prioriser l'analyse sur le meme service telecom.")
+    actions.append("Documenter l'impact client et le risque SLA avant cloture.")
+
+    return actions
+
+
+def _build_risk_flags(
+    is_duplicate: bool,
+    possible_mass_incident: bool,
+    best_score: float,
+    mode: str,
+) -> list[str]:
+    risk_flags: list[str] = []
+
+    if is_duplicate:
+        risk_flags.append("DUPLICATE_RISK")
+    if possible_mass_incident:
+        risk_flags.append("MASS_INCIDENT_RISK")
+    if best_score < 0.5:
+        risk_flags.append("LOW_SIMILARITY_CONFIDENCE")
+    if mode == "tfidf":
+        risk_flags.append("FALLBACK_TFIDF_ACTIVE")
+
+    return risk_flags
+
+
+def _build_missing_information(new_ticket) -> list[str]:
+    missing: list[str] = []
+
+    if not (new_ticket.description or "").strip() or len((new_ticket.description or "").strip()) < 20:
+        missing.append("description detaillee du symptome")
+    if not (new_ticket.service or "").strip():
+        missing.append("service impacte")
+    if not new_ticket.created_at:
+        missing.append("horodatage precis du ticket")
+
+    return missing
+
+
+def _build_sources(matched_tickets: list[MatchedTicket], mode: str) -> list[str]:
+    sources = [f"embedding-engine:{mode}"]
+    for match in matched_tickets[:5]:
+        sources.append(f"ticket:{match.ticket_id}")
+    return sources
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # DÉTECTION COMPLÈTE (FONCTION PRINCIPALE)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -438,6 +513,28 @@ def detect_duplicates(request: DuplicateRequest) -> DuplicateResponse:
     recommendation = build_recommendation(
         is_duplicate, possible_mass_incident, best_score, sim_threshold,
     )
+    reasoning_steps = _build_reasoning_steps(
+        _mode,
+        best_score,
+        high_count,
+        medium_count,
+        similar_in_window,
+        dup_threshold,
+        sim_threshold,
+    )
+    recommended_actions = _build_recommended_actions(
+        is_duplicate,
+        possible_mass_incident,
+        same_service,
+    )
+    risk_flags = _build_risk_flags(
+        is_duplicate,
+        possible_mass_incident,
+        best_score,
+        _mode,
+    )
+    missing_information = _build_missing_information(new_ticket)
+    sources = _build_sources(matched_tickets, _mode)
 
     logger.info(
         f"Résultat : duplicate={is_duplicate}, mass_incident={possible_mass_incident}, "
@@ -445,10 +542,19 @@ def detect_duplicates(request: DuplicateRequest) -> DuplicateResponse:
     )
 
     return DuplicateResponse(
+        available=True,
         is_duplicate=is_duplicate,
         possible_mass_incident=possible_mass_incident,
         duplicate_confidence=round(best_score, 4),
+        confidence=round(best_score, 4),
         matched_tickets=matched_tickets,
         reasoning=reasoning,
         recommendation=recommendation,
+        model_version=MODEL_VERSION,
+        fallback_mode=_mode,
+        reasoning_steps=reasoning_steps,
+        recommended_actions=recommended_actions,
+        risk_flags=risk_flags,
+        missing_information=missing_information,
+        sources=sources,
     )

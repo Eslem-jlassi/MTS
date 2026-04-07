@@ -6,6 +6,7 @@ package com.billcom.mts.controller;
 
 // DTOs - Objets de transfert pour les tickets
 import com.billcom.mts.dto.ticket.*;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.User;
 
 // Enums - Types énumérés pour les tickets
@@ -589,11 +590,24 @@ public class TicketController {
     public ResponseEntity<Map<String, String>> hardDeleteTicket(
             @PathVariable Long id,
             @AuthenticationPrincipal User user,
+            @Valid @RequestBody AdminHardDeleteRequest request,
             HttpServletRequest httpRequest) {
 
         String ipAddress = getClientIpAddress(httpRequest);
-        ticketService.hardDeleteTicketAsAdmin(id, user, ipAddress);
+        ticketService.hardDeleteTicketAsAdmin(id, user, ipAddress, request);
         return ResponseEntity.ok(Map.of("message", "Ticket supprime definitivement"));
+    }
+
+    @PostMapping("/{id}/hard-delete/challenge")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Envoie un code de verification email pour confirmer une suppression definitive")
+    public ResponseEntity<Map<String, String>> issueHardDeleteChallenge(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest httpRequest) {
+        String ipAddress = getClientIpAddress(httpRequest);
+        ticketService.issueHardDeleteChallenge(id, user, ipAddress);
+        return ResponseEntity.ok(Map.of("message", "Code de verification envoye"));
     }
 
     @GetMapping("/assigned")

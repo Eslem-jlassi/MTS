@@ -9,23 +9,23 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Schema(description = "Requête de connexion")
+@Schema(description = "Requete de connexion")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginRequest {
 
-    @Schema(description = "Adresse email", example = "admin@billcom.tn", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Adresse email", example = "admin@mts-telecom.ma", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;
 
-    @Schema(description = "Mot de passe (min 6 caractères)", example = "Password1!", requiredMode = Schema.RequiredMode.REQUIRED)
+    @Schema(description = "Mot de passe (min 6 caracteres)", example = "Password1!", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "Password is required")
     @Size(min = 6, message = "Password must be at least 6 characters")
     private String password;
 
-    @Schema(description = "Session longue durée", example = "false")
+    @Schema(description = "Session longue duree", example = "false")
     private Boolean rememberMe;
 }

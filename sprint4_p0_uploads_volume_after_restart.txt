@@ -1,0 +1,5 @@
+total 12
+drwxr-xr-x    2 root     root          4096 Apr  4 19:00 .
+drwxr-xr-x    3 root     root          4096 Apr  4 19:00 ..
+-rw-r--r--    1 root     root            21 Apr  4 19:00 p0-check.txt
+p0-persistence-check

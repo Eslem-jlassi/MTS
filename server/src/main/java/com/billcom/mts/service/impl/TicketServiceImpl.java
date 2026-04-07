@@ -1,6 +1,7 @@
 package com.billcom.mts.service.impl;
 
 import com.billcom.mts.dto.ticket.*;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.SlaConfig;
 import com.billcom.mts.entity.Ticket;
 import com.billcom.mts.entity.TicketAttachment;
@@ -15,6 +16,7 @@ import com.billcom.mts.exception.BadRequestException;
 import com.billcom.mts.exception.ForbiddenException;
 import com.billcom.mts.exception.ResourceNotFoundException;
 import com.billcom.mts.repository.*;
+import com.billcom.mts.service.SensitiveActionVerificationService;
 import com.billcom.mts.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +93,8 @@ public class TicketServiceImpl implements TicketService {
     private final com.billcom.mts.service.NotificationService notificationService;
 
     private final com.billcom.mts.service.AuditService auditService;
+
+    private final SensitiveActionVerificationService sensitiveActionVerificationService;
 
     // Service de calcul SLA avancé (horaires ouvrés, pause/reprise)
     private final com.billcom.mts.service.SlaCalculationService slaCalculationService;
@@ -783,18 +787,30 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
-    public void hardDeleteTicketAsAdmin(Long ticketId, User currentUser, String ipAddress) {
+    public void hardDeleteTicketAsAdmin(
+            Long ticketId,
+            User currentUser,
+            String ipAddress,
+            AdminHardDeleteRequest request) {
         Ticket ticket = ticketRepository.findById(ticketId)
             .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+
+        sensitiveActionVerificationService.verifyHardDeleteAuthorization(
+                currentUser,
+                ticketId,
+                request,
+                "suppression definitive du ticket " + ticket.getTicketNumber()
+        );
 
         assertTicketCanBeHardDeleted(ticket);
 
         String ticketNumber = ticket.getTicketNumber();
         String ticketTitle = ticket.getTitle();
+        String deletionSnapshot = buildHardDeleteSnapshot(ticket, currentUser);
 
         try {
             auditService.log("Ticket", ticketId.toString(), "DELETE", currentUser,
-                "Suppression definitive " + ticketNumber, ipAddress);
+                "Suppression definitive " + ticketNumber + " | " + deletionSnapshot, ipAddress);
         } catch (Exception e) {
             log.warn("Audit log failed: {}", e.getMessage());
         }
@@ -803,6 +819,31 @@ public class TicketServiceImpl implements TicketService {
         cleanupTicketUploadDirectory(ticketId);
         ticketRepository.delete(ticket);
         log.info("Ticket {} ({}) hard deleted by admin {}", ticketNumber, ticketTitle, currentUser.getEmail());
+    }
+
+    @Override
+    @Transactional
+    public void issueHardDeleteChallenge(Long ticketId, User currentUser, String ipAddress) {
+        Ticket ticket = ticketRepository.findById(ticketId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+
+        sensitiveActionVerificationService.issueHardDeleteVerificationCode(
+                currentUser,
+                "la suppression definitive du ticket " + ticket.getTicketNumber()
+        );
+
+        try {
+            auditService.log(
+                    "Ticket",
+                    ticketId.toString(),
+                    "UPDATE",
+                    currentUser,
+                    "Challenge de verification emis avant suppression definitive du ticket " + ticket.getTicketNumber(),
+                    ipAddress
+            );
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
+        }
     }
 
     // === Comments ===
@@ -1422,6 +1463,34 @@ public class TicketServiceImpl implements TicketService {
             );
         }
     }
+
+        private String buildHardDeleteSnapshot(Ticket ticket, User currentUser) {
+        long commentCount = commentRepository.countByTicketId(ticket.getId());
+        long attachmentCount = attachmentRepository.countByTicketId(ticket.getId());
+        long historyCount = historyRepository.countByTicketId(ticket.getId());
+        long slaTimelineCount = slaTimelineRepository.countByTicket_Id(ticket.getId());
+        long directIncidentCount = incidentRepository.countByTicketId(ticket.getId());
+        long groupedIncidentCount = incidentRepository.countByTickets_Id(ticket.getId());
+
+        String reauthMode = sensitiveActionVerificationService.resolveReauthMode(currentUser);
+        return String.format(
+            "snapshot={ticketId=%d,ticketNumber=%s,status=%s,assignedTo=%s,clientId=%s,commentCount=%d,"
+                + "attachmentCount=%d,historyCount=%d,slaTimelineCount=%d,directIncidentCount=%d,"
+                + "groupedIncidentCount=%d,reauthMode=%s}",
+            ticket.getId(),
+            ticket.getTicketNumber(),
+            ticket.getStatus() != null ? ticket.getStatus().name() : "null",
+            ticket.getAssignedTo() != null ? ticket.getAssignedTo().getId() : null,
+            ticket.getClient() != null ? ticket.getClient().getId() : null,
+            commentCount,
+            attachmentCount,
+            historyCount,
+            slaTimelineCount,
+            directIncidentCount,
+            groupedIncidentCount,
+            reauthMode
+        );
+        }
 
     private void cleanupTicketNotifications(Long ticketId) {
         long deletedNotifications = notificationRepository.deleteByReferenceTypeAndReferenceId("TICKET", ticketId);

@@ -3,7 +3,13 @@
 // =============================================================================
 
 import api from "./client";
-import type { Incident, IncidentRequest, IncidentTimelineEntry, PageResponse } from "../types";
+import type {
+  AdminHardDeleteRequestPayload,
+  Incident,
+  IncidentRequest,
+  IncidentTimelineEntry,
+  PageResponse,
+} from "../types";
 import { IncidentStatus, Severity } from "../types";
 
 const PREFIX = "/incidents";
@@ -173,8 +179,18 @@ export const incidentService = {
   /**
    * Delete critically an incident (ADMIN only)
    */
-  hardDeleteIncident: async (id: number): Promise<{ message: string }> => {
-    const response = await api.delete<{ message: string }>(`${PREFIX}/${id}/hard-delete`);
+  hardDeleteIncident: async (
+    id: number,
+    payload: AdminHardDeleteRequestPayload,
+  ): Promise<{ message: string }> => {
+    const response = await api.delete<{ message: string }>(`${PREFIX}/${id}/hard-delete`, {
+      data: payload,
+    });
+    return response.data;
+  },
+
+  requestHardDeleteChallenge: async (id: number): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`${PREFIX}/${id}/hard-delete/challenge`);
     return response.data;
   },
 };

@@ -93,7 +93,13 @@ scripts\deploy\stop-stack.bat
 ### H2 / DataInitializer
 
 - Emails seedes dans `DataInitializer`
-- Mot de passe commun : `password`
+- Mot de passe commun : `Password1!`
+
+## Verification post-deploy rapide
+
+```bat
+scripts\deploy\smoke-post-deploy.bat
+```
 
 ## Mode demo frontend
 

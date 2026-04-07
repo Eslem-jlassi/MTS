@@ -2,6 +2,7 @@ import { CHATBOT_COPY } from "./chatbotCopy";
 import { ChatbotResult } from "../../types/chatbot";
 import { ChatLanguage } from "./chatbotLanguage";
 import { getChatbotCopy } from "./chatbotCopy";
+import { formatNumberValue } from "../../utils/formatters";
 
 const GREETINGS = new Set([
   "hello",
@@ -80,7 +81,9 @@ const buildRelatedCasesHint = (
     .slice(0, 3)
     .map(
       (item) =>
-        `${item.title} (${item.serviceName || "N/A"}, score ${Number(item.score).toFixed(2)})`,
+        `${item.title} (${item.serviceName || "N/A"}, score ${formatNumberValue(Number(item.score), {
+          maximumFractionDigits: 2,
+        })})`,
     );
 
   if (topCases.length === 0) {

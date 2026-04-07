@@ -229,6 +229,14 @@ public class User implements UserDetails {      // Implémente UserDetails pour 
     @Column(name = "email_verification_token_expiry")
     private LocalDateTime emailVerificationTokenExpiry;
 
+    /** Hash d'un code a usage unique pour les actions admin sensibles. */
+    @Column(name = "sensitive_action_code_hash")
+    private String sensitiveActionCodeHash;
+
+    /** Date d'expiration du code de verification pour action sensible. */
+    @Column(name = "sensitive_action_code_expiry")
+    private LocalDateTime sensitiveActionCodeExpiry;
+
     // =========================================================================
     // NOTIFICATION PREFERENCES (JSON)
     // =========================================================================

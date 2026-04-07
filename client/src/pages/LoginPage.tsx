@@ -2,21 +2,12 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
-import {
-  AlertCircle,
-  Bot,
-  ChevronRight,
-  Eye,
-  EyeOff,
-  Lock,
-  Mail,
-  RefreshCw,
-} from "lucide-react";
+import { CredentialResponse } from "@react-oauth/google";
+import { AlertCircle, Bot, ChevronRight, Eye, EyeOff, Lock, Mail, RefreshCw } from "lucide-react";
 import { RootState, AppDispatch } from "../redux/store";
 import { clearError, googleLogin, login } from "../redux/slices/authSlice";
 import AuthLayout from "../components/auth/AuthLayout";
-import { isGoogleOAuthEnabled } from "../App";
+import GoogleAuthSection from "../components/auth/GoogleAuthSection";
 import { authFlowService } from "../api/authFlowService";
 import { getErrorMessage } from "../api/client";
 import { useToast } from "../context/ToastContext";
@@ -28,8 +19,8 @@ const LoginPage: React.FC = () => {
 
   const { isAuthenticated, isLoading, error } = useSelector((state: RootState) => state.auth);
 
-  const [email, setEmail] = useState("admin@mts.com");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("admin@mts-telecom.ma");
+  const [password, setPassword] = useState("Password1!");
   const [showPassword, setShowPassword] = useState(false);
   const [googleError, setGoogleError] = useState<string | null>(null);
   const [resendLoading, setResendLoading] = useState(false);
@@ -158,7 +149,11 @@ const LoginPage: React.FC = () => {
               )}
             </button>
             <Link
-              to={email.trim() ? `/verify-email?email=${encodeURIComponent(email.trim())}&status=pending` : "/verify-email"}
+              to={
+                email.trim()
+                  ? `/verify-email?email=${encodeURIComponent(email.trim())}&status=pending`
+                  : "/verify-email"
+              }
               className="inline-flex items-center gap-2 rounded-xl border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 dark:border-amber-500/30 dark:text-amber-200 dark:hover:bg-amber-500/10"
             >
               Voir la page de verification
@@ -255,25 +250,11 @@ const LoginPage: React.FC = () => {
         </button>
       </form>
 
-      {isGoogleOAuthEnabled && (
-        <>
-          <div className="my-7 flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-            <span>ou continuer avec</span>
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-          </div>
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              text="signin_with"
-              shape="rectangular"
-              theme="outline"
-              size="large"
-            />
-          </div>
-        </>
-      )}
+      <GoogleAuthSection
+        mode="signin"
+        onSuccess={handleGoogleSuccess}
+        onError={handleGoogleError}
+      />
 
       <p className="mt-7 text-center text-sm text-slate-500 dark:text-slate-400">
         Pas encore de compte ?{" "}

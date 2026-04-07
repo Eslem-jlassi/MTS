@@ -32,6 +32,16 @@ if errorlevel 1 (
 popd
 
 echo.
+echo Verification de readiness en cours...
+call "%ROOT_DIR%scripts\deploy\smoke-post-deploy.bat"
+if errorlevel 1 (
+    echo.
+    echo ERREUR: La stack est demarree mais le smoke post-deploy a echoue.
+    echo Consultez les logs: scripts\deploy\show-stack-logs.bat
+    exit /b 1
+)
+
+echo.
 echo ====================================================
 echo   Stack conteneurisee demarree
 echo ====================================================

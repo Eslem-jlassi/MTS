@@ -38,6 +38,7 @@ import {
 import CreateTicketModal from "../components/tickets/CreateTicketModal";
 import PageHeader from "../components/layout/PageHeader";
 import { Button, Card, Badge, EmptyState, SkeletonTable, ConfirmModal } from "../components/ui";
+import { formatDurationMinutes, formatPercent } from "../utils/formatters";
 import TicketDrawer from "../components/tickets/TicketDrawer";
 
 // Priority/Status: use design system Badge variants (mapped from priority/status)
@@ -78,17 +79,6 @@ const SlaIndicator: React.FC<{
   slaWarning?: boolean;
   remainingMinutes?: number;
 }> = ({ breached, percentage, slaWarning, remainingMinutes }) => {
-  // Formatage du temps restant
-  const formatRemaining = (min?: number): string => {
-    if (min === undefined || min === null) return "";
-    const absMin = Math.abs(min);
-    const h = Math.floor(absMin / 60);
-    const m = absMin % 60;
-    return min < 0
-      ? `-${h}h${m.toString().padStart(2, "0")}`
-      : `${h}h${m.toString().padStart(2, "0")}`;
-  };
-
   if (breached) {
     return (
       <div className="flex flex-col items-start">
@@ -119,7 +109,9 @@ const SlaIndicator: React.FC<{
       <div className="flex flex-col items-start">
         <span className={`flex items-center ${color} text-xs font-medium`}>
           <Clock size={13} className="mr-1" />
-          {formatRemaining(remainingMinutes) || `${percentage.toFixed(0)}%`}
+          {remainingMinutes !== undefined && remainingMinutes !== null
+            ? formatDurationMinutes(remainingMinutes)
+            : formatPercent(percentage)}
         </span>
         <div className="w-full bg-ds-elevated rounded-full h-1 mt-1" style={{ minWidth: "48px" }}>
           <div
@@ -159,6 +151,10 @@ const TicketList: React.FC = () => {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isHardDeleting, setIsHardDeleting] = useState(false);
+  const [hardDeleteTargetIdInput, setHardDeleteTargetIdInput] = useState("");
+  const [hardDeletePassword, setHardDeletePassword] = useState("");
+  const [hardDeleteVerificationCode, setHardDeleteVerificationCode] = useState("");
+  const [isSendingHardDeleteCode, setIsSendingHardDeleteCode] = useState(false);
 
   // Drawer state
   const [drawerTicketId, setDrawerTicketId] = useState<number | null>(null);
@@ -198,6 +194,7 @@ const TicketList: React.FC = () => {
   const user = useSelector((state: RootState) => state.auth.user);
   const isClient = user?.role === ("CLIENT" as UserRole);
   const isAdmin = user?.role === ("ADMIN" as UserRole);
+  const isOauthAdmin = Boolean(isAdmin && user?.oauthProvider);
   const canExport = !isClient;
   const canDeleteTicket = (status: TicketStatus, assignedToId?: number) => {
     return isClient && status === TicketStatus.NEW && !assignedToId;
@@ -226,9 +223,29 @@ const TicketList: React.FC = () => {
   const handleConfirmHardDelete = async () => {
     if (!ticketToHardDelete) return;
 
+    if (hardDeleteTargetIdInput.trim() !== String(ticketToHardDelete.id)) {
+      toast.error("L'identifiant exact du ticket est requis pour confirmer la suppression.");
+      return;
+    }
+
+    if (!isOauthAdmin && !hardDeletePassword.trim()) {
+      toast.error("Saisissez votre mot de passe administrateur pour confirmer cette action.");
+      return;
+    }
+
+    if (isOauthAdmin && !hardDeleteVerificationCode.trim()) {
+      toast.error("Saisissez le code de verification recu par email.");
+      return;
+    }
+
     setIsHardDeleting(true);
     try {
-      await ticketService.hardDeleteTicket(ticketToHardDelete.id);
+      await ticketService.hardDeleteTicket(ticketToHardDelete.id, {
+        confirmationKeyword: "SUPPRIMER",
+        confirmationTargetId: String(ticketToHardDelete.id),
+        currentPassword: isOauthAdmin ? undefined : hardDeletePassword,
+        verificationCode: isOauthAdmin ? hardDeleteVerificationCode : undefined,
+      });
       if (drawerTicketId === ticketToHardDelete.id) {
         closeDrawer();
       }
@@ -242,6 +259,34 @@ const TicketList: React.FC = () => {
       setIsHardDeleting(false);
     }
   };
+
+  const handleRequestHardDeleteChallenge = async () => {
+    if (!ticketToHardDelete) return;
+
+    setIsSendingHardDeleteCode(true);
+    try {
+      await ticketService.requestHardDeleteChallenge(ticketToHardDelete.id);
+      toast.success("Un code de verification a ete envoye sur votre email administrateur.");
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail || error?.response?.data?.message;
+      toast.error(backendMessage || "Impossible d'envoyer le code de verification");
+    } finally {
+      setIsSendingHardDeleteCode(false);
+    }
+  };
+
+  useEffect(() => {
+    if (ticketToHardDelete) {
+      setHardDeleteTargetIdInput("");
+      setHardDeletePassword("");
+      setHardDeleteVerificationCode("");
+      return;
+    }
+
+    setHardDeleteTargetIdInput("");
+    setHardDeletePassword("");
+    setHardDeleteVerificationCode("");
+  }, [ticketToHardDelete]);
 
   const handleExport = async (format: "csv" | "excel" | "pdf") => {
     setExporting(format);
@@ -418,6 +463,62 @@ const TicketList: React.FC = () => {
               <p className="mt-2">
                 <span className="font-semibold">Titre :</span> {ticketToHardDelete.title}
               </p>
+              <div className="mt-3 space-y-3 rounded-xl border border-ds-border bg-ds-surface/70 p-3 text-left">
+                <div>
+                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                    Identifiant exact du ticket
+                  </label>
+                  <input
+                    type="text"
+                    value={hardDeleteTargetIdInput}
+                    onChange={(event) => setHardDeleteTargetIdInput(event.target.value)}
+                    className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                    placeholder={`Tapez ${ticketToHardDelete.id}`}
+                    autoComplete="off"
+                  />
+                </div>
+
+                {isOauthAdmin ? (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Code de verification email
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={hardDeleteVerificationCode}
+                        onChange={(event) => setHardDeleteVerificationCode(event.target.value)}
+                        className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                        placeholder="Code a 6 chiffres"
+                        autoComplete="one-time-code"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRequestHardDeleteChallenge}
+                        disabled={isSendingHardDeleteCode || isHardDeleting}
+                      >
+                        {isSendingHardDeleteCode ? "Envoi..." : "Envoyer un code"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Mot de passe administrateur
+                    </label>
+                    <input
+                      type="password"
+                      value={hardDeletePassword}
+                      onChange={(event) => setHardDeletePassword(event.target.value)}
+                      className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                      placeholder="Confirmez avec votre mot de passe"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                )}
+              </div>
               <p className="mt-2">
                 Cette suppression est irreversible et reservee aux tickets neufs, non assignes et
                 sans dependances critiques.
@@ -432,7 +533,7 @@ const TicketList: React.FC = () => {
         variant="danger"
         loading={isHardDeleting}
         confirmationKeyword="SUPPRIMER"
-        confirmationHint="Tapez SUPPRIMER pour confirmer la suppression definitive du ticket."
+        confirmationHint="Tapez SUPPRIMER, puis confirmez l'ID exact et la re-authentification admin."
       />
 
       {/* Search & Filters Bar */}

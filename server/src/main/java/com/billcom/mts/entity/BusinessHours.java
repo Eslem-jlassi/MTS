@@ -44,7 +44,7 @@ public class BusinessHours {
     /** Fuseau horaire (IANA) */
     @Column(nullable = false, length = 50)
     @Builder.Default
-    private String timezone = "Africa/Tunis";
+    private String timezone = "Europe/Paris";
 
     /** Horaire par défaut utilisé si aucun n'est spécifié */
     @Column(name = "is_default", nullable = false)

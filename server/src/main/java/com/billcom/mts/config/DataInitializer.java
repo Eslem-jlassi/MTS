@@ -35,6 +35,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
+    private static final String DEMO_PASSWORD = "Password1!";
+
     private final UserRepository userRepository;
     private final ClientRepository clientRepository;
     private final TelecomServiceRepository serviceRepository;
@@ -59,21 +61,45 @@ public class DataInitializer implements CommandLineRunner {
 
         Client client1 = createClient(
                 clientUser1,
-                "CLI-2026-001",
+                "CLI-2026-00001",
                 "Atlas Distribution Maroc",
                 "Boulevard Ghandi, Casablanca");
         Client client2 = createClient(
                 clientUser2,
-                "CLI-2026-002",
+                "CLI-2026-00002",
                 "Sahara Connect Services",
                 "Hay Riad, Rabat");
 
-        TelecomService billing = createService("BSCS Billing System", ServiceCategory.BILLING, admin);
-        TelecomService crm = createService("CRM Ericsson", ServiceCategory.CRM, admin);
-        TelecomService network = createService("Core Network OSS", ServiceCategory.NETWORK, admin);
-        TelecomService voip = createService("VoIP Platform", ServiceCategory.NETWORK, admin);
-        TelecomService fibre = createService("Fibre FTTH", ServiceCategory.INFRA, admin);
-        createService("Cloud VPS", ServiceCategory.INFRA, admin);
+        TelecomService billing = createService(
+                "BSCS Billing System",
+                "Plateforme de facturation telecom pour le rating, la mediation et la valorisation des usages.",
+                ServiceCategory.BILLING,
+                admin);
+        TelecomService crm = createService(
+                "CRM Ericsson",
+                "Plateforme CRM pour la gestion de la relation client, des comptes et des parcours support.",
+                ServiceCategory.CRM,
+                admin);
+        TelecomService network = createService(
+                "Core Network OSS",
+                "Supervision coeur de reseau et collecte des KPI d exploitation telecom.",
+                ServiceCategory.NETWORK,
+                admin);
+        TelecomService voip = createService(
+                "VoIP Platform",
+                "Telephonie IP multi-sites et trunks SIP pour les centres de contacts et sites entreprise.",
+                ServiceCategory.NETWORK,
+                admin);
+        TelecomService fibre = createService(
+                "Fibre FTTH",
+                "Acces fibre optique FTTH / FTTO pour les sites entreprise et les liaisons critiques.",
+                ServiceCategory.INFRA,
+                admin);
+        createService(
+                "Cloud VPS",
+                "Hebergement cloud prive pour workloads telecom et applications support.",
+                ServiceCategory.INFRA,
+                admin);
         createService("Data Migration Engine", ServiceCategory.INFRA, admin);
         createService("Mobile Portability Gateway", ServiceCategory.NETWORK, admin);
         createService("Order Care API", ServiceCategory.CRM, admin);
@@ -136,18 +162,18 @@ public class DataInitializer implements CommandLineRunner {
 
         log.info("=== H2 telecom demo data initialization complete ===");
         log.info("Seed accounts created:");
-        log.info("  - admin@mts-telecom.ma / password (ADMIN)");
-        log.info("  - manager@mts-telecom.ma / password (MANAGER)");
-        log.info("  - karim.agent@mts-telecom.ma / password (AGENT)");
-        log.info("  - layla.agent@mts-telecom.ma / password (AGENT)");
-        log.info("  - support@atlas-distribution.ma / password (CLIENT)");
-        log.info("  - dsi@sahara-connect.ma / password (CLIENT)");
+        log.info("  - admin@mts-telecom.ma / {} (ADMIN)", DEMO_PASSWORD);
+        log.info("  - manager@mts-telecom.ma / {} (MANAGER)", DEMO_PASSWORD);
+        log.info("  - karim.agent@mts-telecom.ma / {} (AGENT)", DEMO_PASSWORD);
+        log.info("  - layla.agent@mts-telecom.ma / {} (AGENT)", DEMO_PASSWORD);
+        log.info("  - support@atlas-distribution.ma / {} (CLIENT)", DEMO_PASSWORD);
+        log.info("  - dsi@sahara-connect.ma / {} (CLIENT)", DEMO_PASSWORD);
     }
 
     private User createUser(String email, String firstName, String lastName, UserRole role) {
         User user = User.builder()
                 .email(email)
-                .password(passwordEncoder.encode("password"))
+                .password(passwordEncoder.encode(DEMO_PASSWORD))
                 .firstName(firstName)
                 .lastName(lastName)
                 .role(role)
@@ -167,9 +193,18 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private TelecomService createService(String name, ServiceCategory category, User creator) {
+        return createService(name, "Service telecom " + name, category, creator);
+    }
+
+    private TelecomService createService(
+            String name,
+            String description,
+            ServiceCategory category,
+            User creator
+    ) {
         TelecomService service = TelecomService.builder()
                 .name(name)
-                .description("Service telecom " + name)
+                .description(description)
                 .category(category)
                 .isActive(true)
                 .createdBy(creator)

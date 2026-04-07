@@ -101,6 +101,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/tickets/*/status").hasAnyRole(ADMIN, MANAGER, AGENT)
                         .requestMatchers("/api/tickets/*/comments").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/tickets/*/hard-delete").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/tickets/*/hard-delete/challenge").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.DELETE, "/api/incidents/*/hard-delete").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/incidents/*/hard-delete/challenge").hasRole(ADMIN)
 
                         // Client
                         .requestMatchers(HttpMethod.POST, "/api/tickets").hasRole(CLIENT)

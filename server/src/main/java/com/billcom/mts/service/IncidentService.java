@@ -18,7 +18,13 @@ public interface IncidentService {
 
     IncidentResponse getById(Long id, User currentUser);
 
-    void hardDeleteIncidentAsAdmin(Long id, User currentUser, String ipAddress);
+        void hardDeleteIncidentAsAdmin(
+            Long id,
+            User currentUser,
+            String ipAddress,
+            com.billcom.mts.dto.security.AdminHardDeleteRequest request);
+
+        void issueHardDeleteChallenge(Long id, User currentUser, String ipAddress);
 
     Page<IncidentResponse> findAll(Pageable pageable, User currentUser);
 

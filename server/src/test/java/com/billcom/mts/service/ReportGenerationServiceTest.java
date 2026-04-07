@@ -5,8 +5,10 @@ import com.billcom.mts.entity.Report;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.ReportType;
 import com.billcom.mts.enums.UserRole;
+import com.billcom.mts.repository.ClientRepository;
 import com.billcom.mts.repository.IncidentRepository;
 import com.billcom.mts.repository.ReportRepository;
+import com.billcom.mts.repository.TelecomServiceRepository;
 import com.billcom.mts.repository.TicketRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +34,12 @@ class ReportGenerationServiceTest {
     private IncidentRepository incidentRepository;
     @Mock
     private ReportRepository reportRepository;
+    @Mock
+    private TelecomServiceRepository telecomServiceRepository;
+    @Mock
+    private ClientRepository clientRepository;
+    @Mock
+    private ExecutiveSummaryEngine executiveSummaryEngine;
 
     @InjectMocks
     private ReportGenerationService reportGenerationService;
@@ -43,6 +51,8 @@ class ReportGenerationServiceTest {
         lenient().when(ticketRepository.countResolvedBetween(any(), any())).thenReturn(5L);
         lenient().when(incidentRepository.countByPeriod(any(), any())).thenReturn(2L);
         when(ticketRepository.findByCreatedAtBetween(any(), any())).thenReturn(Collections.emptyList());
+        when(incidentRepository.findByPeriod(any(), any())).thenReturn(Collections.emptyList());
+        when(executiveSummaryEngine.generate(any())).thenReturn("=== Synthese ===\nSLA stable\nALERTE: backlog a surveiller");
         when(reportRepository.save(any())).thenAnswer(inv -> {
             Report r = inv.getArgument(0);
             r.setId(1L);
@@ -69,5 +79,8 @@ class ReportGenerationServiceTest {
         assertThat(response.getSource()).isEqualTo("GENERATED");
         assertThat(response.getReportType()).isEqualTo("WEEKLY");
         assertThat(response.getIsPublished()).isTrue();
+        assertThat(response.getFormat()).isEqualTo("PDF");
+        assertThat(response.getFileName()).endsWith(".pdf");
+        assertThat(response.getExecutiveSummary()).contains("Synthese");
     }
 }

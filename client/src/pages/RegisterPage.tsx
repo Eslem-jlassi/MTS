@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AnimatePresence, motion } from "framer-motion";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
+import { CredentialResponse } from "@react-oauth/google";
 import {
   AlertCircle,
   Building2,
@@ -18,7 +18,7 @@ import {
 import { RootState, AppDispatch } from "../redux/store";
 import { clearError, googleLogin, register } from "../redux/slices/authSlice";
 import AuthLayout from "../components/auth/AuthLayout";
-import { isGoogleOAuthEnabled } from "../App";
+import GoogleAuthSection from "../components/auth/GoogleAuthSection";
 import { AuthResponse, UserRole } from "../types";
 import {
   getPasswordConfirmationError,
@@ -74,6 +74,7 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(clearError());
@@ -152,13 +153,18 @@ export default function RegisterPage() {
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     try {
+      setGoogleError(null);
       if (credentialResponse.credential) {
         await dispatch(googleLogin(credentialResponse.credential)).unwrap();
         navigate("/dashboard");
       }
     } catch (err) {
-      console.error("Google login error:", err);
+      setGoogleError(typeof err === "string" ? err : "Erreur de connexion Google");
     }
+  };
+
+  const handleGoogleError = () => {
+    setGoogleError("Echec de la connexion Google");
   };
 
   const selectedRole = roleOptions.find((r) => r.value === formData.role);
@@ -166,6 +172,7 @@ export default function RegisterPage() {
     { key: 1, label: "Profil" },
     { key: 2, label: "Informations" },
   ];
+  const displayError = error || googleError;
 
   const renderField = (
     name: string,
@@ -231,7 +238,9 @@ export default function RegisterPage() {
         <div className="mb-7 hidden items-center gap-2 lg:flex">
           {steps.map((s, i) => (
             <React.Fragment key={s.key}>
-              <div className={`flex items-center gap-1.5 ${step >= s.key ? "text-primary-400" : "text-ds-muted"}`}>
+              <div
+                className={`flex items-center gap-1.5 ${step >= s.key ? "text-primary-400" : "text-ds-muted"}`}
+              >
                 <span
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-all ${
                     step >= s.key
@@ -329,10 +338,10 @@ export default function RegisterPage() {
                 Renseignez vos informations pour activer votre espace client.
               </p>
 
-              {error && (
+              {displayError && (
                 <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-500 dark:text-red-400">
                   <AlertCircle size={18} className="flex-shrink-0 text-red-400" />
-                  <span>{error}</span>
+                  <span>{displayError}</span>
                 </div>
               )}
 
@@ -342,7 +351,13 @@ export default function RegisterPage() {
                   {renderField("lastName", "Nom *", "text", "Dupont")}
                 </div>
 
-                {renderField("email", "Adresse email *", "email", "vous@entreprise.com", <Mail size={18} />)}
+                {renderField(
+                  "email",
+                  "Adresse email *",
+                  "email",
+                  "vous@entreprise.com",
+                  <Mail size={18} />,
+                )}
                 {renderField("phone", "Telephone", "tel", "+216 XX XXX XXX", <Phone size={18} />)}
 
                 {formData.role === UserRole.CLIENT &&
@@ -426,23 +441,11 @@ export default function RegisterPage() {
                 </button>
               </form>
 
-              {isGoogleOAuthEnabled && (
-                <>
-                  <div className="my-5">
-                    <div className="auth-separator">Ou continuer avec</div>
-                  </div>
-                  <div className="flex justify-center">
-                    <GoogleLogin
-                      onSuccess={handleGoogleSuccess}
-                      onError={() => {}}
-                      text="signup_with"
-                      shape="rectangular"
-                      theme="outline"
-                      size="large"
-                    />
-                  </div>
-                </>
-              )}
+              <GoogleAuthSection
+                mode="signup"
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+              />
             </motion.div>
           )}
         </AnimatePresence>

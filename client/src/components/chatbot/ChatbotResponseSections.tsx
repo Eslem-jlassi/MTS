@@ -4,6 +4,7 @@ import ChatbotSuggestedActions from "./chatbotSuggestedActions";
 import { buildAnswerSections } from "./chatbotAnswerQuality";
 import { ChatbotSuggestedAction, resolveSuggestedActions } from "./chatbotSuggestedActionsResolver";
 import { ChatLanguage, resolveChatLanguage } from "./chatbotLanguage";
+import { formatNumberValue } from "../../utils/formatters";
 
 interface ChatbotResponseSectionsProps {
   message: ChatMessageModel;
@@ -40,6 +41,13 @@ const UI_LABELS: Record<
     confidenceLevel: string;
     similarCases: string;
     found: string;
+    aiRecommendations: string;
+    reasoningSteps: string;
+    riskFlags: string;
+    modelVersion: string;
+    fallbackMode: string;
+    latency: string;
+    sources: string;
     massiveIncidentCandidate: string;
     service: string;
     candidate: string;
@@ -66,6 +74,13 @@ const UI_LABELS: Record<
     confidenceLevel: "Niveau de confiance",
     similarCases: "Incidents ou tickets similaires",
     found: "trouves",
+    aiRecommendations: "Recommandations IA",
+    reasoningSteps: "Etapes de raisonnement",
+    riskFlags: "Drapeaux de risque",
+    modelVersion: "Version modele",
+    fallbackMode: "Mode fallback",
+    latency: "Latence",
+    sources: "Sources",
     massiveIncidentCandidate: "Candidat incident massif",
     service: "Service",
     candidate: "Candidat",
@@ -91,6 +106,13 @@ const UI_LABELS: Record<
     confidenceLevel: "Confidence level",
     similarCases: "Similar incidents or tickets",
     found: "found",
+    aiRecommendations: "AI recommendations",
+    reasoningSteps: "Reasoning steps",
+    riskFlags: "Risk flags",
+    modelVersion: "Model version",
+    fallbackMode: "Fallback mode",
+    latency: "Latency",
+    sources: "Sources",
     massiveIncidentCandidate: "Potential widespread incident",
     service: "Service",
     candidate: "Candidate",
@@ -123,6 +145,21 @@ const ChatbotResponseSections: React.FC<ChatbotResponseSectionsProps> = ({
   const massiveIncidentCandidate = message.massiveIncidentCandidate;
   const hasMassiveIncidentCandidate = Boolean(massiveIncidentCandidate);
   const sections = buildAnswerSections(message.content, language, message.analysis);
+  const metadataMissingInformation = Array.isArray(message.missingInformation)
+    ? message.missingInformation
+    : [];
+  const mergedMissingInformation =
+    sections.missingInformation.length > 0
+      ? sections.missingInformation
+      : metadataMissingInformation;
+  const metadataReasoningSteps = Array.isArray(message.reasoningSteps)
+    ? message.reasoningSteps
+    : [];
+  const metadataRecommendedActions = Array.isArray(message.recommendedActions)
+    ? message.recommendedActions
+    : [];
+  const metadataRiskFlags = Array.isArray(message.riskFlags) ? message.riskFlags : [];
+  const metadataSources = Array.isArray(message.sources) ? message.sources : [];
 
   return (
     <div className="chatbot-response-layout">
@@ -181,11 +218,56 @@ const ChatbotResponseSections: React.FC<ChatbotResponseSectionsProps> = ({
         </section>
       )}
 
-      {sections.clarificationNeeded && sections.missingInformation.length > 0 && (
+      {mergedMissingInformation.length > 0 && (
         <section className="chatbot-response-section chatbot-response-summary">
           <p className="chatbot-section-title">{labels.infoToConfirm}</p>
           <ul className="chatbot-results-list">
-            {sections.missingInformation.map((item) => (
+            {mergedMissingInformation.map((item) => (
+              <li key={item} className="chatbot-results-item">
+                <div className="chatbot-results-main">
+                  <span className="chatbot-doc-title">{item}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {metadataReasoningSteps.length > 0 && (
+        <section className="chatbot-response-section chatbot-response-summary">
+          <p className="chatbot-section-title">{labels.reasoningSteps}</p>
+          <ul className="chatbot-results-list">
+            {metadataReasoningSteps.map((item, index) => (
+              <li key={`reasoning-step-${index}`} className="chatbot-results-item">
+                <div className="chatbot-results-main">
+                  <span className="chatbot-doc-title">{item}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {metadataRecommendedActions.length > 0 && (
+        <section className="chatbot-response-section chatbot-response-summary">
+          <p className="chatbot-section-title">{labels.aiRecommendations}</p>
+          <ul className="chatbot-results-list">
+            {metadataRecommendedActions.map((item, index) => (
+              <li key={`recommended-action-${index}`} className="chatbot-results-item">
+                <div className="chatbot-results-main">
+                  <span className="chatbot-doc-title">{item}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {metadataRiskFlags.length > 0 && (
+        <section className="chatbot-response-section chatbot-response-summary">
+          <p className="chatbot-section-title">{labels.riskFlags}</p>
+          <ul className="chatbot-results-list">
+            {metadataRiskFlags.map((item) => (
               <li key={item} className="chatbot-results-item">
                 <div className="chatbot-results-main">
                   <span className="chatbot-doc-title">{item}</span>
@@ -236,6 +318,38 @@ const ChatbotResponseSections: React.FC<ChatbotResponseSectionsProps> = ({
         </section>
       )}
 
+      {(message.modelVersion ||
+        message.fallbackMode ||
+        typeof message.latencyMs === "number" ||
+        metadataSources.length > 0) && (
+        <section className="chatbot-response-section chatbot-response-meta-grid">
+          {message.modelVersion && (
+            <div className="chatbot-meta-card chatbot-meta-card-service">
+              <p className="chatbot-section-title">{labels.modelVersion}</p>
+              <p className="chatbot-meta-value">{message.modelVersion}</p>
+            </div>
+          )}
+          {message.fallbackMode && (
+            <div className="chatbot-meta-card chatbot-meta-card-confidence">
+              <p className="chatbot-section-title">{labels.fallbackMode}</p>
+              <p className="chatbot-meta-value">{message.fallbackMode}</p>
+            </div>
+          )}
+          {typeof message.latencyMs === "number" && (
+            <div className="chatbot-meta-card chatbot-meta-card-confidence">
+              <p className="chatbot-section-title">{labels.latency}</p>
+              <p className="chatbot-meta-value">{formatNumberValue(message.latencyMs)} ms</p>
+            </div>
+          )}
+          {metadataSources.length > 0 && (
+            <div className="chatbot-meta-card chatbot-meta-card-service">
+              <p className="chatbot-section-title">{labels.sources}</p>
+              <p className="chatbot-meta-value">{metadataSources.slice(0, 3).join(" | ")}</p>
+            </div>
+          )}
+        </section>
+      )}
+
       {hasResults && (
         <section className="chatbot-response-section chatbot-results">
           <div className="chatbot-results-header">
@@ -254,7 +368,9 @@ const ChatbotResponseSections: React.FC<ChatbotResponseSectionsProps> = ({
                 </div>
                 <div className="chatbot-results-sub">
                   <span>{item.serviceName || labels.noValue}</span>
-                  <span className="chatbot-score-badge">score {Number(item.score).toFixed(2)}</span>
+                  <span className="chatbot-score-badge">
+                    score {formatNumberValue(Number(item.score), { maximumFractionDigits: 2 })}
+                  </span>
                 </div>
               </li>
             ))}
@@ -273,7 +389,11 @@ const ChatbotResponseSections: React.FC<ChatbotResponseSectionsProps> = ({
               {CONFIDENCE_LABELS[language][
                 massiveIncidentCandidate.confidenceLevel.toLowerCase()
               ] || massiveIncidentCandidate.confidenceLevel}{" "}
-              ({massiveIncidentCandidate.confidenceScore.toFixed(2)})
+              (
+              {formatNumberValue(massiveIncidentCandidate.confidenceScore, {
+                maximumFractionDigits: 2,
+              })}
+              )
             </span>
           </div>
 

@@ -22,6 +22,10 @@ import type { TelecomService } from "../../types";
 import { slaService } from "../../api/slaService";
 import { auditService } from "../../api/auditService";
 import api from "../../api/client";
+import {
+  formatDateTime,
+  formatRelativeTime as formatRelativeTimeValue,
+} from "../../utils/formatters";
 
 interface AdminDashboardProps {
   stats: DashboardStats;
@@ -420,7 +424,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="flex items-center gap-2 mb-1">
                     {getEntityBadge(entry.entityType)}
                     <span className="text-xs text-ds-muted">
-                      {formatRelativeTime(entry.timestamp)}
+                      {formatRelativeTimeValue(entry.timestamp)}
                     </span>
                   </div>
                   <p className="text-sm text-ds-primary font-medium">
@@ -449,7 +453,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {lastUpdated && (
           <p className="text-xs text-ds-muted mt-4 pt-4 border-t border-ds-border">
-            Dernière mise à jour : {new Date(lastUpdated).toLocaleString("fr-FR")}
+            Dernière mise à jour : {formatDateTime(lastUpdated)}
           </p>
         )}
       </Card>

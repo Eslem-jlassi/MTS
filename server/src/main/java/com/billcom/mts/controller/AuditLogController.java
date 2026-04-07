@@ -24,11 +24,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 /**
  * AuditLogController - API REST pour l'audit.
@@ -70,11 +73,8 @@ public class AuditLogController {
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public ResponseEntity<AuditLogResponse> getAuditLog(@PathVariable Long id) {
-        AuditLog auditLog = auditLogService.getAll(PageRequest.of(0, 1))
-                .stream()
-                .filter(log -> log.getId().equals(id))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Audit log not found: " + id));
+        AuditLog auditLog = auditLogService.getById(id)
+                .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Audit log not found: " + id));
         return ResponseEntity.ok(toResponse(auditLog));
     }
 

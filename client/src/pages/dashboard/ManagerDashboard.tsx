@@ -57,6 +57,12 @@ import {
   type ManagerKpis,
   type ServiceAtRisk,
 } from "../../api/managerDashboardAdapter";
+import {
+  formatDateDayMonth,
+  formatHours,
+  formatPercent,
+  formatTime,
+} from "../../utils/formatters";
 
 // =============================================================================
 // TYPES
@@ -228,7 +234,7 @@ const KpiRow: React.FC<{ kpis: ManagerKpis }> = ({ kpis }) => (
         icon={<ShieldCheck size={22} className="text-success-600 dark:text-success-400" />}
         iconBg="bg-success-50 dark:bg-success-900/30"
         label="Conformité SLA"
-        value={`${kpis.slaCompliance}%`}
+        value={formatPercent(kpis.slaCompliance)}
         alert={kpis.slaCompliance < 80}
       />
     </motion.div>
@@ -237,8 +243,7 @@ const KpiRow: React.FC<{ kpis: ManagerKpis }> = ({ kpis }) => (
         icon={<Timer size={22} className="text-primary-600 dark:text-primary-400" />}
         iconBg="bg-primary-50 dark:bg-primary-900/30"
         label="MTTR"
-        value={kpis.mttr > 0 ? kpis.mttr.toFixed(1) : "—"}
-        suffix={kpis.mttr > 0 ? "h" : undefined}
+        value={kpis.mttr > 0 ? formatHours(kpis.mttr) : "--"}
       />
     </motion.div>
     <motion.div variants={fadeUp}>
@@ -446,10 +451,7 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
             tick={{ fontSize: 11, fill: "var(--ds-muted, #64748b)" }}
             tickFormatter={(v: string) => {
               try {
-                return new Date(v).toLocaleDateString("fr-FR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                });
+                return formatDateDayMonth(v);
               } catch {
                 return v;
               }
@@ -576,7 +578,7 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                           : "bg-error-50 text-error-700 dark:bg-error-900/30 dark:text-error-400"
                     }`}
                   >
-                    {s.slaRate}%
+                    {formatPercent(s.slaRate)}
                   </span>
                 </td>
               </motion.tr>
@@ -707,10 +709,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
               MAJ{" "}
-              {new Date(lastUpdated).toLocaleTimeString("fr-FR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatTime(lastUpdated)}
             </span>
           )}
           <button

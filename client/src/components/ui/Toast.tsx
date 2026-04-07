@@ -24,11 +24,20 @@ const icons: Record<ToastVariant, React.ReactNode> = {
   info: <Info size={18} className="text-info-600 dark:text-info-200" />,
 };
 
-const bgClasses: Record<ToastVariant, string> = {
-  success: "bg-success-50 border-success-200 dark:bg-success-500/10 dark:border-success/20",
-  error: "bg-error-50 border-error-200 dark:bg-error-500/10 dark:border-error/20",
-  warning: "bg-warning-50 border-warning-200 dark:bg-warning-500/10 dark:border-warning/20",
-  info: "bg-info-50 border-info-200 dark:bg-info-500/10 dark:border-info/20",
+const skinClasses: Record<ToastVariant, string> = {
+  success:
+    "border-success-200/90 bg-success-50/92 dark:border-success-500/20 dark:bg-success-500/10",
+  error: "border-error-200/90 bg-error-50/92 dark:border-error-500/20 dark:bg-error-500/10",
+  warning:
+    "border-warning-200/90 bg-warning-50/92 dark:border-warning-500/20 dark:bg-warning-500/10",
+  info: "border-info-200/90 bg-info-50/92 dark:border-info-500/20 dark:bg-info-500/10",
+};
+
+const progressClasses: Record<ToastVariant, string> = {
+  success: "bg-success-500/70 dark:bg-success-400/60",
+  error: "bg-error-500/70 dark:bg-error-400/60",
+  warning: "bg-warning-500/70 dark:bg-warning-400/60",
+  info: "bg-info-500/70 dark:bg-info-400/60",
 };
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
@@ -44,24 +53,27 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, x: 60, scale: 0.95 }}
+      initial={{ opacity: 0, x: 48, scale: 0.97 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 60, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className={`flex items-start gap-3 w-80 p-4 rounded-2xl border shadow-dropdown ${bgClasses[toast.variant]}`}
+      exit={{ opacity: 0, x: 48, scale: 0.97 }}
+      transition={{ type: "spring", stiffness: 360, damping: 30 }}
+      className={`ds-toast-surface relative flex w-80 items-start gap-3 overflow-hidden border p-4 ${skinClasses[toast.variant]}`}
       role="alert"
     >
-      <span className="flex-shrink-0 mt-0.5">{icons[toast.variant]}</span>
-      <div className="flex-1 min-w-0">
+      <div className={`absolute inset-x-0 top-0 h-1 ${progressClasses[toast.variant]}`} />
+      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/50 text-current dark:border-white/10 dark:bg-white/5">
+        {icons[toast.variant]}
+      </span>
+      <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-ds-primary">{toast.title}</p>
         {toast.description && (
-          <p className="text-xs text-ds-secondary mt-0.5">{toast.description}</p>
+          <p className="mt-1 text-sm leading-5 text-ds-secondary">{toast.description}</p>
         )}
       </div>
       <button
         type="button"
         onClick={dismiss}
-        className="flex-shrink-0 p-1 rounded-lg text-ds-muted hover:text-ds-primary hover:bg-ds-elevated transition-colors"
+        className="flex-shrink-0 rounded-xl p-1.5 text-ds-muted transition-colors hover:bg-white/60 hover:text-ds-primary dark:hover:bg-white/5"
         aria-label="Fermer"
       >
         <X size={14} />
@@ -73,14 +85,26 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
 interface ToastContainerProps {
   toasts: ToastData[];
   onDismiss: (id: string) => void;
+  position?: "bottom-right" | "top-right";
 }
 
-const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onDismiss }) => (
-  <div className="fixed bottom-6 right-6 z-[999] flex flex-col-reverse gap-3 pointer-events-none">
+const containerPositionClasses = {
+  "bottom-right": "bottom-6 right-6 flex-col-reverse",
+  "top-right": "top-4 right-4 flex-col",
+};
+
+const ToastContainer: React.FC<ToastContainerProps> = ({
+  toasts,
+  onDismiss,
+  position = "bottom-right",
+}) => (
+  <div
+    className={`pointer-events-none fixed z-[999] flex gap-3 ${containerPositionClasses[position]}`}
+  >
     <AnimatePresence mode="popLayout">
-      {toasts.map((t) => (
-        <div key={t.id} className="pointer-events-auto">
-          <ToastItem toast={t} onDismiss={onDismiss} />
+      {toasts.map((toast) => (
+        <div key={toast.id} className="pointer-events-auto">
+          <ToastItem toast={toast} onDismiss={onDismiss} />
         </div>
       ))}
     </AnimatePresence>

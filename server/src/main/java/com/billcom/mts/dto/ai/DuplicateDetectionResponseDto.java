@@ -25,18 +25,52 @@ public class DuplicateDetectionResponseDto {
     @JsonProperty("duplicate_confidence")
     private double duplicateConfidence;
 
+    private Double confidence;
+
     @JsonProperty("matched_tickets")
     private List<MatchedTicketDto> matchedTickets = new ArrayList<>();
 
     private String reasoning;
     private String recommendation;
 
+    @JsonProperty("model_version")
+    private String modelVersion;
+
+    @JsonProperty("fallback_mode")
+    private String fallbackMode;
+
+    @JsonProperty("reasoning_steps")
+    private List<String> reasoningSteps = new ArrayList<>();
+
+    @JsonProperty("recommended_actions")
+    private List<String> recommendedActions = new ArrayList<>();
+
+    @JsonProperty("risk_flags")
+    private List<String> riskFlags = new ArrayList<>();
+
+    @JsonProperty("missing_information")
+    private List<String> missingInformation = new ArrayList<>();
+
+    private List<String> sources = new ArrayList<>();
+
+    @JsonProperty("latency_ms")
+    private Double latencyMs;
+
     public static DuplicateDetectionResponseDto unavailable(String message) {
         DuplicateDetectionResponseDto response = new DuplicateDetectionResponseDto();
         response.setAvailable(false);
         response.setMessage(message);
+        response.setConfidence(0.0);
         response.setReasoning(message);
         response.setRecommendation(message);
+        response.setModelVersion("duplicate-detector-1.1.0");
+        response.setFallbackMode("service_unavailable");
+        response.setReasoningSteps(List.of("Service duplicate indisponible, fallback backend active."));
+        response.setRecommendedActions(List.of("Relancer le microservice duplicate puis relancer la verification."));
+        response.setRiskFlags(List.of("SERVICE_UNAVAILABLE"));
+        response.setMissingInformation(List.of());
+        response.setSources(List.of("gateway-fallback"));
+        response.setLatencyMs(0.0);
         return response;
     }
 

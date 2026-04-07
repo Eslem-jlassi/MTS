@@ -4,6 +4,7 @@
 
 import api from "./client";
 import {
+  AdminHardDeleteRequestPayload,
   Ticket,
   CreateTicketRequest,
   TicketStatusChangeRequest,
@@ -94,8 +95,16 @@ export const ticketService = {
   /**
    * Permanently delete ticket (admin only, strict backend safety checks)
    */
-  hardDeleteTicket: async (id: number): Promise<void> => {
-    await api.delete(`${TICKETS_PREFIX}/${id}/hard-delete`);
+  hardDeleteTicket: async (id: number, payload: AdminHardDeleteRequestPayload): Promise<void> => {
+    await api.delete(`${TICKETS_PREFIX}/${id}/hard-delete`, { data: payload });
+  },
+
+  /**
+   * Request an email verification code for OAuth admin hard-delete re-authentication.
+   */
+  requestHardDeleteChallenge: async (id: number): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`${TICKETS_PREFIX}/${id}/hard-delete/challenge`);
+    return response.data;
   },
 
   /**

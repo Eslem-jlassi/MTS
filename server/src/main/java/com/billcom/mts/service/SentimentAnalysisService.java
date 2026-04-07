@@ -11,6 +11,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -30,11 +31,12 @@ public class SentimentAnalysisService extends AiGatewaySupport {
     }
 
     public SentimentAnalysisResponseDto analyze(SentimentAnalysisRequestDto request) {
+        long startedAt = System.nanoTime();
         String unavailableMessage = "L'analyse IA est indisponible pour le moment. Verifiez que le service Python tourne sur "
                 + sentimentBaseUrl
                 + ".";
 
-        return post(
+        SentimentAnalysisResponseDto response = post(
                 SERVICE_NAME,
                 sentimentBaseUrl,
                 "/analyze",
@@ -43,12 +45,39 @@ public class SentimentAnalysisService extends AiGatewaySupport {
                 body -> {
                     body.setAvailable(true);
                     body.setMessage(null);
+                    if (body.getModelVersion() == null || body.getModelVersion().isBlank()) {
+                        body.setModelVersion("sentiment-hybrid-2.1.0");
+                    }
+                    if (body.getFallbackMode() == null || body.getFallbackMode().isBlank()) {
+                        body.setFallbackMode("gateway_unspecified");
+                    }
+                    if (body.getReasoningSteps() == null) {
+                        body.setReasoningSteps(List.of());
+                    }
+                    if (body.getRecommendedActions() == null) {
+                        body.setRecommendedActions(List.of());
+                    }
+                    if (body.getRiskFlags() == null) {
+                        body.setRiskFlags(List.of());
+                    }
+                    if (body.getMissingInformation() == null) {
+                        body.setMissingInformation(List.of());
+                    }
+                    if (body.getSources() == null) {
+                        body.setSources(List.of());
+                    }
                 },
                 this::unavailableResponse,
                 "Le service d'analyse IA a repondu avec un corps vide.",
                 unavailableMessage,
                 "L'analyse IA a rencontre une erreur temporaire. Reessayez apres avoir relance le microservice."
         );
+
+        double elapsedMs = (System.nanoTime() - startedAt) / 1_000_000.0;
+        if (response.getLatencyMs() == null || response.getLatencyMs() <= 0.0) {
+            response.setLatencyMs(elapsedMs);
+        }
+        return response;
     }
 
     public AiServiceHealthDto healthCheck() {

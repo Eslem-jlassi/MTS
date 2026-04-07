@@ -63,6 +63,14 @@ class ChatbotControllerTest {
         response.setServiceDetectionConfidence("high");
         response.setResponseLanguage("fr");
         response.setAnalysis(analysis);
+        response.setModelVersion("rag-chatbot-1.2.0");
+        response.setFallbackMode("rag_primary");
+        response.setReasoningSteps(List.of("Top semantic score=0.860 (results_found)."));
+        response.setRecommendedActions(List.of("Verifier les incidents similaires sur BSCS Billing System avant changement en production."));
+        response.setRiskFlags(List.of("MASS_INCIDENT_CANDIDATE"));
+        response.setMissingInformation(List.of("heure de debut"));
+        response.setSources(List.of("doc:ticket-001"));
+        response.setLatencyMs(165.3);
 
         when(chatbotService.askChatbot(eq("Analyse incident BSCS"), eq(3), eq("fr"))).thenReturn(response);
 
@@ -82,7 +90,15 @@ class ChatbotControllerTest {
                 .andExpect(jsonPath("$.response_language").value("fr"))
                 .andExpect(jsonPath("$.analysis.summary").value("Un cas proche a ete identifie sur BSCS Billing System."))
                 .andExpect(jsonPath("$.analysis.next_action").value("Verifier les incidents similaires puis valider le brouillon."))
-                .andExpect(jsonPath("$.analysis.draft_ticket_title").value("Blocage mediation BSCS"));
+                .andExpect(jsonPath("$.analysis.draft_ticket_title").value("Blocage mediation BSCS"))
+                .andExpect(jsonPath("$.model_version").value("rag-chatbot-1.2.0"))
+                .andExpect(jsonPath("$.fallback_mode").value("rag_primary"))
+                .andExpect(jsonPath("$.reasoning_steps[0]").value("Top semantic score=0.860 (results_found)."))
+                .andExpect(jsonPath("$.recommended_actions[0]").value("Verifier les incidents similaires sur BSCS Billing System avant changement en production."))
+                .andExpect(jsonPath("$.risk_flags[0]").value("MASS_INCIDENT_CANDIDATE"))
+                .andExpect(jsonPath("$.missing_information[0]").value("heure de debut"))
+                .andExpect(jsonPath("$.sources[0]").value("doc:ticket-001"))
+                .andExpect(jsonPath("$.latency_ms").value(165.3));
 
         verify(chatbotService).askChatbot("Analyse incident BSCS", 3, "fr");
     }

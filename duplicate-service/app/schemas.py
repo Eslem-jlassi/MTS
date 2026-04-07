@@ -207,6 +207,10 @@ class DuplicateResponse(BaseModel):
       - reasoning : Explication en français
       - recommendation : Action recommandée
     """
+    available: bool = Field(
+        default=True,
+        description="Indique si le service IA est disponible",
+    )
     is_duplicate: bool = Field(
         ...,
         description="True si un doublon probable a été détecté",
@@ -221,6 +225,12 @@ class DuplicateResponse(BaseModel):
         le=1.0,
         description="Score de confiance du meilleur match (0.0 à 1.0)",
     )
+    confidence: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Alias unifié de duplicate_confidence",
+    )
     matched_tickets: list[MatchedTicket] = Field(
         default_factory=list,
         description="Liste des tickets similaires trouvés, triés par score décroissant",
@@ -232,6 +242,39 @@ class DuplicateResponse(BaseModel):
     recommendation: str = Field(
         ...,
         description="Action recommandée pour l'agent de support",
+    )
+    model_version: Optional[str] = Field(
+        default=None,
+        description="Version du moteur de détection",
+    )
+    fallback_mode: Optional[str] = Field(
+        default=None,
+        description="Mode IA actif : sentence-transformers, tfidf, ou none",
+    )
+    reasoning_steps: list[str] = Field(
+        default_factory=list,
+        description="Étapes explicables du raisonnement de détection",
+    )
+    recommended_actions: list[str] = Field(
+        default_factory=list,
+        description="Actions recommandées pour traitement opérationnel",
+    )
+    risk_flags: list[str] = Field(
+        default_factory=list,
+        description="Risques détectés (doublon, incident massif, faible confiance)",
+    )
+    missing_information: list[str] = Field(
+        default_factory=list,
+        description="Informations manquantes pour confirmer le diagnostic",
+    )
+    sources: list[str] = Field(
+        default_factory=list,
+        description="Sources de preuve utilisées par la détection",
+    )
+    latency_ms: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        description="Temps de traitement en millisecondes",
     )
 
 

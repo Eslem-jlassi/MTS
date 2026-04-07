@@ -40,6 +40,13 @@ import { RootState } from "../redux/store";
 import { ticketService } from "../api";
 import { userService } from "../api";
 import {
+  formatDateTime as formatDateTimeValue,
+  formatDurationMinutes,
+  formatHours,
+  formatPercent,
+  formatSlaRemaining as formatSlaRemainingValue,
+} from "../utils/formatters";
+import {
   Ticket,
   TicketStatus,
   TicketComment as TicketCommentType,
@@ -556,7 +563,8 @@ const TicketDetail: React.FC = () => {
                       )}
                       {ticket.timeSpentMinutes !== undefined && (
                         <span>
-                          <strong>Temps passé :</strong> {ticket.timeSpentMinutes} min
+                          <strong>Temps passé :</strong>{" "}
+                          {formatDurationMinutes(ticket.timeSpentMinutes)}
                         </span>
                       )}
                       {ticket.impact && (
@@ -616,7 +624,9 @@ const TicketDetail: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <span className="text-xs text-ds-muted">{formatDate(c.createdAt)}</span>
+                        <span className="text-xs text-ds-muted">
+                          {formatDateTimeValue(c.createdAt)}
+                        </span>
                       </div>
                       <p className="text-ds-primary text-sm whitespace-pre-wrap">{c.content}</p>
                     </div>
@@ -700,7 +710,7 @@ const TicketDetail: React.FC = () => {
                         <p className="text-ds-secondary text-xs mt-0.5 italic">{h.details}</p>
                       )}
                       <p className="text-ds-muted text-xs mt-1">
-                        {h.userName || "Système"} — {formatDate(h.createdAt)}
+                        {h.userName || "Système"} — {formatDateTimeValue(h.createdAt)}
                       </p>
                     </div>
                   </div>
@@ -730,11 +740,13 @@ const TicketDetail: React.FC = () => {
               highlight={!ticket.assignedToName}
             />
             <InfoRow label="Créé par" value={ticket.createdByName || "—"} />
-            <InfoRow label="Créé le" value={formatDate(ticket.createdAt)} />
+            <InfoRow label="Créé le" value={formatDateTimeValue(ticket.createdAt)} />
             {ticket.resolvedAt && (
-              <InfoRow label="Résolu le" value={formatDate(ticket.resolvedAt)} />
+              <InfoRow label="Résolu le" value={formatDateTimeValue(ticket.resolvedAt)} />
             )}
-            {ticket.closedAt && <InfoRow label="Fermé le" value={formatDate(ticket.closedAt)} />}
+            {ticket.closedAt && (
+              <InfoRow label="Fermé le" value={formatDateTimeValue(ticket.closedAt)} />
+            )}
           </div>
 
           {/* --- Carte SLA --- */}
@@ -746,18 +758,18 @@ const TicketDetail: React.FC = () => {
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-ds-muted">Délai accordé</span>
-                <span className="font-medium text-ds-primary">{ticket.slaHours}h</span>
+                <span className="font-medium text-ds-primary">{formatHours(ticket.slaHours)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-ds-muted">Deadline</span>
                 <span className={`font-medium ${getSlaColor()}`}>
-                  {formatDate(ticket.deadline)}
+                  {formatDateTimeValue(ticket.deadline)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-ds-muted">Temps restant</span>
                 <span className={`font-medium ${getSlaColor()}`}>
-                  {formatSlaRemaining(ticket.slaRemainingMinutes)}
+                  {formatSlaRemainingValue(ticket.slaRemainingMinutes)}
                 </span>
               </div>
 
@@ -765,7 +777,9 @@ const TicketDetail: React.FC = () => {
               <div className="mt-2">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-ds-muted">0%</span>
-                  <span className={getSlaColor()}>{(ticket.slaPercentage || 0).toFixed(0)}%</span>
+                  <span className={getSlaColor()}>
+                    {formatPercent(ticket.slaPercentage || 0)}
+                  </span>
                   <span className="text-ds-muted">100%</span>
                 </div>
                 <div className="w-full bg-ds-elevated rounded-full h-2.5">

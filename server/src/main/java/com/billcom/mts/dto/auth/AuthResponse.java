@@ -7,23 +7,23 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Schema(description = "Réponse d'authentification contenant les tokens JWT et les infos utilisateur")
+@Schema(description = "Reponse d'authentification contenant les tokens JWT et les infos utilisateur")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class AuthResponse {
 
-    @Schema(description = "Token d'accès JWT (durée 15 min)", example = "eyJhbGciOiJIUzI1NiJ9...")
+    @Schema(description = "Token d'acces JWT (duree 15 min)", example = "eyJhbGciOiJIUzI1NiJ9...")
     private String accessToken;
 
-    @Schema(description = "Token de rafraîchissement (durée 7 jours)", example = "dGhpcyBpcyBhIHJlZnJlc2g...")
+    @Schema(description = "Token de rafraichissement (duree 7 jours)", example = "dGhpcyBpcyBhIHJlZnJlc2g...")
     private String refreshToken;
 
     @Schema(description = "Type de token", example = "Bearer")
     private String tokenType;
 
-    @Schema(description = "Durée de validité en secondes", example = "900")
+    @Schema(description = "Duree de validite en secondes", example = "900")
     private Long expiresIn;
 
     @Schema(description = "Informations de l'utilisateur")
@@ -35,7 +35,7 @@ public class AuthResponse {
     @Schema(description = "Indique si un email de verification a ete emis")
     private Boolean emailVerificationSent;
 
-    @Schema(description = "Informations résumées de l'utilisateur")
+    @Schema(description = "Informations resumees de l'utilisateur")
     @Data
     @Builder
     @NoArgsConstructor
@@ -43,13 +43,13 @@ public class AuthResponse {
     public static class UserInfo {
         @Schema(description = "ID utilisateur", example = "1")
         private Long id;
-        @Schema(description = "Email", example = "admin@billcom.tn")
+        @Schema(description = "Email", example = "admin@mts-telecom.ma")
         private String email;
-        @Schema(description = "Prénom", example = "Admin")
+        @Schema(description = "Prenom", example = "Mohammed")
         private String firstName;
-        @Schema(description = "Nom", example = "Billcom")
+        @Schema(description = "Nom", example = "Benali")
         private String lastName;
-        @Schema(description = "Rôle", example = "ADMIN")
+        @Schema(description = "Role", example = "ADMIN")
         private UserRole role;
         @Schema(description = "URL photo de profil")
         private String profilePhotoUrl;

@@ -1,12 +1,14 @@
 package com.billcom.mts.service.impl;
 
 import com.billcom.mts.dto.incident.*;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.*;
 import com.billcom.mts.enums.*;
 import com.billcom.mts.exception.ForbiddenException;
 import com.billcom.mts.exception.ResourceNotFoundException;
 import com.billcom.mts.repository.*;
 import com.billcom.mts.service.IncidentService;
+import com.billcom.mts.service.SensitiveActionVerificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,6 +32,7 @@ public class IncidentServiceImpl implements IncidentService {
     private final UserRepository userRepository;
     private final IncidentTimelineRepository timelineRepository;
     private final com.billcom.mts.service.AuditService auditService;
+    private final SensitiveActionVerificationService sensitiveActionVerificationService;
 
     // =========================================================================
     // CRUD
@@ -162,22 +165,30 @@ public class IncidentServiceImpl implements IncidentService {
 
     @Override
     @Transactional
-    public void hardDeleteIncidentAsAdmin(Long id, User currentUser, String ipAddress) {
+    public void hardDeleteIncidentAsAdmin(
+            Long id,
+            User currentUser,
+            String ipAddress,
+            AdminHardDeleteRequest request) {
         log.info("Tentative de SUPPRESSION DEFINITIVE de l'incident ID: {} par admin: {} depuis IP: {}", 
                  id, currentUser.getEmail(), ipAddress);
-
-        if (!com.billcom.mts.enums.Role.ADMIN.equals(currentUser.getRole())) {
-            throw new org.springframework.security.access.AccessDeniedException("Seul un ADMIN peut supprimer définitivement un incident.");
-        }
 
         Incident incident = incidentRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
+        sensitiveActionVerificationService.verifyHardDeleteAuthorization(
+                currentUser,
+                id,
+                request,
+                "suppression definitive de l'incident " + incident.getIncidentNumber()
+        );
+
         String incidentNumber = incident.getIncidentNumber();
+        String deletionSnapshot = buildHardDeleteSnapshot(incident, currentUser);
 
         try {
             auditService.log("Incident", id.toString(), "DELETE", currentUser,
-                "Suppression definitive " + incidentNumber, ipAddress);
+                "Suppression definitive " + incidentNumber + " | " + deletionSnapshot, ipAddress);
         } catch (Exception e) {
             log.warn("Audit log failed: {}", e.getMessage());
         }
@@ -188,6 +199,32 @@ public class IncidentServiceImpl implements IncidentService {
         incidentRepository.saveAndFlush(incident);
 
         incidentRepository.delete(incident);
+    }
+
+    @Override
+    @Transactional
+    public void issueHardDeleteChallenge(Long id, User currentUser, String ipAddress) {
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+
+        sensitiveActionVerificationService.issueHardDeleteVerificationCode(
+                currentUser,
+                "la suppression definitive de l'incident " + incident.getIncidentNumber()
+        );
+
+        try {
+            auditService.log(
+                    "Incident",
+                    id.toString(),
+                    "UPDATE",
+                    currentUser,
+                    "Challenge de verification emis avant suppression definitive de l'incident "
+                            + incident.getIncidentNumber(),
+                    ipAddress
+            );
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
+        }
     }
 
     @Override
@@ -438,6 +475,27 @@ public class IncidentServiceImpl implements IncidentService {
 
     private void ensureStaff(User user) {
         if (user.getRole() == UserRole.CLIENT) throw new ForbiddenException("Réservé au staff");
+    }
+
+    private String buildHardDeleteSnapshot(Incident incident, User currentUser) {
+        long timelineCount = timelineRepository.countByIncidentId(incident.getId());
+        int linkedTicketsCount = incident.getTickets() != null ? incident.getTickets().size() : 0;
+        int linkedServicesCount = incident.getAffectedServices() != null ? incident.getAffectedServices().size() : 0;
+
+        return String.format(
+                "snapshot={incidentId=%d,incidentNumber=%s,status=%s,severity=%s,serviceId=%s,"
+                        + "linkedTickets=%d,linkedServices=%d,timelineCount=%d,postMortem=%s,reauthMode=%s}",
+                incident.getId(),
+                incident.getIncidentNumber(),
+                incident.getStatus() != null ? incident.getStatus().name() : "null",
+                incident.getSeverity() != null ? incident.getSeverity().name() : "null",
+                incident.getService() != null ? incident.getService().getId() : null,
+                linkedTicketsCount,
+                linkedServicesCount,
+                timelineCount,
+                incident.hasPostMortem(),
+                sensitiveActionVerificationService.resolveReauthMode(currentUser)
+        );
     }
 
     // =========================================================================

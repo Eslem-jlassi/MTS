@@ -216,11 +216,14 @@ const MainLayout: React.FC = () => {
 
   const renderNavSections = (collapsed: boolean, onNavigate?: () => void) =>
     filteredSections.map((section, index) => (
-      <div key={section.title} className={index > 0 ? "mt-4" : ""}>
+      <div
+        key={section.title}
+        className={`app-sidebar-section ${index > 0 ? "app-sidebar-section-spaced" : ""}`}
+      >
         {!collapsed && <p className="app-sidebar-section-title">{section.title}</p>}
         {collapsed && index > 0 && <div className="app-sidebar-divider" />}
 
-        <div className="space-y-0.5">
+        <div className="app-sidebar-section-links space-y-0.5">
           {section.items.map((item) => {
             const active = isActive(item.path);
 
@@ -228,6 +231,7 @@ const MainLayout: React.FC = () => {
               <Link
                 key={item.path}
                 to={item.path}
+                aria-current={active ? "page" : undefined}
                 onClick={onNavigate}
                 title={collapsed ? item.name : undefined}
                 className={`app-nav-link text-sm font-medium ${active ? "app-nav-link-active" : ""} ${
@@ -279,7 +283,7 @@ const MainLayout: React.FC = () => {
           </button>
         </div>
 
-        <nav className="flex-1 mt-4 px-2 overflow-y-auto pb-4">
+        <nav className="app-sidebar-nav flex-1 mt-4 px-2 overflow-y-auto pb-4">
           {renderNavSections(false, () => setSidebarOpen(false))}
         </nav>
       </motion.aside>
@@ -303,7 +307,7 @@ const MainLayout: React.FC = () => {
           </button>
         </div>
 
-        <nav className="flex-1 mt-4 px-2 overflow-y-auto pb-4">
+        <nav className="app-sidebar-nav flex-1 mt-4 px-2 overflow-y-auto pb-4">
           {renderNavSections(sidebarCollapsed)}
         </nav>
 

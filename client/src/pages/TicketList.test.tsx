@@ -494,4 +494,96 @@ describe("TicketList", () => {
     expect(screen.getAllByText(/Suppression definitive test/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText(/Tapez SUPPRIMER/)).toBeInTheDocument();
   });
+
+  it("requires admin password in hard delete modal for local admin accounts", async () => {
+    const tickets = [
+      buildTicket({
+        id: 6,
+        ticketNumber: "TK-20240006",
+        title: "Suppression locale",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 1,
+          role: "ADMIN",
+          firstName: "Admin",
+          lastName: "Local",
+          email: "admin.local@test.com",
+          oauthProvider: null,
+        },
+        isAuthenticated: true,
+        isInitialized: true,
+        isLoading: false,
+        token: "fake",
+        refreshToken: null,
+        error: null,
+      },
+    );
+
+    fireEvent.click(await screen.findByLabelText("Supprimer definitivement le ticket TK-20240006"));
+
+    expect(screen.getByText(/Mot de passe administrateur/)).toBeInTheDocument();
+    expect(screen.queryByText(/Code de verification email/)).not.toBeInTheDocument();
+  });
+
+  it("shows verification code challenge fields for OAuth admin hard delete", async () => {
+    const tickets = [
+      buildTicket({
+        id: 7,
+        ticketNumber: "TK-20240007",
+        title: "Suppression oauth",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 1,
+          role: "ADMIN",
+          firstName: "Admin",
+          lastName: "OAuth",
+          email: "admin.oauth@test.com",
+          oauthProvider: "GOOGLE",
+        },
+        isAuthenticated: true,
+        isInitialized: true,
+        isLoading: false,
+        token: "fake",
+        refreshToken: null,
+        error: null,
+      },
+    );
+
+    fireEvent.click(await screen.findByLabelText("Supprimer definitivement le ticket TK-20240007"));
+
+    expect(screen.getByText(/Code de verification email/)).toBeInTheDocument();
+    expect(screen.getByText("Envoyer un code")).toBeInTheDocument();
+  });
 });

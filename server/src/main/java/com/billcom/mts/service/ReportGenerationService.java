@@ -2,15 +2,32 @@ package com.billcom.mts.service;
 
 import com.billcom.mts.dto.report.GenerateReportRequest;
 import com.billcom.mts.dto.report.ReportResponse;
-import com.billcom.mts.entity.*;
+import com.billcom.mts.entity.Client;
+import com.billcom.mts.entity.Incident;
+import com.billcom.mts.entity.Report;
+import com.billcom.mts.entity.TelecomService;
+import com.billcom.mts.entity.Ticket;
+import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.ReportSource;
 import com.billcom.mts.enums.ReportType;
 import com.billcom.mts.enums.TicketStatus;
 import com.billcom.mts.exception.BadRequestException;
 import com.billcom.mts.exception.ResourceNotFoundException;
-import com.billcom.mts.repository.*;
+import com.billcom.mts.repository.ClientRepository;
+import com.billcom.mts.repository.IncidentRepository;
+import com.billcom.mts.repository.ReportRepository;
+import com.billcom.mts.repository.TelecomServiceRepository;
+import com.billcom.mts.repository.TicketRepository;
 import com.billcom.mts.service.ExecutiveSummaryEngine.ReportKpis;
-import com.lowagie.text.*;
+import com.lowagie.text.Chunk;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
@@ -20,7 +37,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.awt.Color;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,28 +55,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 // =============================================================================
-// SERVICE DE GÉNÉRATION DE RAPPORTS (PDF + CSV)
-// V29 – Filtres avancés, Executive Summary, export multi-format
+// SERVICE DE GENERATION DE RAPPORTS (PDF + CSV)
 // =============================================================================
-/**
- * ReportGenerationService - Génère des rapports périodiques enrichis.
- *
- * FONCTIONNALITÉS V29:
- * - Filtres avancés: service, équipe, client, statut ticket
- * - Executive Summary automatique (via ExecutiveSummaryEngine)
- * - Export PDF professionnel avec sections KPI, SLA, distributions
- * - Export CSV tabulaire avec en-têtes et colonnes complètes
- * - KPIs embarqués dans la réponse JSON
- *
- * FLUX DE GÉNÉRATION:
- * 1. Valider les paramètres (période, filtres)
- * 2. Requêter les données avec filtres appliqués
- * 3. Calculer les KPIs (SLA, backlog, distributions)
- * 4. Générer le résumé exécutif (ExecutiveSummaryEngine)
- * 5. Produire le fichier (PDF ou CSV)
- * 6. Enregistrer en base avec traçabilité des filtres
- * 7. Retourner ReportResponse avec KPIs embarqués
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -74,80 +75,63 @@ public class ReportGenerationService {
     private static final DateTimeFormatter LABEL_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    // =========================================================================
-    // MÉTHODE PRINCIPALE – Génération de rapport
-    // =========================================================================
-
-    /**
-     * Génère un rapport enrichi pour la période donnée avec filtres optionnels.
-     *
-     * @param request  paramètres de génération (type, période, filtres, format)
-     * @param currentUser utilisateur exécutant la génération
-     * @return ReportResponse avec KPIs embarqués et executive summary
-     */
     @Transactional
     public ReportResponse generateReport(GenerateReportRequest request, User currentUser) {
         LocalDate periodStart = request.getPeriodStart();
         LocalDate periodEnd = request.getPeriodEnd();
 
         if (periodEnd.isBefore(periodStart)) {
-            throw new BadRequestException("La date de fin doit être après la date de début");
+            throw new BadRequestException("La date de fin doit etre apres la date de debut");
         }
 
-        // Détermine le format de sortie (PDF par défaut)
-        String format = (request.getFormat() != null && "CSV".equalsIgnoreCase(request.getFormat()))
-                ? "CSV" : "PDF";
+        String format =
+                request.getFormat() != null && "CSV".equalsIgnoreCase(request.getFormat()) ? "CSV" : "PDF";
 
         LocalDateTime from = periodStart.atStartOfDay();
         LocalDateTime to = periodEnd.plusDays(1).atStartOfDay();
 
-        // --- Résolution des filtres ---
         TelecomService serviceFilter = null;
         if (request.getServiceId() != null && telecomServiceRepository != null) {
             serviceFilter = telecomServiceRepository.findById(request.getServiceId())
                     .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
         }
+
         Client clientFilter = null;
         if (request.getClientId() != null && clientRepository != null) {
             clientFilter = clientRepository.findById(request.getClientId())
                     .orElseThrow(() -> new ResourceNotFoundException("Client", "id", request.getClientId()));
         }
 
-        // --- Requêtes données avec filtres ---
         List<Ticket> ticketsInPeriod = fetchFilteredTickets(from, to, request);
-        List<Incident> incidentsInPeriod = incidentRepository != null
-                ? incidentRepository.findByPeriod(from, to)
-                : List.of();
+        List<Incident> incidentsInPeriod = incidentRepository != null ? incidentRepository.findByPeriod(from, to) : List.of();
 
-        // --- Calcul des KPIs ---
         long ticketsCreated = ticketsInPeriod.size();
         long ticketsResolved = ticketsInPeriod.stream()
-                .filter(t -> t.getStatus() == TicketStatus.RESOLVED || t.getStatus() == TicketStatus.CLOSED)
+                .filter(ticket -> ticket.getStatus() == TicketStatus.RESOLVED || ticket.getStatus() == TicketStatus.CLOSED)
                 .count();
         long ticketsCritical = ticketRepository.countCriticalBetween(from, to);
         long ticketsSlaBreached = ticketRepository.countSlaBreachedBetween(from, to);
         long backlogCount = ticketRepository.countBacklogAt(to);
         long incidentsCount = incidentsInPeriod.size();
-        long incidentsCritical = incidentRepository != null
-                ? incidentRepository.countCriticalByPeriod(from, to)
-                : 0L;
+        long incidentsCritical = incidentRepository != null ? incidentRepository.countCriticalByPeriod(from, to) : 0L;
         double slaCompliancePct = ExecutiveSummaryEngine.computeSlaCompliance(ticketsCreated, ticketsSlaBreached);
 
-        // Distributions
         Map<String, Long> byStatus = ticketsInPeriod.stream()
                 .collect(Collectors.groupingBy(
-                        t -> t.getStatus() != null ? t.getStatus().name() : "N/A",
-                        Collectors.counting()));
+                        ticket -> ticket.getStatus() != null ? ticket.getStatus().name() : "N/A",
+                        Collectors.counting()
+                ));
         Map<String, Long> byPriority = ticketsInPeriod.stream()
                 .collect(Collectors.groupingBy(
-                        t -> t.getPriority() != null ? t.getPriority().name() : "N/A",
-                        Collectors.counting()));
+                        ticket -> ticket.getPriority() != null ? ticket.getPriority().name() : "N/A",
+                        Collectors.counting()
+                ));
         Map<String, Long> incidentsBySeverity = incidentsInPeriod.stream()
                 .collect(Collectors.groupingBy(
-                        i -> i.getSeverity() != null ? i.getSeverity().name() : "N/A",
-                        Collectors.counting()));
+                        incident -> incident.getSeverity() != null ? incident.getSeverity().name() : "N/A",
+                        Collectors.counting()
+                ));
 
-        // --- Construction des KPIs pour le moteur Executive Summary ---
         ReportKpis kpis = ReportKpis.builder()
                 .periodStart(periodStart)
                 .periodEnd(periodEnd)
@@ -166,26 +150,30 @@ public class ReportGenerationService {
                 .incidentsBySeverity(incidentsBySeverity)
                 .build();
 
-        // --- Génération du résumé exécutif ---
-        String executiveSummary = executiveSummaryEngine != null
-                ? executiveSummaryEngine.generate(kpis)
-                : "";
+        String executiveSummary = executiveSummaryEngine != null ? executiveSummaryEngine.generate(kpis) : "";
 
-        // --- Titre et description ---
         ReportType reportType = request.getReportType();
-        String title = String.format("Rapport %s - %s à %s",
+        String title = String.format(
+                "Rapport %s - %s a %s",
                 reportType.getLabel(),
                 periodStart.format(LABEL_FORMAT),
-                periodEnd.format(LABEL_FORMAT));
+                periodEnd.format(LABEL_FORMAT)
+        );
         String description = String.format(
-                "Rapport généré automatiquement (%s). Période: %s - %s. "
-                + "Tickets créés: %d, résolus: %d, critiques: %d. "
-                + "Incidents: %d (dont %d critiques). SLA: %.1f%%.",
-                format, periodStart, periodEnd,
-                ticketsCreated, ticketsResolved, ticketsCritical,
-                incidentsCount, incidentsCritical, slaCompliancePct);
+                "Rapport genere automatiquement (%s). Periode: %s - %s. "
+                        + "Tickets crees: %d, resolus: %d, critiques: %d. "
+                        + "Incidents: %d (dont %d critiques). SLA: %.1f%%.",
+                format,
+                periodStart,
+                periodEnd,
+                ticketsCreated,
+                ticketsResolved,
+                ticketsCritical,
+                incidentsCount,
+                incidentsCritical,
+                slaCompliancePct
+        );
 
-        // --- Génération du fichier (PDF ou CSV) ---
         byte[] fileBytes;
         String mimeType;
         String fileExtension;
@@ -200,14 +188,15 @@ public class ReportGenerationService {
             fileExtension = ".pdf";
         }
 
-        // --- Sauvegarde du fichier ---
         String yearMonth = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM"));
         Path targetDir = Paths.get(uploadDir, yearMonth);
+
         try {
             if (!Files.exists(targetDir)) {
                 Files.createDirectories(targetDir);
             }
-            String uniqueFileName = "generated_" + UUID.randomUUID().toString() + fileExtension;
+
+            String uniqueFileName = "generated_" + UUID.randomUUID() + fileExtension;
             Path targetPath = targetDir.resolve(uniqueFileName);
             Files.write(targetPath, fileBytes);
 
@@ -235,28 +224,26 @@ public class ReportGenerationService {
                     .isPublished(publish)
                     .source(ReportSource.GENERATED)
                     .build();
+
             report = reportRepository.save(report);
 
-            log.info("[Report] Rapport {} généré (format={}) ID {} par {} pour période {} - {}",
-                    reportType, format, report.getId(), currentUser.getEmail(), periodStart, periodEnd);
+            log.info(
+                    "[Report] Rapport {} genere (format={}) ID {} par {} pour periode {} - {}",
+                    reportType,
+                    format,
+                    report.getId(),
+                    currentUser.getEmail(),
+                    periodStart,
+                    periodEnd
+            );
 
             return mapToResponse(report, kpis);
         } catch (IOException e) {
-            throw new RuntimeException("Erreur lors de l'enregistrement du rapport généré", e);
+            throw new RuntimeException("Erreur lors de l'enregistrement du rapport genere", e);
         }
     }
 
-    // =========================================================================
-    // REQUÊTAGE DES TICKETS AVEC FILTRES
-    // =========================================================================
-
-    /**
-     * Récupère les tickets de la période en appliquant les filtres optionnels.
-     * Priorité des filtres: service > client > team > statut.
-     * Si aucun filtre → tous les tickets de la période.
-     */
-    private List<Ticket> fetchFilteredTickets(LocalDateTime from, LocalDateTime to,
-                                               GenerateReportRequest request) {
+    private List<Ticket> fetchFilteredTickets(LocalDateTime from, LocalDateTime to, GenerateReportRequest request) {
         List<Ticket> tickets;
 
         if (request.getServiceId() != null) {
@@ -269,208 +256,301 @@ public class ReportGenerationService {
             tickets = ticketRepository.findByCreatedAtBetween(from, to);
         }
 
-        // Filtre additionnel par statut si demandé
         if (request.getTicketStatus() != null && !request.getTicketStatus().isBlank()) {
             String statusFilter = request.getTicketStatus().toUpperCase();
             tickets = tickets.stream()
-                    .filter(t -> t.getStatus() != null && t.getStatus().name().equals(statusFilter))
+                    .filter(ticket -> ticket.getStatus() != null && ticket.getStatus().name().equals(statusFilter))
                     .collect(Collectors.toList());
         }
 
         return tickets;
     }
 
-    // =========================================================================
-    // CONSTRUCTION PDF ENRICHI
-    // =========================================================================
-
-    /**
-     * Construit un PDF professionnel avec:
-     * - En-tête et métadonnées
-     * - Résumé exécutif complet
-     * - Tableau des KPIs principaux
-     * - Répartition par statut et priorité
-     * - Section incidents
-     */
-    private byte[] buildPdf(String title, LocalDate periodStart, LocalDate periodEnd,
-                            ReportKpis kpis, String executiveSummary,
-                            Map<String, Long> byStatus, Map<String, Long> byPriority) {
+    private byte[] buildPdf(
+            String title,
+            LocalDate periodStart,
+            LocalDate periodEnd,
+            ReportKpis kpis,
+            String executiveSummary,
+            Map<String, Long> byStatus,
+            Map<String, Long> byPriority
+    ) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             Document document = new Document(PageSize.A4, 36, 36, 36, 36);
-            PdfWriter.getInstance(document, baos);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
             document.open();
 
-            // Polices
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-            Font headingFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 13);
-            Font subheadingFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
-            Font smallFont = FontFactory.getFont(FontFactory.HELVETICA, 8);
+            document.addTitle(title);
+            document.addAuthor("MTS Telecom / Billcom Consulting");
+            document.addCreator("MTS Telecom Supervision Platform");
+            writer.setViewerPreferences(PdfWriter.PageModeUseOutlines);
+
+            Color brandColor = new Color(17, 54, 89);
+            Color accentColor = new Color(231, 111, 46);
+            Color headerColor = new Color(236, 243, 248);
+            Color softSurface = new Color(248, 250, 252);
+            Color warningSurface = new Color(255, 244, 229);
+
+            Font brandFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+            brandFont.setColor(accentColor);
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20);
+            titleFont.setColor(brandColor);
+            Font sectionFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            sectionFont.setColor(brandColor);
+            Font subSectionFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
+            subSectionFont.setColor(brandColor);
+            Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
+            Font mutedFont = FontFactory.getFont(FontFactory.HELVETICA, 8);
+            mutedFont.setColor(new Color(96, 104, 113));
             Font alertFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
+            alertFont.setColor(accentColor);
+            Font headerFontText = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9);
+            headerFontText.setColor(brandColor);
 
-            // ---- EN-TÊTE ----
-            document.add(new Paragraph(title, titleFont));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Période: " + periodStart.format(LABEL_FORMAT)
-                    + " - " + periodEnd.format(LABEL_FORMAT), normalFont));
-            document.add(new Paragraph("Généré le: " + LocalDateTime.now().format(TIMESTAMP_FORMAT), normalFont));
-            document.add(new Paragraph("Format: PDF — Rapport généré automatiquement par MTS Telecom", smallFont));
-            document.add(new Paragraph(" "));
+            Paragraph brand = new Paragraph("MTS Telecom | Billcom Consulting", brandFont);
+            brand.setSpacingAfter(6f);
+            document.add(brand);
 
-            // ---- EXECUTIVE SUMMARY ----
-            document.add(new Paragraph("Résumé Exécutif", headingFont));
-            document.add(new Paragraph(" "));
-            // Le résumé peut contenir des lignes avec symboles ⚠ ✓ — on les affiche tels quels
-            for (String line : executiveSummary.split("\n")) {
-                if (line.startsWith("===") || line.startsWith("—")) {
-                    document.add(new Paragraph(line, subheadingFont));
-                } else if (line.contains("ALERTE") || line.contains("⚠")) {
-                    document.add(new Paragraph(line, alertFont));
-                } else {
-                    document.add(new Paragraph(line, normalFont));
-                }
-            }
-            document.add(new Paragraph(" "));
+            Paragraph reportTitle = new Paragraph(title, titleFont);
+            reportTitle.setSpacingAfter(10f);
+            document.add(reportTitle);
 
-            // ---- TABLEAU KPIs PRINCIPAUX ----
-            document.add(new Paragraph("Indicateurs Clés de Performance", headingFont));
+            Paragraph intro = new Paragraph(
+                    "Rapport de supervision et support client genere automatiquement a partir des donnees du SI MTS Telecom.",
+                    mutedFont
+            );
+            intro.setSpacingAfter(10f);
+            document.add(intro);
+
+            PdfPTable metadataTable = new PdfPTable(2);
+            metadataTable.setWidthPercentage(100);
+            metadataTable.setSpacingAfter(16f);
+            metadataTable.setWidths(new float[]{32, 68});
+            addTableHeader(metadataTable, "Champ", "Valeur", headerFontText, headerColor);
+            addKpiRow(metadataTable, "Periode", periodStart.format(LABEL_FORMAT) + " - " + periodEnd.format(LABEL_FORMAT), bodyFont);
+            addKpiRow(metadataTable, "Genere le", LocalDateTime.now().format(TIMESTAMP_FORMAT), bodyFont);
+            addKpiRow(metadataTable, "Format", "PDF", bodyFont);
+            addKpiRow(metadataTable, "Edition", "MTS Telecom - Billcom Consulting", bodyFont);
+            document.add(metadataTable);
+
+            addSectionTitle(document, "Resume executif", sectionFont);
+            addExecutiveSummary(document, executiveSummary, subSectionFont, bodyFont, alertFont, softSurface, warningSurface);
+            document.add(Chunk.NEWLINE);
+
+            addSectionTitle(document, "Indicateurs cles", sectionFont);
             PdfPTable kpiTable = new PdfPTable(2);
             kpiTable.setWidthPercentage(100);
-            kpiTable.setSpacingBefore(5);
+            kpiTable.setSpacingBefore(6f);
+            kpiTable.setSpacingAfter(12f);
             kpiTable.setWidths(new float[]{60, 40});
-            addKpiRow(kpiTable, "Tickets créés", String.valueOf(kpis.getTicketsCreated()), normalFont);
-            addKpiRow(kpiTable, "Tickets résolus", String.valueOf(kpis.getTicketsResolved()), normalFont);
-            addKpiRow(kpiTable, "Tickets critiques", String.valueOf(kpis.getTicketsCritical()), normalFont);
-            addKpiRow(kpiTable, "Tickets SLA dépassé", String.valueOf(kpis.getTicketsSlaBreached()), normalFont);
-            addKpiRow(kpiTable, "Backlog actuel", String.valueOf(kpis.getBacklogCount()), normalFont);
-            addKpiRow(kpiTable, "Incidents (total)", String.valueOf(kpis.getIncidentsCount()), normalFont);
-            addKpiRow(kpiTable, "Incidents critiques", String.valueOf(kpis.getIncidentsCritical()), normalFont);
-            addKpiRow(kpiTable, "Conformité SLA", String.format("%.1f%%", kpis.getSlaCompliancePct()), normalFont);
+            addTableHeader(kpiTable, "Indicateur", "Valeur", headerFontText, headerColor);
+            addKpiRow(kpiTable, "Tickets crees", String.valueOf(kpis.getTicketsCreated()), bodyFont);
+            addKpiRow(kpiTable, "Tickets resolus", String.valueOf(kpis.getTicketsResolved()), bodyFont);
+            addKpiRow(kpiTable, "Tickets critiques", String.valueOf(kpis.getTicketsCritical()), bodyFont);
+            addKpiRow(kpiTable, "Tickets SLA depasses", String.valueOf(kpis.getTicketsSlaBreached()), bodyFont);
+            addKpiRow(kpiTable, "Backlog actuel", String.valueOf(kpis.getBacklogCount()), bodyFont);
+            addKpiRow(kpiTable, "Incidents total", String.valueOf(kpis.getIncidentsCount()), bodyFont);
+            addKpiRow(kpiTable, "Incidents critiques", String.valueOf(kpis.getIncidentsCritical()), bodyFont);
+            addKpiRow(kpiTable, "Conformite SLA", String.format("%.1f%%", kpis.getSlaCompliancePct()), bodyFont);
             document.add(kpiTable);
-            document.add(new Paragraph(" "));
 
-            // ---- TICKETS PAR STATUT ----
             if (!byStatus.isEmpty()) {
-                document.add(new Paragraph("Tickets par statut", headingFont));
-                PdfPTable statusTable = new PdfPTable(2);
-                statusTable.setWidthPercentage(100);
-                statusTable.setSpacingBefore(5);
-                for (Map.Entry<String, Long> e : byStatus.entrySet()) {
-                    statusTable.addCell(cell(e.getKey(), normalFont));
-                    statusTable.addCell(cell(String.valueOf(e.getValue()), normalFont));
-                }
-                document.add(statusTable);
-                document.add(new Paragraph(" "));
+                addSectionTitle(document, "Repartition des tickets par statut", sectionFont);
+                document.add(buildDistributionTable(byStatus, bodyFont, headerFontText, headerColor));
+                document.add(Chunk.NEWLINE);
             }
 
-            // ---- TICKETS PAR PRIORITÉ ----
             if (!byPriority.isEmpty()) {
-                document.add(new Paragraph("Tickets par priorité", headingFont));
-                PdfPTable priorityTable = new PdfPTable(2);
-                priorityTable.setWidthPercentage(100);
-                priorityTable.setSpacingBefore(5);
-                for (Map.Entry<String, Long> e : byPriority.entrySet()) {
-                    priorityTable.addCell(cell(e.getKey(), normalFont));
-                    priorityTable.addCell(cell(String.valueOf(e.getValue()), normalFont));
-                }
-                document.add(priorityTable);
+                addSectionTitle(document, "Repartition des tickets par priorite", sectionFont);
+                document.add(buildDistributionTable(byPriority, bodyFont, headerFontText, headerColor));
             }
 
             document.close();
             return baos.toByteArray();
         } catch (DocumentException | IOException e) {
-            throw new RuntimeException("Erreur génération PDF", e);
+            throw new RuntimeException("Erreur generation PDF", e);
         }
     }
 
-    /** Ajoute une ligne KPI au tableau (label + valeur). */
+    private void addSectionTitle(Document document, String title, Font font) throws DocumentException {
+        Paragraph paragraph = new Paragraph(title, font);
+        paragraph.setSpacingBefore(4f);
+        paragraph.setSpacingAfter(8f);
+        document.add(paragraph);
+    }
+
+    private void addExecutiveSummary(
+            Document document,
+            String executiveSummary,
+            Font subSectionFont,
+            Font bodyFont,
+            Font alertFont,
+            Color defaultBackground,
+            Color warningBackground
+    ) throws DocumentException {
+        PdfPTable summaryTable = new PdfPTable(1);
+        summaryTable.setWidthPercentage(100);
+        summaryTable.setSpacingBefore(4f);
+
+        if (executiveSummary == null || executiveSummary.isBlank()) {
+            PdfPCell emptyCell = new PdfPCell(new Phrase("Aucun resume executif disponible.", bodyFont));
+            emptyCell.setBorderWidth(0.4f);
+            emptyCell.setPadding(10f);
+            emptyCell.setBackgroundColor(defaultBackground);
+            summaryTable.addCell(emptyCell);
+            document.add(summaryTable);
+            return;
+        }
+
+        for (String rawLine : executiveSummary.split("\n")) {
+            String line = rawLine == null ? "" : rawLine.trim();
+            if (line.isEmpty()) {
+                continue;
+            }
+
+            Font lineFont = bodyFont;
+            Color background = defaultBackground;
+            String renderedLine = line;
+
+            if (line.startsWith("===")) {
+                lineFont = subSectionFont;
+                renderedLine = line.replace("=", "").trim();
+            } else if (line.toUpperCase().contains("ALERTE")) {
+                lineFont = alertFont;
+                background = warningBackground;
+            } else if (!line.startsWith("-") && !line.startsWith("•")) {
+                renderedLine = "• " + line;
+            }
+
+            PdfPCell lineCell = new PdfPCell(new Phrase(renderedLine, lineFont));
+            lineCell.setBorderWidth(0.4f);
+            lineCell.setPadding(9f);
+            lineCell.setBackgroundColor(background);
+            summaryTable.addCell(lineCell);
+        }
+
+        document.add(summaryTable);
+    }
+
+    private void addTableHeader(PdfPTable table, String left, String right, Font font, Color backgroundColor) {
+        PdfPCell leftHeader = new PdfPCell(new Phrase(left, font));
+        leftHeader.setBackgroundColor(backgroundColor);
+        leftHeader.setPadding(6f);
+        leftHeader.setBorderWidth(0.5f);
+        table.addCell(leftHeader);
+
+        PdfPCell rightHeader = new PdfPCell(new Phrase(right, font));
+        rightHeader.setBackgroundColor(backgroundColor);
+        rightHeader.setPadding(6f);
+        rightHeader.setBorderWidth(0.5f);
+        rightHeader.setHorizontalAlignment(Element.ALIGN_RIGHT);
+        table.addCell(rightHeader);
+    }
+
     private void addKpiRow(PdfPTable table, String label, String value, Font font) {
         PdfPCell labelCell = new PdfPCell(new Phrase(label, font));
         labelCell.setBorderWidth(0.5f);
-        labelCell.setPadding(4);
+        labelCell.setPadding(6f);
         table.addCell(labelCell);
 
         Font boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10);
         PdfPCell valueCell = new PdfPCell(new Phrase(value, boldFont));
         valueCell.setBorderWidth(0.5f);
-        valueCell.setPadding(4);
+        valueCell.setPadding(6f);
         valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
         table.addCell(valueCell);
     }
 
-    private static PdfPCell cell(String text, Font font) {
-        PdfPCell c = new PdfPCell(new Phrase(text, font));
-        c.setBorderWidth(0.5f);
-        c.setPadding(4);
-        return c;
+    private PdfPTable buildDistributionTable(
+            Map<String, Long> values,
+            Font bodyFont,
+            Font headerFont,
+                Color headerColor
+    ) {
+        PdfPTable table = new PdfPTable(2);
+        table.setWidthPercentage(100);
+        table.setSpacingBefore(4f);
+        table.setSpacingAfter(10f);
+        addTableHeader(table, "Categorie", "Volume", headerFont, headerColor);
+
+        values.forEach((key, value) -> {
+            table.addCell(cell(normalizePdfLabel(key), bodyFont));
+
+            PdfPCell valueCell = cell(String.valueOf(value), bodyFont);
+            valueCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
+            table.addCell(valueCell);
+        });
+
+        return table;
     }
 
-    // =========================================================================
-    // CONSTRUCTION CSV
-    // =========================================================================
+    private PdfPCell cell(String text, Font font) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setBorderWidth(0.5f);
+        cell.setPadding(6f);
+        return cell;
+    }
 
-    /**
-     * Construit un fichier CSV UTF-8 avec BOM pour compatibilité Excel.
-     *
-     * Structure du CSV:
-     * - Section 1: Métadonnées (titre, période, date génération)
-     * - Section 2: KPIs (une ligne par indicateur)
-     * - Section 3: Résumé exécutif (texte multi-ligne)
-     * - Section 4: Liste des tickets (tableau complet)
-     *
-     * COMMENTÉ: Le BOM UTF-8 (EF BB BF) assure l'ouverture correcte
-     * dans Excel avec les accents français.
-     */
-    private byte[] buildCsv(String title, LocalDate periodStart, LocalDate periodEnd,
-                            List<Ticket> tickets, ReportKpis kpis, String executiveSummary) {
+    private String normalizePdfLabel(String label) {
+        if (label == null || label.isBlank()) {
+            return "N/A";
+        }
+
+        return label.replace('_', ' ');
+    }
+
+    private byte[] buildCsv(
+            String title,
+            LocalDate periodStart,
+            LocalDate periodEnd,
+            List<Ticket> tickets,
+            ReportKpis kpis,
+            String executiveSummary
+    ) {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            // BOM UTF-8 pour compatibilité Excel
             baos.write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF});
 
             try (PrintWriter pw = new PrintWriter(new OutputStreamWriter(baos, StandardCharsets.UTF_8))) {
-                // ---- SECTION MÉTADONNÉES ----
                 pw.println("# RAPPORT MTS TELECOM");
                 pw.println("# " + title);
-                pw.println("# Période: " + periodStart.format(LABEL_FORMAT) + " - " + periodEnd.format(LABEL_FORMAT));
-                pw.println("# Généré le: " + LocalDateTime.now().format(TIMESTAMP_FORMAT));
+                pw.println("# Periode: " + periodStart.format(LABEL_FORMAT) + " - " + periodEnd.format(LABEL_FORMAT));
+                pw.println("# Genere le: " + LocalDateTime.now().format(TIMESTAMP_FORMAT));
                 pw.println();
 
-                // ---- SECTION KPIs ----
-                pw.println("# === INDICATEURS CLÉS ===");
+                pw.println("# === INDICATEURS CLES ===");
                 pw.println("Indicateur;Valeur");
-                pw.println("Tickets créés;" + kpis.getTicketsCreated());
-                pw.println("Tickets résolus;" + kpis.getTicketsResolved());
+                pw.println("Tickets crees;" + kpis.getTicketsCreated());
+                pw.println("Tickets resolus;" + kpis.getTicketsResolved());
                 pw.println("Tickets critiques;" + kpis.getTicketsCritical());
-                pw.println("Tickets SLA dépassé;" + kpis.getTicketsSlaBreached());
+                pw.println("Tickets SLA depasses;" + kpis.getTicketsSlaBreached());
                 pw.println("Backlog actuel;" + kpis.getBacklogCount());
                 pw.println("Incidents total;" + kpis.getIncidentsCount());
                 pw.println("Incidents critiques;" + kpis.getIncidentsCritical());
-                pw.println(String.format("Conformité SLA;%.1f%%", kpis.getSlaCompliancePct()));
+                pw.println(String.format("Conformite SLA;%.1f%%", kpis.getSlaCompliancePct()));
                 pw.println();
 
-                // ---- SECTION RÉSUMÉ EXÉCUTIF ----
-                pw.println("# === RÉSUMÉ EXÉCUTIF ===");
+                pw.println("# === RESUME EXECUTIF ===");
                 for (String line : executiveSummary.split("\n")) {
                     pw.println("# " + line);
                 }
                 pw.println();
 
-                // ---- SECTION TICKETS (TABLEAU) ----
                 pw.println("# === LISTE DES TICKETS ===");
-                pw.println("N° Ticket;Titre;Statut;Priorité;Créé le;SLA Dépassé;Assigné à;Service;Client");
+                pw.println("N Ticket;Titre;Statut;Priorite;Cree le;SLA depasse;Assigne a;Service;Client");
 
                 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-                for (Ticket t : tickets) {
-                    pw.println(String.join(";",
-                            escapeCsv(t.getTicketNumber()),
-                            escapeCsv(t.getTitle()),
-                            t.getStatus() != null ? t.getStatus().name() : "N/A",
-                            t.getPriority() != null ? t.getPriority().name() : "N/A",
-                            t.getCreatedAt() != null ? t.getCreatedAt().format(dtf) : "N/A",
-                            Boolean.TRUE.equals(t.getBreachedSla()) ? "OUI" : "NON",
-                            t.getAssignedTo() != null ? escapeCsv(t.getAssignedTo().getFullName()) : "Non assigné",
-                            t.getService() != null ? escapeCsv(t.getService().getName()) : "N/A",
-                            t.getClient() != null ? escapeCsv(t.getClient().getCompanyName()) : "N/A"
+                for (Ticket ticket : tickets) {
+                    pw.println(String.join(
+                            ";",
+                            escapeCsv(ticket.getTicketNumber()),
+                            escapeCsv(ticket.getTitle()),
+                            ticket.getStatus() != null ? ticket.getStatus().name() : "N/A",
+                            ticket.getPriority() != null ? ticket.getPriority().name() : "N/A",
+                            ticket.getCreatedAt() != null ? ticket.getCreatedAt().format(dtf) : "N/A",
+                            Boolean.TRUE.equals(ticket.getBreachedSla()) ? "OUI" : "NON",
+                            ticket.getAssignedTo() != null ? escapeCsv(ticket.getAssignedTo().getFullName()) : "Non assigne",
+                            ticket.getService() != null ? escapeCsv(ticket.getService().getName()) : "N/A",
+                            ticket.getClient() != null ? escapeCsv(ticket.getClient().getCompanyName()) : "N/A"
                     ));
                 }
 
@@ -479,29 +559,22 @@ public class ReportGenerationService {
 
             return baos.toByteArray();
         } catch (IOException e) {
-            throw new RuntimeException("Erreur génération CSV", e);
+            throw new RuntimeException("Erreur generation CSV", e);
         }
     }
 
-    /**
-     * Échappe une valeur CSV: guillemets doubles si elle contient un séparateur, un guillemet ou un saut de ligne.
-     */
     private String escapeCsv(String value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
+
         if (value.contains(";") || value.contains("\"") || value.contains("\n")) {
             return "\"" + value.replace("\"", "\"\"") + "\"";
         }
+
         return value;
     }
 
-    // =========================================================================
-    // MAPPING VERS DTO AVEC KPIs EMBARQUÉS
-    // =========================================================================
-
-    /**
-     * Mappe un Report + KPIs vers ReportResponse enrichi V29.
-     * Les KPIs sont inclus dans la réponse JSON pour affichage frontend.
-     */
     private ReportResponse mapToResponse(Report report, ReportKpis kpis) {
         return ReportResponse.builder()
                 .id(report.getId())
@@ -531,8 +604,7 @@ public class ReportGenerationService {
                 .downloadCount(report.getDownloadCount())
                 .isPublished(report.getIsPublished())
                 .source(report.getSource() != null ? report.getSource().name() : "UPLOADED")
-                .sourceLabel(report.getSource() != null ? report.getSource().getLabel() : "Uploadé")
-                // KPIs embarqués
+                .sourceLabel(report.getSource() != null ? report.getSource().getLabel() : "Uploade")
                 .ticketsCreated(kpis.getTicketsCreated())
                 .ticketsResolved(kpis.getTicketsResolved())
                 .ticketsCritical(kpis.getTicketsCritical())

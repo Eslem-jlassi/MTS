@@ -153,7 +153,8 @@ const ResetPasswordPage: React.FC = () => {
             Lien invalide ou expire
           </p>
           <p className="text-xs text-ds-muted mt-2">
-            Demandez un nouveau lien depuis la page de reinitialisation ou utilisez un lien plus recent.
+            Demandez un nouveau lien depuis la page de reinitialisation ou utilisez un lien plus
+            recent.
           </p>
           <Link
             to="/forgot-password"

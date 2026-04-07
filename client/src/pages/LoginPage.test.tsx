@@ -47,6 +47,13 @@ describe("LoginPage", () => {
     expect(screen.getByPlaceholderText("********")).toBeInTheDocument();
   });
 
+  it("prefills the documented demo credentials", () => {
+    renderLoginPage();
+
+    expect(screen.getByPlaceholderText("votre@email.com")).toHaveValue("admin@mts-telecom.ma");
+    expect(screen.getByPlaceholderText("********")).toHaveValue("Password1!");
+  });
+
   it("renders the submit button", () => {
     renderLoginPage();
     expect(screen.getByText(/se connecter/i)).toBeInTheDocument();
@@ -90,11 +97,11 @@ describe("LoginPage", () => {
     const emailInput = screen.getByPlaceholderText("votre@email.com");
     const passwordInput = screen.getByPlaceholderText("********");
 
-    fireEvent.change(emailInput, { target: { value: "admin@mts.com" } });
-    fireEvent.change(passwordInput, { target: { value: "password" } });
+    fireEvent.change(emailInput, { target: { value: "admin@mts-telecom.ma" } });
+    fireEvent.change(passwordInput, { target: { value: "Password1!" } });
 
-    expect(emailInput).toHaveValue("admin@mts.com");
-    expect(passwordInput).toHaveValue("password");
+    expect(emailInput).toHaveValue("admin@mts-telecom.ma");
+    expect(passwordInput).toHaveValue("Password1!");
   });
 
   it("shows resend verification actions when the account is not verified", () => {

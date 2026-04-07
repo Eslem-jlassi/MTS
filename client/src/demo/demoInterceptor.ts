@@ -490,9 +490,9 @@ const DEMO_ROUTES: DemoRoute[] = [
       {
         id: 1,
         type: "NOTE",
-        message: "Incident crÃ©Ã©",
+        message: "Incident cree",
         createdAt: new Date().toISOString(),
-        authorName: "SystÃ¨me",
+        authorName: "Systeme",
       },
     ],
   },
@@ -545,7 +545,7 @@ const DEMO_ROUTES: DemoRoute[] = [
   },
 
   // ===========================================================================
-  // SERVICES TÃ‰LÃ‰COM
+  // SERVICES TELECOM
   // ===========================================================================
   {
     method: "get",
@@ -569,7 +569,7 @@ const DEMO_ROUTES: DemoRoute[] = [
     method: "get",
     pattern: /\/services\/\d+\/status-history(\/recent)?/,
     handler: () => [
-      { id: 1, status: "UP", timestamp: new Date().toISOString(), changedBy: "SystÃ¨me" },
+      { id: 1, status: "UP", timestamp: new Date().toISOString(), changedBy: "Systeme" },
     ],
   },
   {
@@ -828,7 +828,7 @@ const DEMO_ROUTES: DemoRoute[] = [
   },
 
   // ===========================================================================
-  // AUDIT LOGS  (âš ï¸ prefix = /api/audit-logs dans le service)
+  // AUDIT LOGS (prefix = /api/audit-logs dans le service)
   // ===========================================================================
   {
     method: "get",
@@ -957,7 +957,7 @@ const DEMO_ROUTES: DemoRoute[] = [
         startHour: 8,
         endHour: 18,
         workDays: "MON,TUE,WED,THU,FRI",
-        timezone: "Africa/Casablanca",
+        timezone: "Europe/Paris",
         isDefault: true,
         active: true,
         createdAt: new Date().toISOString(),
@@ -973,7 +973,7 @@ const DEMO_ROUTES: DemoRoute[] = [
       startHour: 8,
       endHour: 18,
       workDays: "MON,TUE,WED,THU,FRI",
-      timezone: "Africa/Casablanca",
+      timezone: "Europe/Paris",
       isDefault: true,
       active: true,
       createdAt: new Date().toISOString(),
@@ -989,8 +989,8 @@ const DEMO_ROUTES: DemoRoute[] = [
     handler: () => [
       {
         id: 1,
-        name: "AccusÃ© de rÃ©ception",
-        content: "Bonjour {client}, votre ticket {ticketId} a bien Ã©tÃ© reÃ§u.",
+        name: "Accuse de reception",
+        content: "Bonjour {client}, votre ticket {ticketId} a bien ete recu.",
         category: "accuse",
         variables: ["client", "ticketId"],
         createdAt: new Date().toISOString(),
@@ -998,9 +998,8 @@ const DEMO_ROUTES: DemoRoute[] = [
       },
       {
         id: 2,
-        name: "RÃ©solution standard",
-        content:
-          "Le problÃ¨me a Ã©tÃ© rÃ©solu. N'hÃ©sitez pas Ã  rouvrir ce ticket si nÃ©cessaire.",
+        name: "Resolution standard",
+        content: "Le probleme a ete resolu. N'hesitez pas a rouvrir ce ticket si necessaire.",
         category: "resolution",
         variables: [],
         createdAt: new Date().toISOString(),

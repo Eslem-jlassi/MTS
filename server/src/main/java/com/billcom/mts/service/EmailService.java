@@ -24,4 +24,11 @@ public interface EmailService {
             String recipientName,
             String verificationToken,
             LocalDateTime expiresAt);
+
+    void sendSensitiveActionCodeEmail(
+            String toEmail,
+            String recipientName,
+            String verificationCode,
+            LocalDateTime expiresAt,
+            String actionLabel);
 }

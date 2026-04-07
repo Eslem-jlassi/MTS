@@ -64,9 +64,7 @@ const ForgotPasswordPage: React.FC = () => {
               ete envoye.
             </p>
           </div>
-          <p className="text-xs text-ds-muted">
-            Pensez a verifier egalement votre dossier spam.
-          </p>
+          <p className="text-xs text-ds-muted">Pensez a verifier egalement votre dossier spam.</p>
         </motion.div>
       ) : (
         <motion.form

@@ -99,6 +99,14 @@ export const createAssistantMessageFromResponse = (
     analysis: response.analysis,
     results: filteredResults,
     massiveIncidentCandidate: response.massiveIncidentCandidate,
+    modelVersion: response.modelVersion,
+    fallbackMode: response.fallbackMode,
+    reasoningSteps: response.reasoningSteps,
+    recommendedActions: response.recommendedActions,
+    riskFlags: response.riskFlags,
+    missingInformation: response.missingInformation,
+    sources: response.sources,
+    latencyMs: response.latencyMs,
   };
 };
 

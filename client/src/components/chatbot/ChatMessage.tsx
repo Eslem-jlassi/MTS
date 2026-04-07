@@ -11,6 +11,7 @@ import { ChatbotSuggestedAction } from "./chatbotSuggestedActionsResolver";
 import { getChatbotCopy } from "./chatbotCopy";
 import { resolveChatLanguage } from "./chatbotLanguage";
 import ChatbotMascot from "./ChatbotMascot";
+import { formatTime } from "../../utils/formatters";
 
 interface ChatMessageProps {
   message: ChatMessageModel;
@@ -26,10 +27,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   const isUser = message.role === "user";
   const language = resolveChatLanguage(message.responseLanguage, "fr");
   const copy = getChatbotCopy(language);
-  const messageTime = new Date(message.timestamp).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const messageTime = formatTime(message.timestamp);
 
   return (
     <motion.div

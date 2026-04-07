@@ -9,6 +9,7 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
+  description?: string;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
 }
@@ -20,7 +21,14 @@ const sizeClasses = {
   xl: "max-w-xl",
 };
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = "md" }) => {
+const Modal: React.FC<ModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  description,
+  children,
+  size = "md",
+}) => {
   useEffect(() => {
     if (!isOpen) return;
     const handleEscape = (e: KeyboardEvent) => {
@@ -55,32 +63,43 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
-            className={`relative w-full ${sizeClasses[size]} bg-ds-card rounded-2xl shadow-dropdown border border-ds-border`}
+            className={`ds-modal-surface relative w-full ${sizeClasses[size]} overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
-              <div className="flex items-center justify-between px-6 py-4 border-b border-ds-border">
-                <h2 id="modal-title" className="text-lg font-semibold text-ds-primary">
-                  {title}
-                </h2>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-2 rounded-xl text-ds-muted hover:text-ds-primary hover:bg-ds-elevated transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  aria-label="Fermer"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
+              <div className="border-b border-ds-border px-6 py-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <h2 id="modal-title" className="text-xl font-semibold tracking-tight text-ds-primary">
+                      {title}
+                    </h2>
+                    {description && (
+                      <p className="mt-2 max-w-xl text-sm leading-6 text-ds-secondary">
+                        {description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-start">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="rounded-2xl border border-ds-border bg-ds-card/70 p-2 text-ds-muted transition-all duration-200 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      aria-label="Fermer"
+                    >
+                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
-            <div className={title ? "p-6" : "p-6"}>{children}</div>
+            <div className={title ? "p-6 pt-5" : "p-6"}>{children}</div>
           </motion.div>
         </div>
       )}

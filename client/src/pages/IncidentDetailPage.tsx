@@ -29,6 +29,7 @@ import {
   IncidentTimelineEventType,
 } from "../types";
 import { Card, Button, Badge } from "../components/ui";
+import { formatDateTime } from "../utils/formatters";
 
 function formatDate(s: string | undefined): string {
   if (!s) return "—";
@@ -308,12 +309,12 @@ export default function IncidentDetailPage() {
               )}
               <div>
                 <dt className="text-ds-muted">Début</dt>
-                <dd className="text-ds-primary">{formatDate(incident.startedAt)}</dd>
+                <dd className="text-ds-primary">{formatDateTime(incident.startedAt)}</dd>
               </div>
               {incident.resolvedAt && (
                 <div>
                   <dt className="text-ds-muted">Résolu le</dt>
-                  <dd className="text-ds-primary">{formatDate(incident.resolvedAt)}</dd>
+                  <dd className="text-ds-primary">{formatDateTime(incident.resolvedAt)}</dd>
                 </div>
               )}
               {incident.commanderName && (
@@ -396,7 +397,7 @@ export default function IncidentDetailPage() {
                 </div>
                 {incident.postMortemAt && (
                   <p className="text-xs text-ds-muted">
-                    Rédigé le {formatDate(incident.postMortemAt)}
+                    Rédigé le {formatDateTime(incident.postMortemAt)}
                   </p>
                 )}
               </div>
@@ -497,7 +498,9 @@ export default function IncidentDetailPage() {
                             {entry.oldValue} → {entry.newValue}
                           </p>
                         )}
-                        <p className="text-xs text-ds-muted mt-1">{formatDate(entry.createdAt)}</p>
+                        <p className="text-xs text-ds-muted mt-1">
+                          {formatDateTime(entry.createdAt)}
+                        </p>
                       </div>
                     </li>
                   ))}

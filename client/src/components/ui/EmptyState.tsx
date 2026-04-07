@@ -21,12 +21,19 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 }) => {
   return (
     <div
-      className={`flex flex-col items-center justify-center py-12 px-4 text-center bg-ds-card rounded-xl border border-ds-border ${className}`}
+      className={`ds-empty-state flex flex-col items-center justify-center px-5 py-12 text-center ${className}`}
     >
-      {icon && <div className="mb-4 text-ds-muted">{icon}</div>}
-      <h3 className="text-lg font-semibold text-ds-primary">{title}</h3>
-      {description && <p className="mt-1 text-sm text-ds-secondary max-w-sm">{description}</p>}
-      {action && <div className="mt-4">{action}</div>}
+      {icon && (
+        <div className="ds-icon-shell mb-4 flex h-14 w-14 items-center justify-center rounded-2xl text-ds-muted">
+          {icon}
+        </div>
+      )}
+      <p className="ds-kicker mb-2">Etat vide</p>
+      <h3 className="text-lg font-semibold tracking-tight text-ds-primary">{title}</h3>
+      {description && (
+        <p className="mt-2 max-w-md text-sm leading-6 text-ds-secondary">{description}</p>
+      )}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   );
 };

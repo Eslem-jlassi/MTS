@@ -53,19 +53,24 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   }, [isOpen]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="sm">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="sm"
+      title={title}
+      description="Verifiez l'impact avant de confirmer. Cette action doit rester rare et explicite."
+    >
       <div className="flex flex-col items-center text-center">
-        <div className={`p-3 rounded-full mb-4 ${variantIcon[variant]}`}>
+        <div className={`mb-4 rounded-full p-3 ${variantIcon[variant]}`}>
           <AlertTriangle size={28} />
         </div>
-        <h3 className="text-lg font-semibold text-ds-primary mb-2">{title}</h3>
-        <div className="text-sm text-ds-secondary mb-6">{message}</div>
+        <div className="mb-6 max-w-md text-sm leading-6 text-ds-secondary">{message}</div>
         {requiresTypedConfirmation && (
-          <div className="w-full text-left mb-6">
-            <label className="block text-xs font-medium uppercase tracking-wide text-ds-muted mb-2">
+          <div className="w-full rounded-2xl border border-ds-border bg-ds-elevated/35 p-4 text-left mb-6">
+            <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-ds-muted">
               Confirmation forte
             </label>
-            <p className="text-sm text-ds-secondary mb-3">
+            <p className="mb-3 text-sm text-ds-secondary">
               {confirmationHint ??
                 `Tapez ${normalizedConfirmationKeyword} pour confirmer la suppression definitive.`}
             </p>
@@ -73,12 +78,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               type="text"
               value={confirmationValue}
               onChange={(event) => setConfirmationValue(event.target.value)}
-              className="w-full px-3 py-2 border border-ds-border rounded-xl bg-ds-card text-ds-primary focus:ring-2 focus:ring-primary-400/30 focus:border-primary-500 transition-all"
+              className="w-full rounded-xl border border-ds-border bg-ds-card px-3 py-2.5 text-ds-primary transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-400/30"
               autoComplete="off"
             />
           </div>
         )}
-        <div className="flex items-center gap-3 w-full">
+        <div className="flex w-full items-center gap-3">
           <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>
             {cancelLabel}
           </Button>

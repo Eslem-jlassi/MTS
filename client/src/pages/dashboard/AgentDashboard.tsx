@@ -26,6 +26,7 @@ import { Card, EmptyState, SkeletonCard } from "../../components/ui";
 import Skeleton from "../../components/ui/Skeleton";
 import type { DashboardStats, Ticket as TicketType } from "../../types";
 import { TicketStatus, StatusLabels, StatusColors } from "../../types";
+import { formatDate, formatHours, formatTime } from "../../utils/formatters";
 
 // =============================================================================
 // TYPES
@@ -230,10 +231,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
               MAJ{" "}
-              {new Date(lastUpdated).toLocaleTimeString("fr-FR", {
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
+              {formatTime(lastUpdated)}
             </span>
           )}
           <button
@@ -276,8 +274,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
           icon={<Timer size={22} className="text-success-600 dark:text-success-400" />}
           iconBg="bg-success-50 dark:bg-success-900/30"
           label="Résolution moy."
-          value={avgResolution > 0 ? avgResolution.toFixed(1) : "—"}
-          suffix={avgResolution > 0 ? "h" : undefined}
+          value={avgResolution > 0 ? formatHours(avgResolution) : "--"}
         />
       </motion.div>
 
@@ -378,7 +375,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
                         </span>
                       </td>
                       <td className="px-4 sm:px-5 py-3.5 text-sm text-ds-muted hidden md:table-cell">
-                        {new Date(t.createdAt).toLocaleDateString("fr-FR")}
+                        {formatDate(t.createdAt)}
                       </td>
                     </motion.tr>
                   ))}
