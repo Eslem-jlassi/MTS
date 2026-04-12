@@ -19,5 +19,6 @@ export { escalationService } from "./escalationService";
 export { businessHoursService } from "./businessHoursService";
 export { reportService } from "./reportService";
 export { authFlowService } from "./authFlowService";
+export { default as managerCopilotService } from "./managerCopilotService";
 export { buildManagerDashboardData } from "./managerDashboardAdapter";
 export type { ManagerDashboardData, ManagerKpis } from "./managerDashboardAdapter";

@@ -2,6 +2,8 @@ import React from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import CreateTicketModal from "./CreateTicketModal";
 
+import { ticketService, telecomServiceService } from "../../api";
+
 jest.mock("../../api", () => ({
   ticketService: {
     createTicket: jest.fn(),
@@ -10,8 +12,6 @@ jest.mock("../../api", () => ({
     getActiveServices: jest.fn(),
   },
 }));
-
-import { ticketService, telecomServiceService } from "../../api";
 
 describe("CreateTicketModal", () => {
   const onClose = jest.fn();

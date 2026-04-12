@@ -3,7 +3,7 @@
 // =============================================================================
 
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Plus, X, Search } from "lucide-react";
 import { incidentService } from "../api/incidentService";
 import { telecomServiceService } from "../api/telecomServiceService";
@@ -11,9 +11,11 @@ import { ticketService } from "../api/ticketService";
 import type { IncidentRequest, TelecomService, Ticket } from "../types";
 import { Severity, SeverityLabels, IncidentImpact, ImpactLabels } from "../types";
 import { Card, Button } from "../components/ui";
+import type { ManagerCopilotIncidentPrefillState } from "../components/manager-copilot/managerCopilotActions";
 
 export default function IncidentNewPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,6 +41,7 @@ export default function IncidentNewPage() {
   // Service/Ticket search
   const [serviceSearch, setServiceSearch] = useState("");
   const [ticketSearch, setTicketSearch] = useState("");
+  const prefillState = location.state as ManagerCopilotIncidentPrefillState | null;
 
   const loadReferenceData = useCallback(async () => {
     setLoadingRef(true);
@@ -61,6 +64,24 @@ export default function IncidentNewPage() {
   useEffect(() => {
     loadReferenceData();
   }, [loadReferenceData]);
+
+  useEffect(() => {
+    if (!prefillState || prefillState.source !== "allie") {
+      return;
+    }
+
+    const { prefill } = prefillState;
+    setTitle((current) => current || prefill.title || "");
+    setDescription((current) => current || prefill.description || "");
+    setSeverity(prefill.severity || Severity.MAJOR);
+    setImpact(prefill.impact || IncidentImpact.LOCALIZED);
+    setServiceId((current) => current || prefill.serviceId || 0);
+    setAffectedServiceIds((current) =>
+      current.length > 0 ? current : prefill.affectedServiceIds || [],
+    );
+    setTicketIds((current) => (current.length > 0 ? current : prefill.ticketIds || []));
+    setCause((current) => current || prefill.cause || "");
+  }, [prefillState]);
 
   const filteredServices = services.filter(
     (s) =>
@@ -127,6 +148,13 @@ export default function IncidentNewPage() {
           Remplissez les informations pour créer un nouvel incident de supervision.
         </p>
       </div>
+
+      {prefillState?.source === "allie" && (
+        <div className="rounded-xl border border-primary-200 bg-primary-50/80 px-4 py-3 text-sm text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-200">
+          Contexte pre-rempli par ALLIE pour accelerer la qualification manager. Verifiez les champs
+          avant validation.
+        </div>
+      )}
 
       {error && (
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-sm text-red-700 dark:text-red-400">

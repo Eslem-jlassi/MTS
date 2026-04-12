@@ -6,6 +6,9 @@ import { configureStore } from "@reduxjs/toolkit";
 import Dashboard from "./Dashboard";
 import { UserRole } from "../../types";
 
+import { clientService } from "../../api/clientService";
+import { dashboardService, telecomServiceService, ticketService } from "../../api";
+
 jest.mock("./ClientDashboard", () => ({
   ClientDashboard: () => <div data-testid="client-dashboard">client dashboard</div>,
 }));
@@ -53,34 +56,30 @@ jest.mock("../../api/clientService", () => ({
   },
 }));
 
-import { clientService } from "../../api/clientService";
-import { dashboardService, telecomServiceService, ticketService } from "../../api";
-
-const buildStore = (role: UserRole) =>
-  {
-    const preloadedState = {
-      auth: {
-        user: {
-          id: 1,
-          role,
-          firstName: "Demo",
-          lastName: role,
-          email: `${role.toLowerCase()}@mts-telecom.ma`,
-        },
-        token: "token",
-        refreshToken: null,
-        isAuthenticated: true,
-        isInitialized: true,
-        isLoading: false,
-        error: null,
+const buildStore = (role: UserRole) => {
+  const preloadedState = {
+    auth: {
+      user: {
+        id: 1,
+        role,
+        firstName: "Demo",
+        lastName: role,
+        email: `${role.toLowerCase()}@mts-telecom.ma`,
       },
-    };
-
-    return configureStore({
-      reducer: (state = preloadedState) => state,
-      preloadedState,
-    });
+      token: "token",
+      refreshToken: null,
+      isAuthenticated: true,
+      isInitialized: true,
+      isLoading: false,
+      error: null,
+    },
   };
+
+  return configureStore({
+    reducer: (state = preloadedState) => state,
+    preloadedState,
+  });
+};
 
 const renderDashboard = (role: UserRole) =>
   render(

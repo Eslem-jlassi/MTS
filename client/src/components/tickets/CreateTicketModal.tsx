@@ -137,14 +137,19 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
 
         <form onSubmit={handleSubmit} className="space-y-4 p-6">
           <div>
-            <label htmlFor="create-ticket-title" className="mb-1 block text-sm font-medium text-ds-primary">
+            <label
+              htmlFor="create-ticket-title"
+              className="mb-1 block text-sm font-medium text-ds-primary"
+            >
               Titre *
             </label>
             <input
               id="create-ticket-title"
               type="text"
               value={form.title}
-              onChange={(event) => setForm((previous) => ({ ...previous, title: event.target.value }))}
+              onChange={(event) =>
+                setForm((previous) => ({ ...previous, title: event.target.value }))
+              }
               placeholder="Ex: Panne reseau sur le site de Rabat"
               className="w-full rounded-lg border border-ds-border bg-ds-elevated px-3 py-2 text-ds-primary focus:ring-2 focus:ring-primary-500"
               required
@@ -171,7 +176,10 @@ const CreateTicketModal: React.FC<Props> = ({ isOpen, onClose, onCreated }) => {
           </div>
 
           <div>
-            <label htmlFor="create-ticket-service" className="mb-1 block text-sm font-medium text-ds-primary">
+            <label
+              htmlFor="create-ticket-service"
+              className="mb-1 block text-sm font-medium text-ds-primary"
+            >
               Service *
             </label>
             {loadingServices ? (

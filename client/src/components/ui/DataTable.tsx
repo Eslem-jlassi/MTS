@@ -44,7 +44,7 @@ function DataTable<T>({
 
   return (
     <div className="ds-table-shell">
-      <table className="w-full text-left text-sm">
+      <table className="ds-table-raw w-full text-left text-sm">
         <thead>
           <tr className="ds-table-head border-b border-ds-border">
             {columns.map((col) => (
@@ -127,7 +127,7 @@ function DataTable<T>({
               type="button"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 0}
-              className="rounded-xl border border-ds-border p-2 text-ds-primary transition-all duration-200 hover:bg-ds-card disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-ds-border bg-ds-card/70 p-2 text-ds-primary transition-all duration-200 hover:border-primary-300/40 hover:bg-ds-surface disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Page precedente"
             >
               <ChevronLeft size={18} />
@@ -141,7 +141,7 @@ function DataTable<T>({
               type="button"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1}
-              className="rounded-xl border border-ds-border p-2 text-ds-primary transition-all duration-200 hover:bg-ds-card disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-ds-border bg-ds-card/70 p-2 text-ds-primary transition-all duration-200 hover:border-primary-300/40 hover:bg-ds-surface disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Page suivante"
             >
               <ChevronRight size={18} />

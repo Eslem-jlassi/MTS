@@ -51,7 +51,7 @@ const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
             onClick={onClose}
             aria-hidden
           />
@@ -63,14 +63,17 @@ const Modal: React.FC<ModalProps> = ({
             role="dialog"
             aria-modal="true"
             aria-labelledby={title ? "modal-title" : undefined}
-            className={`ds-modal-surface relative w-full ${sizeClasses[size]} overflow-hidden`}
+            className={`ds-modal-surface relative flex max-h-[calc(100vh-2rem)] w-full flex-col ${sizeClasses[size]} overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
-              <div className="border-b border-ds-border px-6 py-5">
+              <div className="border-b border-ds-border/80 bg-ds-card/85 px-6 py-5 backdrop-blur-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 id="modal-title" className="text-xl font-semibold tracking-tight text-ds-primary">
+                    <h2
+                      id="modal-title"
+                      className="text-xl font-semibold tracking-tight text-ds-primary"
+                    >
                       {title}
                     </h2>
                     {description && (
@@ -83,10 +86,15 @@ const Modal: React.FC<ModalProps> = ({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="rounded-2xl border border-ds-border bg-ds-card/70 p-2 text-ds-muted transition-all duration-200 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="rounded-2xl border border-ds-border bg-ds-card/75 p-2 text-ds-muted transition-all duration-200 hover:border-primary-300/35 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       aria-label="Fermer"
                     >
-                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -99,7 +107,7 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
               </div>
             )}
-            <div className={title ? "p-6 pt-5" : "p-6"}>{children}</div>
+            <div className={`${title ? "p-6 pt-5" : "p-6"} overflow-y-auto`}>{children}</div>
           </motion.div>
         </div>
       )}

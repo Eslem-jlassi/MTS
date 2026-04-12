@@ -63,17 +63,6 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
-function relativeTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const min = Math.floor(diff / 60_000);
-  if (min < 1) return "À l'instant";
-  if (min < 60) return `Il y a ${min} min`;
-  const hrs = Math.floor(min / 60);
-  if (hrs < 24) return `Il y a ${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  return `Il y a ${days}j`;
-}
-
 // =============================================================================
 // SUB-COMPONENTS
 // =============================================================================
@@ -353,8 +342,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
           {lastUpdated && (
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ{" "}
-              {formatTime(lastUpdated)}
+              MAJ {formatTime(lastUpdated)}
             </span>
           )}
           <button

@@ -22,8 +22,10 @@ const ErrorState: React.FC<ErrorStateProps> = ({
   className = "",
 }) => {
   return (
-    <div className={`ds-empty-state flex flex-col items-center justify-center px-5 py-12 text-center ${className}`}>
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-error-200 bg-error-50 text-error-600 dark:border-error-500/20 dark:bg-error-500/12 dark:text-error-300">
+    <div
+      className={`ds-empty-state flex flex-col items-center justify-center px-5 py-12 text-center ${className}`}
+    >
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-error-200/80 bg-error-50/95 text-error-600 shadow-[inset_0_1px_0_rgb(255_255_255_/_0.24)] dark:border-error-500/20 dark:bg-error-500/12 dark:text-error-300">
         <AlertTriangle size={30} />
       </div>
       <p className="ds-kicker mb-2 text-error-600 dark:text-error-300">Etat d'erreur</p>

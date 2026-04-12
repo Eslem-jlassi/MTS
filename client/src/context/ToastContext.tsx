@@ -38,22 +38,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const addToast = useCallback(
-    (type: ToastType, message: string, title?: string) => {
-      const id = nextId();
-      setToasts((prev) => [
-        ...prev.slice(-4),
-        {
-          id,
-          variant: type,
-          title: title ?? titleDefaults[type],
-          description: message,
-          duration: 5000,
-        },
-      ]);
-    },
-    [],
-  );
+  const addToast = useCallback((type: ToastType, message: string, title?: string) => {
+    const id = nextId();
+    setToasts((prev) => [
+      ...prev.slice(-4),
+      {
+        id,
+        variant: type,
+        title: title ?? titleDefaults[type],
+        description: message,
+        duration: 5000,
+      },
+    ]);
+  }, []);
 
   const success = useCallback(
     (message: string, title?: string) => addToast("success", message, title),

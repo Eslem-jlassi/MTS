@@ -27,7 +27,9 @@ const StatusDot: React.FC<StatusDotProps> = ({ color, pulse, className = "" }) =
         className={`absolute inline-flex h-full w-full rounded-full opacity-40 animate-ping ${dotColors[color]}`}
       />
     )}
-    <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${dotColors[color]}`} />
+    <span
+      className={`relative inline-flex h-2.5 w-2.5 rounded-full ring-2 ring-white/70 shadow-[0_0_0_1px_rgb(15_23_42_/_0.04)] dark:ring-slate-900/70 ${dotColors[color]}`}
+    />
   </span>
 );
 

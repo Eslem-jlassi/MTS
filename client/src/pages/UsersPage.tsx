@@ -458,7 +458,7 @@ export default function UsersPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="ds-table-raw w-full">
               <thead>
                 <tr className="border-b border-ds-border bg-ds-elevated/50">
                   <th className="px-5 py-3.5 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">

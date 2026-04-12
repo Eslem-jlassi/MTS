@@ -39,21 +39,25 @@ const Tabs: React.FC<TabsProps> = ({
 
   return (
     <div
-      className={`flex ${isUnderline ? "border-b border-ds-border gap-0" : "gap-1 bg-ds-elevated/50 p-1 rounded-xl"} ${className}`}
+      className={`flex ${
+        isUnderline
+          ? "gap-0 border-b border-ds-border"
+          : "gap-1 rounded-2xl border border-ds-border bg-ds-elevated/55 p-1 shadow-soft"
+      } ${className}`}
       role="tablist"
     >
       {tabs.map((tab) => {
         const active = tab.key === activeKey;
         const base = isUnderline
-          ? `relative px-4 py-2.5 text-sm font-medium transition-colors duration-200 ${
+          ? `relative rounded-t-xl px-4 py-2.5 text-sm font-semibold tracking-[-0.01em] transition-colors duration-200 ${
               active
                 ? "text-primary-600 dark:text-primary-400"
                 : "text-ds-muted hover:text-ds-primary"
             }`
-          : `px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+          : `rounded-xl px-3.5 py-2 text-sm font-semibold tracking-[-0.01em] transition-all duration-200 ${
               active
-                ? "bg-ds-card text-ds-primary shadow-soft"
-                : "text-ds-muted hover:text-ds-primary"
+                ? "border border-ds-border bg-ds-card text-ds-primary shadow-soft"
+                : "border border-transparent text-ds-muted hover:bg-ds-card/50 hover:text-ds-primary"
             }`;
 
         return (

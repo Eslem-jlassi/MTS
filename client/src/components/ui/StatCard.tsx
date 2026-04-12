@@ -4,6 +4,7 @@
 
 import React from "react";
 import Card from "./Card";
+import Badge from "./Badge";
 
 interface StatCardProps {
   title: string;
@@ -27,16 +28,10 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, classNam
           {value}
         </p>
         {trend && (
-          <span
-            className={`mt-1 text-xs font-medium ${
-              trend.value >= 0
-                ? "inline-flex items-center rounded-full bg-success-50 px-2.5 py-1 text-success-700 dark:bg-success-500/15 dark:text-success-200"
-                : "inline-flex items-center rounded-full bg-error-50 px-2.5 py-1 text-error-700 dark:bg-error-500/15 dark:text-error-200"
-            }`}
-          >
+          <Badge variant={trend.value >= 0 ? "success" : "danger"} size="sm" className="mt-2">
             {trend.value >= 0 ? "+" : ""}
             {trend.value}%{trend.label ? ` ${trend.label}` : ""}
-          </span>
+          </Badge>
         )}
       </div>
     </Card>

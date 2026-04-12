@@ -5,6 +5,8 @@ import { configureStore } from "@reduxjs/toolkit";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import TicketDetail from "./TicketDetail";
 
+import { ticketService } from "../api";
+
 jest.mock("../api", () => ({
   ticketService: {
     getTicketById: jest.fn(),
@@ -18,33 +20,30 @@ jest.mock("../api", () => ({
   },
 }));
 
-import { ticketService } from "../api";
-
-const buildStore = () =>
-  {
-    const preloadedState = {
-      auth: {
-        user: {
-          id: 2,
-          role: "MANAGER",
-          firstName: "Sara",
-          lastName: "El Fassi",
-          email: "manager@mts-telecom.ma",
-        },
-        token: "token",
-        refreshToken: null,
-        isAuthenticated: true,
-        isInitialized: true,
-        isLoading: false,
-        error: null,
+const buildStore = () => {
+  const preloadedState = {
+    auth: {
+      user: {
+        id: 2,
+        role: "MANAGER",
+        firstName: "Sara",
+        lastName: "El Fassi",
+        email: "manager@mts-telecom.ma",
       },
-    };
-
-    return configureStore({
-      reducer: (state = preloadedState) => state,
-      preloadedState,
-    });
+      token: "token",
+      refreshToken: null,
+      isAuthenticated: true,
+      isInitialized: true,
+      isLoading: false,
+      error: null,
+    },
   };
+
+  return configureStore({
+    reducer: (state = preloadedState) => state,
+    preloadedState,
+  });
+};
 
 describe("TicketDetail", () => {
   beforeEach(() => {

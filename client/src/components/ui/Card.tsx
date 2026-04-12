@@ -17,7 +17,11 @@ const paddingClasses: Record<string, string> = {
 };
 
 const Card: React.FC<CardProps> = ({ padding = "md", className = "", children, ...rest }) => {
-  return <div className={`ds-panel ${paddingClasses[padding]} ${className}`} {...rest}>{children}</div>;
+  return (
+    <div className={`ds-panel ${paddingClasses[padding]} ${className}`} {...rest}>
+      {children}
+    </div>
+  );
 };
 
 export default Card;

@@ -42,12 +42,19 @@ import {
   ArrowRight,
   Wifi,
   WifiOff,
+  Sparkles,
   Users,
   TrendingUp,
 } from "lucide-react";
-import { Card, Select, SkeletonCard, EmptyState } from "../../components/ui";
+import { Button, Card, Select, SkeletonCard, EmptyState } from "../../components/ui";
 import type { SelectOption } from "../../components/ui";
 import Skeleton from "../../components/ui/Skeleton";
+import { ManagerCopilotDashboardSection } from "../../components/manager-copilot";
+import {
+  MANAGER_COPILOT_PRODUCT_LABEL,
+  MANAGER_COPILOT_SUBTITLE,
+  MANAGER_COPILOT_TITLE,
+} from "../../components/manager-copilot/managerCopilotUi";
 import type { DashboardStats, TelecomService } from "../../types";
 import { ServiceStatus, ServiceStatusLabels, ServiceStatusColors } from "../../types";
 import type { DashboardFilters } from "../../api/dashboardService";
@@ -57,12 +64,7 @@ import {
   type ManagerKpis,
   type ServiceAtRisk,
 } from "../../api/managerDashboardAdapter";
-import {
-  formatDateDayMonth,
-  formatHours,
-  formatPercent,
-  formatTime,
-} from "../../utils/formatters";
+import { formatDateDayMonth, formatHours, formatPercent, formatTime } from "../../utils/formatters";
 
 // =============================================================================
 // TYPES
@@ -87,6 +89,40 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 };
 
+const SectionLead: React.FC<{
+  eyebrow: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  supporting?: React.ReactNode;
+}> = ({ eyebrow, title, description, icon, supporting }) => (
+  <motion.div variants={fadeUp} className="flex flex-wrap items-end justify-between gap-4">
+    <div className="min-w-0">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">
+        {eyebrow}
+      </span>
+      <h2 className="mt-1 text-xl font-extrabold tracking-tight text-ds-primary">{title}</h2>
+      <p className="mt-1 max-w-3xl text-sm leading-6 text-ds-muted">{description}</p>
+    </div>
+    <div className="flex items-center gap-3">
+      {supporting}
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/15 bg-gradient-to-br from-primary-500/12 to-accent-500/10 text-primary-500 shadow-sm">
+        {icon}
+      </div>
+    </div>
+  </motion.div>
+);
+
+const StageChip: React.FC<{
+  label: string;
+  value?: string;
+}> = ({ label, value }) => (
+  <div className="rounded-2xl border border-ds-border/70 bg-ds-surface/75 px-3 py-2">
+    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">{label}</p>
+    {value && <p className="mt-1 text-sm font-semibold text-ds-primary">{value}</p>}
+  </div>
+);
+
 // =============================================================================
 // FILTER BAR — période, service, équipe, client
 // =============================================================================
@@ -103,6 +139,7 @@ interface FiltersBarProps {
   serviceOptions: SelectOption[];
   teamOptions: SelectOption[];
   clientOptions: SelectOption[];
+  embedded?: boolean;
 }
 
 /** Barre de filtres globaux — appliqués à toute la page */
@@ -118,6 +155,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
   serviceOptions,
   teamOptions,
   clientOptions,
+  embedded = false,
 }) => {
   const periodOptions: SelectOption[] = [
     { value: "", label: "Toute période" },
@@ -128,7 +166,11 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
 
   return (
     <motion.div variants={fadeUp}>
-      <Card className="!py-3 !px-4">
+      <div
+        className={
+          embedded ? "rounded-2xl border border-ds-border/70 bg-ds-surface/70 px-4 py-4" : ""
+        }
+      >
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 text-ds-muted">
             <Filter size={15} />
@@ -175,7 +217,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
             )}
           </div>
         </div>
-      </Card>
+      </div>
     </motion.div>
   );
 };
@@ -196,19 +238,19 @@ const KpiCard: React.FC<{
 }> = ({ icon, iconBg, label, value, suffix, alert, to }) => {
   const inner = (
     <Card
-      className={`relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300 h-full
-      ${alert ? "ring-2 ring-error/30" : ""} ${to ? "cursor-pointer" : ""}
+      className={`h-full min-h-[7.25rem] overflow-hidden border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
+      ${alert ? "ring-1 ring-error/30" : ""} ${to ? "cursor-pointer" : ""}
     `}
     >
       <div className="flex items-center gap-4">
         <div
-          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}
+          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${iconBg}`}
         >
           {icon}
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-semibold uppercase tracking-wider text-ds-muted">{label}</p>
-          <p className="text-3xl font-extrabold text-ds-primary tabular-nums mt-0.5">
+          <p className="mt-1 text-3xl font-extrabold text-ds-primary tabular-nums">
             {value}
             {suffix && <span className="text-base font-semibold text-ds-muted ml-1">{suffix}</span>}
           </p>
@@ -220,7 +262,6 @@ const KpiCard: React.FC<{
           />
         )}
       </div>
-      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500 bg-gradient-to-br from-primary-500 to-accent-500" />
     </Card>
   );
   if (to) return <Link to={to}>{inner}</Link>;
@@ -505,8 +546,8 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <div className="max-h-[24rem] overflow-auto">
+      <table className="ds-table-raw w-full">
         <thead className="bg-ds-elevated border-b border-ds-border">
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
@@ -658,6 +699,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const [serviceId, setServiceId] = useState("");
   const [teamId, setTeamId] = useState("");
   const [clientId, setClientId] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [appliedFilters, setAppliedFilters] = useState<DashboardFilters>({});
+  const selectedFilterCount = [period, serviceId, clientId].filter(Boolean).length;
 
   // -- Build adapted data ---------------------------------------------------
   const data: ManagerDashboardData = useMemo(
@@ -669,10 +713,6 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   const serviceOptions: SelectOption[] = useMemo(
     () => services.map((s) => ({ value: String(s.id), label: s.name })),
     [services],
-  );
-  const teamOptions: SelectOption[] = useMemo(
-    () => data.teamOptions.map((t) => ({ value: String(t.id), label: t.name })),
-    [data.teamOptions],
   );
   const clientOptions: SelectOption[] = useMemo(
     () => data.clientOptions.map((c) => ({ value: String(c.id), label: c.label })),
@@ -686,6 +726,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
     if (serviceId) filters.serviceId = Number(serviceId);
     if (clientId) filters.clientId = Number(clientId);
     // TODO BACKEND: support teamId (agentId) filter in dashboard stats endpoint
+    setAppliedFilters(filters);
     onRefresh?.(filters);
   }, [period, serviceId, clientId, onRefresh]);
 
@@ -693,145 +734,206 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
   if (isLoading) return <ManagerSkeleton />;
 
   return (
-    <motion.div className="space-y-6" variants={stagger} initial="hidden" animate="show">
+    <motion.div
+      className="space-y-10 xl:space-y-12"
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+    >
       {/* ─── Header + refresh ────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-ds-primary tracking-tight">
-            Supervision Manager
-          </h1>
-          <p className="text-sm text-ds-muted mt-0.5">
-            Vue consolidée des KPI, SLA et performance équipe
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs text-ds-muted font-medium hidden sm:inline">
-              <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ{" "}
-              {formatTime(lastUpdated)}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={isLoadingRefresh}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-ds-border bg-ds-card hover:bg-ds-elevated text-ds-secondary transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={isLoadingRefresh ? "animate-spin" : ""} />
-            Actualiser
-          </button>
-        </div>
-      </div>
+      <motion.section variants={fadeUp}>
+        <Card className="overflow-hidden rounded-[1.75rem] border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface shadow-card">
+          <div className="space-y-6 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4 xl:items-end">
+              <div className="max-w-3xl">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">
+                  Poste de pilotage manager
+                </span>
+                <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ds-primary">
+                  Supervision Manager
+                </h1>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <StageChip label="Lecture" value="KPI, analytics puis ALLIE" />
+                  <StageChip
+                    label="Filtres"
+                    value={
+                      selectedFilterCount > 0 ? `${selectedFilterCount} actif(s)` : "Aucun filtre"
+                    }
+                  />
+                </div>
+                <p className="mt-2 text-sm leading-6 text-ds-muted">
+                  Vue consolidée des KPI, SLA et performance équipe
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {lastUpdated && (
+                  <span className="text-xs text-ds-muted font-medium hidden sm:inline">
+                    <CalendarClock size={13} className="inline mr-1 -mt-px" />
+                    MAJ {formatTime(lastUpdated)}
+                  </span>
+                )}
+                <Button
+                  variant={showFilters ? "primary" : "outline"}
+                  size="sm"
+                  icon={<Filter size={14} />}
+                  onClick={() => setShowFilters((current) => !current)}
+                >
+                  {selectedFilterCount > 0 ? `Filtres (${selectedFilterCount})` : "Filtres"}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<RefreshCw size={14} className={isLoadingRefresh ? "animate-spin" : ""} />}
+                  onClick={handleRefresh}
+                  disabled={isLoadingRefresh}
+                >
+                  Actualiser
+                </Button>
+              </div>
+            </div>
 
-      {/* ─── Filtres globaux ─────────────────────────────────────────── */}
-      <FiltersBar
-        period={period}
-        setPeriod={(v) => {
-          setPeriod(v);
-        }}
-        serviceId={serviceId}
-        setServiceId={(v) => {
-          setServiceId(v);
-        }}
-        teamId={teamId}
-        setTeamId={(v) => {
-          setTeamId(v);
-        }}
-        clientId={clientId}
-        setClientId={(v) => {
-          setClientId(v);
-        }}
-        serviceOptions={serviceOptions}
-        teamOptions={teamOptions}
-        clientOptions={clientOptions}
-      />
+            {/* ─── Filtres globaux ─────────────────────────────────────────── */}
+            {(showFilters || selectedFilterCount > 0) && (
+              <FiltersBar
+                period={period}
+                setPeriod={(v) => {
+                  setPeriod(v);
+                }}
+                serviceId={serviceId}
+                setServiceId={(v) => {
+                  setServiceId(v);
+                }}
+                teamId={teamId}
+                setTeamId={(v) => {
+                  setTeamId(v);
+                }}
+                clientId={clientId}
+                setClientId={(v) => {
+                  setClientId(v);
+                }}
+                serviceOptions={serviceOptions}
+                teamOptions={[]}
+                clientOptions={clientOptions}
+                embedded
+              />
+            )}
+          </div>
+        </Card>
+      </motion.section>
 
       {/* ─── KPI row (5 cards) ───────────────────────────────────────── */}
-      <KpiRow kpis={data.kpis} />
+      <section className="space-y-5">
+        <SectionLead
+          eyebrow="Etat global"
+          title="KPI manager"
+          description="Premiere lecture de situation: engagement SLA, rythme de resolution, backlog et urgences."
+          icon={<ShieldCheck size={20} />}
+        />
+        <KpiRow kpis={data.kpis} />
+      </section>
 
-      {/* ─── Charts row: Statut + Priorité (clickable → drill-down) ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section className="space-y-5">
+        <SectionLead
+          eyebrow="Lecture analytique"
+          title="Analyses de supervision"
+          description="Les analyses classiques restent la base de lecture avant les recommandations d'ALLIE."
+          icon={<TrendingUp size={20} />}
+        />
+
+        {/* ─── Charts row: Statut + Priorité (clickable → drill-down) ── */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <motion.div variants={fadeUp}>
+            <Card padding="none" className="overflow-hidden">
+              <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+                <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
+                  Répartition par statut
+                </h3>
+                <span className="text-[10px] text-ds-muted font-medium uppercase">
+                  Cliquer pour drill-down
+                </span>
+              </div>
+              <div className="p-4">
+                <StatusChart data={data.statusChartData} navigate={navigate} />
+              </div>
+            </Card>
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <Card padding="none" className="overflow-hidden">
+              <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+                <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
+                  Répartition par priorité
+                </h3>
+                <span className="text-[10px] text-ds-muted font-medium uppercase">
+                  Cliquer pour drill-down
+                </span>
+              </div>
+              <div className="p-4">
+                <PriorityChart data={data.priorityChartData} navigate={navigate} />
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* ─── Top services à risque ───────────────────────────────────── */}
         <motion.div variants={fadeUp}>
           <Card padding="none" className="overflow-hidden">
             <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
               <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                Répartition par statut
+                <AlertTriangle size={18} className="text-warning-500" />
+                Top services à risque
               </h3>
-              <span className="text-[10px] text-ds-muted font-medium uppercase">
-                Cliquer pour drill-down
-              </span>
+              <Link
+                to="/services"
+                className="text-xs font-semibold text-primary-500 hover:text-primary-600 flex items-center gap-1 transition-colors"
+              >
+                Tous les services <ArrowRight size={14} />
+              </Link>
             </div>
-            <div className="p-4">
-              <StatusChart data={data.statusChartData} navigate={navigate} />
-            </div>
+            <ServicesAtRiskSection data={data.servicesAtRisk} />
           </Card>
         </motion.div>
-        <motion.div variants={fadeUp}>
-          <Card padding="none" className="overflow-hidden">
-            <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
-              <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                Répartition par priorité
-              </h3>
-              <span className="text-[10px] text-ds-muted font-medium uppercase">
-                Cliquer pour drill-down
-              </span>
-            </div>
-            <div className="p-4">
-              <PriorityChart data={data.priorityChartData} navigate={navigate} />
-            </div>
-          </Card>
-        </motion.div>
-      </div>
 
-      {/* ─── Top services à risque ───────────────────────────────────── */}
-      <motion.div variants={fadeUp}>
-        <Card padding="none" className="overflow-hidden">
-          <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
-            <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-              <AlertTriangle size={18} className="text-warning-500" />
-              Top services à risque
-            </h3>
-            <Link
-              to="/services"
-              className="text-xs font-semibold text-primary-500 hover:text-primary-600 flex items-center gap-1 transition-colors"
-            >
-              Tous les services <ArrowRight size={14} />
-            </Link>
-          </div>
-          <ServicesAtRiskSection data={data.servicesAtRisk} />
-        </Card>
-      </motion.div>
+        {/* ─── Charts row: Performance équipe + Tendances 7j ───────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <motion.div variants={fadeUp}>
+            <Card padding="none" className="overflow-hidden">
+              <div className="px-5 py-4 border-b border-ds-border">
+                <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
+                  <Users size={18} className="text-primary-500" />
+                  Performance équipe
+                </h3>
+              </div>
+              <div className="p-4">
+                <TeamPerformanceChart data={data.agentPerformance} />
+              </div>
+            </Card>
+          </motion.div>
+          <motion.div variants={fadeUp}>
+            <Card padding="none" className="overflow-hidden">
+              <div className="px-5 py-4 border-b border-ds-border">
+                <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
+                  <TrendingUp size={18} className="text-accent-500" />
+                  Tendances 7 jours
+                </h3>
+              </div>
+              <div className="p-4">
+                <TrendChart data={data.trend7d} />
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      </section>
 
-      {/* ─── Charts row: Performance équipe + Tendances 7j ───────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <motion.div variants={fadeUp}>
-          <Card padding="none" className="overflow-hidden">
-            <div className="px-5 py-4 border-b border-ds-border">
-              <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                <Users size={18} className="text-primary-500" />
-                Performance équipe
-              </h3>
-            </div>
-            <div className="p-4">
-              <TeamPerformanceChart data={data.agentPerformance} />
-            </div>
-          </Card>
-        </motion.div>
-        <motion.div variants={fadeUp}>
-          <Card padding="none" className="overflow-hidden">
-            <div className="px-5 py-4 border-b border-ds-border">
-              <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                <TrendingUp size={18} className="text-accent-500" />
-                Tendances 7 jours
-              </h3>
-            </div>
-            <div className="p-4">
-              <TrendChart data={data.trend7d} />
-            </div>
-          </Card>
-        </motion.div>
-      </div>
+      <section className="space-y-5">
+        <SectionLead
+          eyebrow={MANAGER_COPILOT_PRODUCT_LABEL}
+          title={MANAGER_COPILOT_TITLE}
+          description={`${MANAGER_COPILOT_SUBTITLE}. L&apos;IA intervient apres la lecture analytique pour aider a decider, sans ecraser la lecture manager classique.`}
+          icon={<Sparkles size={20} />}
+        />
+
+        <ManagerCopilotDashboardSection filters={appliedFilters} />
+      </section>
     </motion.div>
   );
 };

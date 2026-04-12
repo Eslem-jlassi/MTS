@@ -230,8 +230,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
           {lastUpdated && (
             <span className="text-xs text-ds-muted font-medium hidden sm:inline">
               <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ{" "}
-              {formatTime(lastUpdated)}
+              MAJ {formatTime(lastUpdated)}
             </span>
           )}
           <button
@@ -320,7 +319,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="ds-table-raw w-full">
                 <thead className="bg-ds-elevated border-b border-ds-border">
                   <tr>
                     <th className="px-4 sm:px-5 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">

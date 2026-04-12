@@ -520,7 +520,7 @@ export default function ServicesPage() {
       ) : (
         <Card padding="none">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="ds-table-raw w-full">
               <thead className="bg-ds-elevated/50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">

@@ -55,7 +55,7 @@ const Drawer: React.FC<DrawerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
             onClick={onClose}
             aria-hidden
           />
@@ -64,7 +64,7 @@ const Drawer: React.FC<DrawerProps> = ({
             animate={{ x: 0 }}
             exit={{ x: side === "right" ? "100%" : "-100%" }}
             transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-            className={`relative flex flex-col w-full ${widthClasses[width]} max-h-full bg-ds-card border-ds-border shadow-dropdown ${
+            className={`ds-modal-surface relative flex max-h-full w-full flex-col ${widthClasses[width]} rounded-none border-ds-border shadow-dropdown ${
               side === "right" ? "border-l ml-auto" : "border-r"
             }`}
             role="dialog"
@@ -72,14 +72,17 @@ const Drawer: React.FC<DrawerProps> = ({
             aria-labelledby={title ? "drawer-title" : undefined}
           >
             {title && (
-              <div className="flex items-center justify-between px-4 py-3 border-b border-ds-border flex-shrink-0">
-                <h2 id="drawer-title" className="text-lg font-semibold text-ds-primary">
+              <div className="flex flex-shrink-0 items-center justify-between border-b border-ds-border/80 bg-ds-card/85 px-5 py-4 backdrop-blur-sm">
+                <h2
+                  id="drawer-title"
+                  className="text-lg font-semibold tracking-tight text-ds-primary"
+                >
                   {title}
                 </h2>
                 <button
                   type="button"
                   onClick={onClose}
-                  className="p-2 rounded-xl text-ds-muted hover:text-ds-primary hover:bg-ds-elevated transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="rounded-xl border border-ds-border bg-ds-card/70 p-2 text-ds-muted transition-all duration-200 hover:border-primary-300/35 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label="Fermer"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,7 +96,7 @@ const Drawer: React.FC<DrawerProps> = ({
                 </button>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-4">{children}</div>
+            <div className="flex-1 overflow-y-auto p-5">{children}</div>
           </motion.aside>
         </div>
       )}

@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Clock,
   CheckCircle2,
@@ -720,7 +721,7 @@ function SlaPoliciesList() {
         <p className="text-ds-secondary text-sm">Aucune politique SLA configurée</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="ds-table-raw w-full text-sm">
             <thead>
               <tr className="border-b border-ds-border text-ds-secondary text-left">
                 <th className="py-2 pr-4">Politique</th>
@@ -777,6 +778,7 @@ const SLA_TABS: Tab[] = [
 ];
 
 export default function SlaPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [escalation, setEscalation] = useState<SlaEscalationStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -797,6 +799,28 @@ export default function SlaPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab && SLA_TABS.some((tab) => tab.key === requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const currentTab = searchParams.get("tab") || "overview";
+    if (currentTab === activeTab) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams);
+    if (activeTab === "overview") {
+      params.delete("tab");
+    } else {
+      params.set("tab", activeTab);
+    }
+    setSearchParams(params, { replace: true });
+  }, [activeTab, searchParams, setSearchParams]);
 
   return (
     <div className="space-y-6">

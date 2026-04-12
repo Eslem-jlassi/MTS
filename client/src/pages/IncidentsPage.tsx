@@ -2,8 +2,8 @@
 // MTS TELECOM - Incidents (ITSM) - Supervision des incidents liés aux services télécom
 // =============================================================================
 
-import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   AlertTriangle,
   Plus,
@@ -30,21 +30,6 @@ import { formatDateTime } from "../utils/formatters";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 
-function formatDate(s: string | undefined): string {
-  if (!s) return "—";
-  try {
-    return new Date(s).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return s;
-  }
-}
-
 const severityBadgeVariant: Record<Severity, "danger" | "warning" | "neutral" | "success"> = {
   [Severity.CRITICAL]: "danger",
   [Severity.MAJOR]: "warning",
@@ -65,6 +50,8 @@ export default function IncidentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<IncidentStatus | "">("");
   const [severityFilter, setSeverityFilter] = useState<Severity | "">("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { canDeleteIncident } = usePermissions();
   const toast = useToast();
@@ -124,7 +111,9 @@ export default function IncidentsPage() {
       await incidentService.requestHardDeleteChallenge(incidentToDelete.id);
       toast.success("Un code de verification a ete envoye sur votre email administrateur.");
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || err?.response?.data?.message || "Envoi du code impossible");
+      toast.error(
+        err?.response?.data?.detail || err?.response?.data?.message || "Envoi du code impossible",
+      );
     } finally {
       setIsSendingDeleteCode(false);
     }
@@ -149,6 +138,17 @@ export default function IncidentsPage() {
   }, []);
 
   useEffect(() => {
+    const nextStatus = searchParams.get("status") as IncidentStatus | null;
+    const nextSeverity = searchParams.get("severity") as Severity | null;
+    setStatusFilter(
+      nextStatus && Object.values(IncidentStatus).includes(nextStatus) ? nextStatus : "",
+    );
+    setSeverityFilter(
+      nextSeverity && Object.values(Severity).includes(nextSeverity) ? nextSeverity : "",
+    );
+  }, [searchParams]);
+
+  useEffect(() => {
     if (incidentToDelete) {
       setDeleteTargetIdInput("");
       setDeletePassword("");
@@ -161,12 +161,44 @@ export default function IncidentsPage() {
     setDeleteVerificationCode("");
   }, [incidentToDelete]);
 
+  const routeServiceFilter = useMemo(() => {
+    const value = Number(searchParams.get("serviceId"));
+    return Number.isNaN(value) ? undefined : value;
+  }, [searchParams]);
+
   const filtered = useMemo(() => {
     let list = incidents;
+    if (routeServiceFilter != null) {
+      list = list.filter(
+        (incident) =>
+          incident.serviceId === routeServiceFilter ||
+          incident.affectedServiceIds?.includes(routeServiceFilter),
+      );
+    }
     if (statusFilter) list = list.filter((i) => i.status === statusFilter);
     if (severityFilter) list = list.filter((i) => i.severity === severityFilter);
     return list;
-  }, [incidents, statusFilter, severityFilter]);
+  }, [incidents, routeServiceFilter, statusFilter, severityFilter]);
+  const activeFiltersSummary = useMemo(() => {
+    const items: string[] = [];
+    if (routeServiceFilter != null) items.push(`Service #${routeServiceFilter}`);
+    if (statusFilter) items.push(`Statut: ${IncidentStatusLabels[statusFilter]}`);
+    if (severityFilter) items.push(`Gravite: ${SeverityLabels[severityFilter]}`);
+    return items;
+  }, [routeServiceFilter, severityFilter, statusFilter]);
+
+  const updateSearchFilter = useCallback(
+    (key: "status" | "severity", value: string) => {
+      const params = new URLSearchParams(searchParams);
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams],
+  );
 
   const activeCount = useMemo(
     () =>
@@ -281,17 +313,43 @@ export default function IncidentsPage() {
           <p className="text-sm text-ds-secondary mt-0.5">
             Supervision des incidents liés aux services télécom
           </p>
+          {routeServiceFilter != null && (
+            <p className="mt-2 text-xs font-medium text-primary-600 dark:text-primary-300">
+              Filtre ALLIE actif sur le service #{routeServiceFilter}
+            </p>
+          )}
         </div>
-        <Link to="/incidents/new">
-          <Button variant="primary" icon={<Plus size={18} />} iconPosition="left">
-            Nouvel incident
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={showFilters ? "primary" : "outline"}
+            icon={<Filter size={18} />}
+            iconPosition="left"
+            onClick={() => setShowFilters((current) => !current)}
+          >
+            {activeFiltersSummary.length > 0
+              ? `Filtres (${activeFiltersSummary.length})`
+              : "Filtres"}
           </Button>
-        </Link>
+          <Button
+            variant="outline"
+            icon={<RefreshCw size={18} />}
+            iconPosition="left"
+            onClick={load}
+            disabled={loading}
+          >
+            Actualiser
+          </Button>
+          <Link to="/incidents/new">
+            <Button variant="primary" icon={<Plus size={18} />} iconPosition="left">
+              Nouvel incident
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card padding="md" className="border-l-4 border-l-red-500 bg-red-500/5">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-red-500/20 text-red-600 dark:text-red-400">
               <Activity size={20} />
@@ -302,7 +360,7 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border-l-4 border-l-orange-500 bg-orange-500/5">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400">
               <AlertTriangle size={20} />
@@ -313,7 +371,7 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border-l-4 border-l-green-500 bg-green-500/5">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-green-500/20 text-green-600 dark:text-green-400">
               <ChevronUp size={20} />
@@ -324,7 +382,7 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border-l-4 border-l-blue-500 bg-blue-500/5">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400">
               <Shield size={20} />
@@ -337,45 +395,53 @@ export default function IncidentsPage() {
         </Card>
       </div>
 
-      {/* Filtres et Actualiser */}
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="flex items-center gap-2 text-sm font-medium text-ds-primary">
-          <Filter size={18} /> Filtres
-        </span>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter((e.target.value || "") as IncidentStatus | "")}
-          className="rounded-lg border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/25"
-        >
-          <option value="">Tous les statuts</option>
-          {(Object.keys(IncidentStatus) as IncidentStatus[]).map((s) => (
-            <option key={s} value={s}>
-              {IncidentStatusLabels[s]}
-            </option>
+      {!showFilters && activeFiltersSummary.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {activeFiltersSummary.map((item) => (
+            <span
+              key={item}
+              className="inline-flex min-h-8 items-center rounded-full border border-ds-border bg-ds-elevated px-3 py-1 text-xs font-medium text-ds-secondary"
+            >
+              {item}
+            </span>
           ))}
-        </select>
-        <select
-          value={severityFilter}
-          onChange={(e) => setSeverityFilter((e.target.value || "") as Severity | "")}
-          className="rounded-lg border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/25"
-        >
-          <option value="">Toutes gravités</option>
-          {(Object.keys(Severity) as Severity[]).map((s) => (
-            <option key={s} value={s}>
-              {SeverityLabels[s]}
-            </option>
-          ))}
-        </select>
-        <Button
-          variant="secondary"
-          icon={<RefreshCw size={18} />}
-          iconPosition="left"
-          onClick={load}
-          disabled={loading}
-        >
-          Actualiser
-        </Button>
-      </div>
+        </div>
+      )}
+
+      {/* Filtres */}
+      {showFilters && (
+        <Card padding="md">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="flex items-center gap-2 text-sm font-medium text-ds-primary">
+              <Filter size={18} /> Filtres
+            </span>
+            <select
+              value={statusFilter}
+              onChange={(e) => updateSearchFilter("status", e.target.value)}
+              className="rounded-lg border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/25"
+            >
+              <option value="">Tous les statuts</option>
+              {(Object.keys(IncidentStatus) as IncidentStatus[]).map((s) => (
+                <option key={s} value={s}>
+                  {IncidentStatusLabels[s]}
+                </option>
+              ))}
+            </select>
+            <select
+              value={severityFilter}
+              onChange={(e) => updateSearchFilter("severity", e.target.value)}
+              className="rounded-lg border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/25"
+            >
+              <option value="">Toutes gravités</option>
+              {(Object.keys(Severity) as Severity[]).map((s) => (
+                <option key={s} value={s}>
+                  {SeverityLabels[s]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
 
       {/* Tableau des incidents */}
       <Card padding="none" className="overflow-hidden">
@@ -393,7 +459,7 @@ export default function IncidentsPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="ds-table-raw w-full">
               <thead className="bg-ds-elevated">
                 <tr>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">

@@ -44,23 +44,23 @@ const reportTypeConfig: Record<string, { label: string; color: string; bgColor: 
   },
   WEEKLY: {
     label: "Hebdomadaire",
-    color: "text-green-700 dark:text-green-400",
-    bgColor: "bg-green-100 dark:bg-green-900/40",
+    color: "text-success-700 dark:text-success-400",
+    bgColor: "bg-success-100 dark:bg-success-900/40",
   },
   MONTHLY: {
     label: "Mensuel",
-    color: "text-purple-700 dark:text-purple-400",
-    bgColor: "bg-purple-100 dark:bg-purple-900/40",
+    color: "text-slate-700 dark:text-slate-300",
+    bgColor: "bg-slate-100 dark:bg-slate-800/70",
   },
   QUARTERLY: {
     label: "Trimestriel",
-    color: "text-amber-700 dark:text-amber-400",
-    bgColor: "bg-amber-100 dark:bg-amber-900/40",
+    color: "text-warning-700 dark:text-warning-400",
+    bgColor: "bg-warning-100 dark:bg-warning-900/40",
   },
   ANNUAL: {
     label: "Annuel",
-    color: "text-red-700 dark:text-red-400",
-    bgColor: "bg-red-100 dark:bg-red-900/40",
+    color: "text-error-700 dark:text-error-400",
+    bgColor: "bg-error-100 dark:bg-error-900/40",
   },
   CUSTOM: { label: "Personnalisé", color: "text-ds-primary", bgColor: "bg-ds-elevated" },
 };
@@ -406,6 +406,7 @@ export default function ReportsPage() {
     const matchesType = filterType === "ALL" || report.reportType === filterType;
     return matchesSearch && matchesType;
   });
+  const activeFilterCount = Number(Boolean(searchTerm.trim())) + Number(filterType !== "ALL");
 
   // ==========================================================================
   // RENDER
@@ -429,7 +430,7 @@ export default function ReportsPage() {
             variant="outline"
             icon={<Sparkles size={20} />}
             onClick={() => setShowGenerateModal(true)}
-            className="shadow-sm hover:shadow-md transition-shadow"
+            className="font-medium"
           >
             Générer un rapport
           </Button>
@@ -437,7 +438,7 @@ export default function ReportsPage() {
             variant="primary"
             icon={<Upload size={22} />}
             onClick={() => setShowUploadModal(true)}
-            className="shadow-lg hover:shadow-xl transition-all font-semibold text-base px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
+            className="font-semibold"
           >
             Importer un rapport
           </Button>
@@ -449,7 +450,7 @@ export default function ReportsPage() {
 
       {/* ---- EXECUTIVE SUMMARY PANEL ---- */}
       {showSummaryPanel && selectedReport && (
-        <Card padding="lg" className="border-l-4 border-primary-500">
+        <Card padding="lg" className="border border-ds-border/80 bg-ds-card/95">
           <div className="flex items-start justify-between mb-3">
             <div className="flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
@@ -511,6 +512,10 @@ export default function ReportsPage() {
             Actualiser
           </Button>
         </div>
+        <div className="mt-4 flex flex-wrap gap-2 border-t border-ds-border pt-4 text-xs text-ds-muted">
+          <span>{filteredReports.length} rapport(s) visibles</span>
+          {activeFilterCount > 0 && <span>{activeFilterCount} filtre(s) actif(s)</span>}
+        </div>
       </Card>
 
       {/* ---- TABLE DES RAPPORTS ---- */}
@@ -532,7 +537,7 @@ export default function ReportsPage() {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="ds-table-raw w-full">
               <thead className="bg-ds-card">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase">
@@ -609,7 +614,8 @@ export default function ReportsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-ds-muted">
-                        {report.formattedPeriod || formatDateRange(report.periodStart, report.periodEnd)}
+                        {report.formattedPeriod ||
+                          formatDateRange(report.periodStart, report.periodEnd)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
@@ -751,9 +757,7 @@ function KpiCards({ reports, lastGenerated }: { reports: Report[]; lastGenerated
           <KpiCard label="Inc. critiques" value={kpi.incidentsCritical ?? 0} color="red" />
           <KpiCard
             label="Conformité SLA"
-            value={
-              kpi.slaCompliancePct !== undefined ? formatPercent(kpi.slaCompliancePct) : "N/A"
-            }
+            value={kpi.slaCompliancePct !== undefined ? formatPercent(kpi.slaCompliancePct) : "N/A"}
             color={
               kpi.slaCompliancePct !== undefined
                 ? kpi.slaCompliancePct >= 95
@@ -795,12 +799,12 @@ function KpiCards({ reports, lastGenerated }: { reports: Report[]; lastGenerated
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-ds-muted">Mensuels</p>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+            <p className="text-2xl font-bold text-slate-700 dark:text-slate-300 mt-1">
               {reports.filter((r) => r.reportType === "MONTHLY").length}
             </p>
           </div>
-          <div className="p-3 bg-purple-100 dark:bg-purple-900/40 rounded-lg">
-            <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+          <div className="p-3 bg-slate-100 dark:bg-slate-800/70 rounded-lg">
+            <Calendar className="w-6 h-6 text-slate-700 dark:text-slate-300" />
           </div>
         </div>
       </Card>
@@ -849,8 +853,8 @@ function KpiCard({
     green: "text-green-600 dark:text-green-400",
     red: "text-red-600 dark:text-red-400",
     amber: "text-amber-600 dark:text-amber-400",
-    purple: "text-purple-600 dark:text-purple-400",
-    gray: "text-gray-600 dark:text-gray-400",
+    purple: "text-slate-700 dark:text-slate-300",
+    gray: "text-slate-600 dark:text-slate-400",
   };
   return (
     <Card padding="sm">

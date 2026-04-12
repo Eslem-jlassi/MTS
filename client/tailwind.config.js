@@ -1,6 +1,6 @@
 // =============================================================================
 // MTS TELECOM - Tailwind CSS Configuration
-// Soft AI SaaS Design System: Indigo primary, minimal orange accent
+// Soft AI SaaS Design System: Blue primary, indigo accent, neutral B2B surfaces
 // =============================================================================
 
 const defaultTheme = require("tailwindcss/defaultTheme");
@@ -43,19 +43,19 @@ module.exports = {
           950: "#1E1B4B",
         },
 
-        /* ---- Accent: Orange (CTA & emphasis only) ---- */
+        /* ---- Accent: Indigo support (identity / premium emphasis) ---- */
         accent: {
-          DEFAULT: "#F97316",
-          50:  "#FFF7ED",
-          100: "#FFEDD5",
-          200: "#FED7AA",
-          300: "#FDBA74",
-          400: "#FB923C",
-          500: "#F97316",
-          600: "#EA580C",
-          700: "#C2410C",
-          800: "#9A3412",
-          900: "#7C2D12",
+          DEFAULT: "#6366F1",
+          50:  "#F5F7FF",
+          100: "#E8EDFF",
+          200: "#D7DEFF",
+          300: "#BBC8FF",
+          400: "#96A4FF",
+          500: "#6366F1",
+          600: "#4F46E5",
+          700: "#4338CA",
+          800: "#3730A3",
+          900: "#312E81",
         },
 
         /* ---- Semantic status ---- */

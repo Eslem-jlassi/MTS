@@ -146,18 +146,6 @@ const AuditLogPage: React.FC = () => {
   // RENDER HELPERS
   // ==========================================================================
 
-  const formatTimestamp = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    return new Intl.DateTimeFormat("fr-FR", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }).format(date);
-  };
-
   const getActionBadgeVariant = (action: string): BadgeVariant => {
     if (action.includes("CREATED")) return "success";
     if (action.includes("UPDATED") || action.includes("MODIFIED")) return "info";
@@ -330,7 +318,7 @@ const AuditLogPage: React.FC = () => {
       {/* Table */}
       <Card padding="none">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="ds-table-raw w-full text-sm">
             <thead>
               <tr className="border-b border-ds-border bg-ds-elevated/50">
                 <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider w-40">

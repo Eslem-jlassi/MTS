@@ -31,7 +31,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       <p className="ds-kicker mb-2">Etat vide</p>
       <h3 className="text-lg font-semibold tracking-tight text-ds-primary">{title}</h3>
       {description && (
-        <p className="mt-2 max-w-md text-sm leading-6 text-ds-secondary">{description}</p>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-ds-secondary">{description}</p>
       )}
       {action && <div className="mt-5">{action}</div>}
     </div>

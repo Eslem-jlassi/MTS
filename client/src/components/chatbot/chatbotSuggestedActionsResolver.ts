@@ -160,15 +160,14 @@ const aiRecommendedActions = (
   language: ChatLanguage,
 ): ChatbotSuggestedAction[] => {
   const actions = Array.isArray(message.recommendedActions)
-    ? message.recommendedActions.filter((item) => typeof item === "string" && item.trim().length > 0)
+    ? message.recommendedActions.filter(
+        (item) => typeof item === "string" && item.trim().length > 0,
+      )
     : [];
 
   return actions.slice(0, 3).map((item, index) => ({
     id: `ai-recommended-${index + 1}`,
-    label:
-      language === "en"
-        ? `AI recommendation ${index + 1}`
-        : `Recommendation IA ${index + 1}`,
+    label: language === "en" ? `AI recommendation ${index + 1}` : `Recommendation IA ${index + 1}`,
     message: item,
   }));
 };

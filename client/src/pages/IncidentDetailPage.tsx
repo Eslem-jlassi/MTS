@@ -31,21 +31,6 @@ import {
 import { Card, Button, Badge } from "../components/ui";
 import { formatDateTime } from "../utils/formatters";
 
-function formatDate(s: string | undefined): string {
-  if (!s) return "—";
-  try {
-    return new Date(s).toLocaleDateString("fr-FR", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch {
-    return s;
-  }
-}
-
 const severityBadge: Record<Severity, "danger" | "warning" | "neutral" | "success"> = {
   [Severity.CRITICAL]: "danger",
   [Severity.MAJOR]: "warning",

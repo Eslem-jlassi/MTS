@@ -2,7 +2,7 @@
 // MTS TELECOM - Ticket List Page
 // =============================================================================
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -135,6 +135,8 @@ const TicketList: React.FC = () => {
     useSelector((state: RootState) => state.tickets);
   const routeDrawerTicketId =
     routeTicketId && !Number.isNaN(Number(routeTicketId)) ? Number(routeTicketId) : null;
+  const routeDrawerTab = searchParams.get("drawerTab") || undefined;
+  const routeDrawerFocus = searchParams.get("drawerFocus") || undefined;
 
   const [showFilters, setShowFilters] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -159,9 +161,47 @@ const TicketList: React.FC = () => {
   // Drawer state
   const [drawerTicketId, setDrawerTicketId] = useState<number | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const activeFiltersSummary = useMemo(() => {
+    const items: string[] = [];
+    if (filters.search) items.push(`Recherche: ${filters.search}`);
+    if (filters.status) items.push(`Statut: ${StatusLabels[filters.status]}`);
+    if (filters.priority) items.push(`Priorite: ${PriorityLabels[filters.priority]}`);
+    if (filters.category) items.push(`Categorie: ${CategoryLabels[filters.category]}`);
+    if (filters.slaStatus === "OK") items.push("SLA: Dans les delais");
+    if (filters.slaStatus === "AT_RISK") items.push("SLA: A risque");
+    if (filters.slaStatus === "BREACHED") items.push("SLA: Depasse");
+    if (filters.serviceId) items.push(`Service #${filters.serviceId}`);
+    if (filters.clientId) items.push(`Client #${filters.clientId}`);
+    if (filters.assignedToId) items.push(`Assigne #${filters.assignedToId}`);
+    return items;
+  }, [filters]);
+
+  const buildPersistentSearch = () => {
+    const params = new URLSearchParams(searchParams);
+    params.delete("drawerTab");
+    params.delete("drawerFocus");
+    return params.toString();
+  };
+
+  const buildTicketFiltersSearch = (nextFilters: TicketFilterParams) => {
+    const params = new URLSearchParams();
+
+    if (nextFilters.status) params.set("status", nextFilters.status);
+    if (nextFilters.priority) params.set("priority", nextFilters.priority);
+    if (nextFilters.category) params.set("category", nextFilters.category);
+    if (nextFilters.search) params.set("search", nextFilters.search);
+    if (nextFilters.slaStatus) params.set("slaStatus", nextFilters.slaStatus);
+    if (nextFilters.serviceId != null) params.set("serviceId", String(nextFilters.serviceId));
+    if (nextFilters.clientId != null) params.set("clientId", String(nextFilters.clientId));
+    if (nextFilters.assignedToId != null) {
+      params.set("assignedToId", String(nextFilters.assignedToId));
+    }
+
+    return params.toString();
+  };
 
   const openDrawer = (ticketId: number) => {
-    const search = searchParams.toString();
+    const search = buildPersistentSearch();
     navigate({
       pathname: `/tickets/${ticketId}`,
       search: search ? `?${search}` : "",
@@ -169,7 +209,7 @@ const TicketList: React.FC = () => {
   };
 
   const closeDrawer = () => {
-    const search = searchParams.toString();
+    const search = buildPersistentSearch();
     navigate({
       pathname: "/tickets",
       search: search ? `?${search}` : "",
@@ -321,6 +361,18 @@ const TicketList: React.FC = () => {
     if (searchParams.get("search")) urlFilters.search = searchParams.get("search") || undefined;
     if (searchParams.get("slaStatus"))
       urlFilters.slaStatus = searchParams.get("slaStatus") as SlaStatusFilter;
+    if (searchParams.get("serviceId")) {
+      const serviceId = Number(searchParams.get("serviceId"));
+      if (!Number.isNaN(serviceId)) urlFilters.serviceId = serviceId;
+    }
+    if (searchParams.get("clientId")) {
+      const clientId = Number(searchParams.get("clientId"));
+      if (!Number.isNaN(clientId)) urlFilters.clientId = clientId;
+    }
+    if (searchParams.get("assignedToId")) {
+      const assignedToId = Number(searchParams.get("assignedToId"));
+      if (!Number.isNaN(assignedToId)) urlFilters.assignedToId = assignedToId;
+    }
     if (searchParams.get("assignedToMe") === "1" && user?.id) urlFilters.assignedToId = user.id;
 
     dispatch(setFilters(urlFilters));
@@ -338,8 +390,12 @@ const TicketList: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const newFilters = { ...localFilters, search: searchTerm || undefined };
-    dispatch(setFilters(newFilters));
-    dispatch(fetchTickets({ filters: newFilters, page: { page: 0, size: pageSize } }));
+    navigate({
+      pathname: "/tickets",
+      search: buildTicketFiltersSearch(newFilters)
+        ? `?${buildTicketFiltersSearch(newFilters)}`
+        : "",
+    });
   };
 
   const handleFilterChange = (key: keyof TicketFilterParams, value: string | undefined) => {
@@ -348,8 +404,12 @@ const TicketList: React.FC = () => {
   };
 
   const applyFilters = () => {
-    dispatch(setFilters(localFilters));
-    dispatch(fetchTickets({ filters: localFilters, page: { page: 0, size: pageSize } }));
+    navigate({
+      pathname: "/tickets",
+      search: buildTicketFiltersSearch(localFilters)
+        ? `?${buildTicketFiltersSearch(localFilters)}`
+        : "",
+    });
     setShowFilters(false);
   };
 
@@ -357,7 +417,7 @@ const TicketList: React.FC = () => {
     setLocalFilters({});
     setSearchTerm("");
     dispatch(clearFilters());
-    dispatch(fetchTickets({ filters: {}, page: { page: 0, size: pageSize } }));
+    navigate("/tickets");
     setShowFilters(false);
   };
 
@@ -373,7 +433,11 @@ const TicketList: React.FC = () => {
     <div className="space-y-6">
       <PageHeader
         title="Tickets"
-        description={`${totalElements} ticket(s) au total`}
+        description={
+          activeFiltersSummary.length > 0
+            ? `${totalElements} ticket(s) · ${activeFiltersSummary.length} filtre(s) actif(s)`
+            : `${totalElements} ticket(s) au total`
+        }
         icon={<Ticket size={24} />}
         actions={
           <div className="flex items-center gap-2">
@@ -559,9 +623,24 @@ const TicketList: React.FC = () => {
             icon={<Filter size={18} />}
             onClick={() => setShowFilters(!showFilters)}
           >
-            Filtres
+            {activeFiltersSummary.length > 0
+              ? `Filtres (${activeFiltersSummary.length})`
+              : "Filtres"}
           </Button>
         </div>
+
+        {!showFilters && activeFiltersSummary.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-ds-border pt-4">
+            {activeFiltersSummary.map((item) => (
+              <span
+                key={item}
+                className="inline-flex min-h-8 items-center rounded-full border border-ds-border bg-ds-elevated px-3 py-1 text-xs font-medium text-ds-secondary"
+              >
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
 
         {showFilters && (
           <div className="mt-4 pt-4 border-t border-ds-border">
@@ -671,7 +750,7 @@ const TicketList: React.FC = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="ds-table-raw w-full">
                 <thead className="bg-ds-elevated/50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
@@ -848,6 +927,8 @@ const TicketList: React.FC = () => {
       <TicketDrawer
         ticketId={drawerTicketId}
         isOpen={isDrawerOpen}
+        requestedTab={routeDrawerTab}
+        actionContext={routeDrawerFocus}
         onClose={closeDrawer}
         onTicketUpdated={handleTicketUpdated}
       />

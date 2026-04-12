@@ -77,14 +77,12 @@ const buildRelatedCasesHint = (
   results: ChatbotResult[] = [],
   language: ChatLanguage = "fr",
 ): string => {
-  const topCases = results
-    .slice(0, 3)
-    .map(
-      (item) =>
-        `${item.title} (${item.serviceName || "N/A"}, score ${formatNumberValue(Number(item.score), {
-          maximumFractionDigits: 2,
-        })})`,
-    );
+  const topCases = results.slice(0, 3).map(
+    (item) =>
+      `${item.title} (${item.serviceName || "N/A"}, score ${formatNumberValue(Number(item.score), {
+        maximumFractionDigits: 2,
+      })})`,
+  );
 
   if (topCases.length === 0) {
     return language === "en"

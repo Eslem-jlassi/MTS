@@ -78,25 +78,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const degradedOrDown = services.length - operationalCount;
 
   /**
-   * Formatte la date relative (ex: "il y a 2h")
-   */
-  const formatRelativeTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "à l'instant";
-    if (diffMins < 60) return `il y a ${diffMins} min`;
-    if (diffHours < 24) return `il y a ${diffHours}h`;
-    if (diffDays === 1) return "hier";
-    if (diffDays < 7) return `il y a ${diffDays}j`;
-    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
-  };
-
-  /**
    * Retourne le badge pour le type d'entité
    */
   const getEntityBadge = (entityType: string) => {

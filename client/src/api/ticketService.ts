@@ -103,7 +103,9 @@ export const ticketService = {
    * Request an email verification code for OAuth admin hard-delete re-authentication.
    */
   requestHardDeleteChallenge: async (id: number): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>(`${TICKETS_PREFIX}/${id}/hard-delete/challenge`);
+    const response = await api.post<{ message: string }>(
+      `${TICKETS_PREFIX}/${id}/hard-delete/challenge`,
+    );
     return response.data;
   },
 

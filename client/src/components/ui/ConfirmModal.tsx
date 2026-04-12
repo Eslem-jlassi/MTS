@@ -66,7 +66,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </div>
         <div className="mb-6 max-w-md text-sm leading-6 text-ds-secondary">{message}</div>
         {requiresTypedConfirmation && (
-          <div className="w-full rounded-2xl border border-ds-border bg-ds-elevated/35 p-4 text-left mb-6">
+          <div className="mb-6 w-full rounded-2xl border border-ds-border bg-ds-elevated/35 p-4 text-left">
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-ds-muted">
               Confirmation forte
             </label>
@@ -78,7 +78,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               type="text"
               value={confirmationValue}
               onChange={(event) => setConfirmationValue(event.target.value)}
-              className="w-full rounded-xl border border-ds-border bg-ds-card px-3 py-2.5 text-ds-primary transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-400/30"
+              className="ds-control w-full px-3 py-2.5"
               autoComplete="off"
             />
           </div>

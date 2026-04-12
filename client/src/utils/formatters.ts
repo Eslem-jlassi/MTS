@@ -109,8 +109,7 @@ export const formatPercent = (
     maximumFractionDigits: options?.maximumFractionDigits ?? 1,
     minimumFractionDigits: options?.minimumFractionDigits ?? 0,
   });
-  const sign =
-    options?.signed && value > 0 ? "+" : value < 0 ? "-" : "";
+  const sign = options?.signed && value > 0 ? "+" : value < 0 ? "-" : "";
 
   return `${sign}${formattedValue} %`;
 };
@@ -163,11 +162,7 @@ export const formatSlaRemaining = (value: number | null | undefined): string => 
   return formatDurationMinutes(value, { alwaysIncludeMinutes: true });
 };
 
-export const formatDateRange = (
-  start: DateLike,
-  end: DateLike,
-  separator = " - ",
-): string => {
+export const formatDateRange = (start: DateLike, end: DateLike, separator = " - "): string => {
   const formattedStart = formatDate(start);
   const formattedEnd = formatDate(end);
 

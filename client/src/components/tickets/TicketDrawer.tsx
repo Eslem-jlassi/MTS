@@ -16,8 +16,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 import { RootState } from "../../redux/store";
-import { Tabs, Tab, Card, Badge, EmptyState } from "../ui";
+import { Tabs, Tab, Card, Badge } from "../ui";
 import Drawer from "../ui/Drawer";
 import QuickReplies from "./QuickReplies";
 import { getErrorMessage } from "../../api/client";
@@ -25,6 +26,8 @@ import { ticketService } from "../../api/ticketService";
 import { userService } from "../../api/userService";
 import { sentimentService, SentimentResponse } from "../../api/sentimentService";
 import { duplicateService, DuplicateResponse, RecentTicket } from "../../api/duplicateService";
+import { incidentService } from "../../api/incidentService";
+import { telecomServiceService } from "../../api/telecomServiceService";
 import {
   Ticket,
   TicketStatus,
@@ -35,6 +38,8 @@ import {
   UserResponse,
   CategoryLabels,
   TicketCategory,
+  type Incident,
+  type TelecomService,
 } from "../../types";
 import {
   FileText,
@@ -74,6 +79,12 @@ import {
   formatPercent,
   formatSlaRemaining as formatSlaRemainingValue,
 } from "../../utils/formatters";
+import ManagerCopilotTicketCard from "../manager-copilot/ManagerCopilotTicketCard";
+import {
+  buildManagerCopilotTicketContext,
+  type ManagerCopilotTicketActionId,
+} from "../manager-copilot/managerCopilotTicketContext";
+import { useManagerCopilot } from "../manager-copilot/useManagerCopilot";
 
 // =============================================================================
 // TYPES & PROPS
@@ -82,6 +93,8 @@ import {
 interface TicketDrawerProps {
   ticketId: number | null;
   isOpen: boolean;
+  requestedTab?: string;
+  actionContext?: string;
   onClose: () => void;
   onTicketUpdated?: () => void; // callback pour rafraîchir la liste
 }
@@ -223,41 +236,16 @@ const buildTabs = (ticket: Ticket | null): Tab[] => [
 // HELPERS
 // =============================================================================
 
-const formatDate = (dateStr?: string): string => {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+const dedupeIncidents = (items: Incident[]): Incident[] => {
+  const seen = new Set<number>();
+  return items.filter((item) => {
+    if (seen.has(item.id)) {
+      return false;
+    }
+
+    seen.add(item.id);
+    return true;
   });
-};
-
-const formatDateShort = (dateStr?: string): string => {
-  if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleString("fr-FR", {
-    day: "2-digit",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-};
-
-const formatSlaRemaining = (minutes?: number): string => {
-  if (minutes === undefined || minutes === null) return "—";
-  const absMin = Math.abs(minutes);
-  const h = Math.floor(absMin / 60);
-  const m = absMin % 60;
-  const timeStr = `${h}h ${m.toString().padStart(2, "0")}min`;
-  return minutes < 0 ? `Dépassé de ${timeStr}` : timeStr;
-};
-
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return "—";
-  if (bytes < 1024) return `${bytes} o`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} Mo`;
 };
 
 // =============================================================================
@@ -267,20 +255,29 @@ const formatFileSize = (bytes?: number): string => {
 const TicketDrawer: React.FC<TicketDrawerProps> = ({
   ticketId,
   isOpen,
+  requestedTab,
+  actionContext,
   onClose,
   onTicketUpdated,
 }) => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
   const userRole = user?.role as UserRole | undefined;
   const isStaff = userRole && ["ADMIN", "MANAGER", "AGENT"].includes(userRole);
   const canAssign = userRole && ["ADMIN", "MANAGER"].includes(userRole);
   const canChangeStatus = isStaff;
+  const isManagerContext = userRole === UserRole.MANAGER || userRole === UserRole.ADMIN;
 
   // --- Core state ---
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [activeTab, setActiveTab] = useState("details");
+  const [entryTab, setEntryTab] = useState<string | undefined>(undefined);
+  const [entryActionContext, setEntryActionContext] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [relatedService, setRelatedService] = useState<TelecomService | null>(null);
+  const [relatedIncidents, setRelatedIncidents] = useState<Incident[]>([]);
 
   // --- Comments state ---
   const [comments, setComments] = useState<TicketCommentType[]>([]);
@@ -311,6 +308,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   // --- Attachments ---
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const assignmentPanelRef = useRef<HTMLDivElement>(null);
 
   // --- Sentiment Analysis ---
   const [sentiment, setSentiment] = useState<SentimentResponse | null>(null);
@@ -321,6 +319,44 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   const [duplicates, setDuplicates] = useState<DuplicateResponse | null>(null);
   const [duplicatesLoading, setDuplicatesLoading] = useState(false);
   const [duplicatesError, setDuplicatesError] = useState<string | null>(null);
+  const { snapshot: managerCopilotSnapshot } = useManagerCopilot({
+    enabled: Boolean(isOpen && isManagerContext && ticket?.serviceId),
+    filters: ticket?.serviceId ? { serviceId: ticket.serviceId } : undefined,
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    setEntryTab(requestedTab);
+    setEntryActionContext(actionContext);
+
+    const nextTab =
+      requestedTab &&
+      ["details", "activity", "comments", "sla", "attachments", "history"].includes(requestedTab)
+        ? requestedTab
+        : "details";
+
+    setActiveTab(nextTab);
+  }, [actionContext, isOpen, requestedTab, ticketId]);
+
+  useEffect(() => {
+    if (!isOpen || (!requestedTab && !actionContext)) {
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    params.delete("drawerTab");
+    params.delete("drawerFocus");
+    const cleanedSearch = params.toString();
+
+    navigate(
+      {
+        pathname: location.pathname,
+        search: cleanedSearch ? `?${cleanedSearch}` : "",
+      },
+      { replace: true },
+    );
+  }, [actionContext, isOpen, location.pathname, location.search, navigate, requestedTab]);
 
   // Auto-analyse IA quand le ticket est chargé
   useEffect(() => {
@@ -395,6 +431,43 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     runDuplicateCheck();
   }, [ticket, isOpen]);
 
+  useEffect(() => {
+    if (!ticket?.serviceId || !isOpen || !isManagerContext) {
+      setRelatedService(null);
+      setRelatedIncidents([]);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadManagerContext = async () => {
+      const [serviceResult, primaryIncidentsResult, affectedIncidentsResult] =
+        await Promise.allSettled([
+          telecomServiceService.getServiceById(ticket.serviceId),
+          incidentService.getByService(ticket.serviceId),
+          incidentService.getByAffectedService(ticket.serviceId),
+        ]);
+
+      if (isCancelled) {
+        return;
+      }
+
+      setRelatedService(serviceResult.status === "fulfilled" ? serviceResult.value : null);
+
+      const mergedIncidents = dedupeIncidents([
+        ...(primaryIncidentsResult.status === "fulfilled" ? primaryIncidentsResult.value : []),
+        ...(affectedIncidentsResult.status === "fulfilled" ? affectedIncidentsResult.value : []),
+      ]);
+      setRelatedIncidents(mergedIncidents);
+    };
+
+    void loadManagerContext();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [ticket?.id, ticket?.serviceId, isOpen, isManagerContext]);
+
   // --- Toast ---
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
@@ -435,9 +508,35 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   useEffect(() => {
     if (!ticketId || !isOpen) return;
     setLoading(true);
-    setActiveTab("details");
+    setShowStatusDropdown(false);
+    setShowAssignDropdown(false);
+    setEntryTab(undefined);
+    setEntryActionContext(undefined);
+    setNewStatus("");
+    setResolution("");
+    setRootCause("");
+    setFinalCategory("");
+    setTimeSpentMinutes("");
+    setImpact("");
+    setStatusComment("");
     loadTicket().finally(() => setLoading(false));
   }, [ticketId, isOpen, loadTicket]);
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+
+    setShowStatusDropdown(false);
+    setShowAssignDropdown(false);
+    setNewStatus("");
+    setResolution("");
+    setRootCause("");
+    setFinalCategory("");
+    setTimeSpentMinutes("");
+    setImpact("");
+    setStatusComment("");
+  }, [isOpen]);
 
   // Load separate comments & history when switching to those tabs
   const loadComments = useCallback(async () => {
@@ -538,26 +637,31 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     }
   };
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     setLoadingAgents(true);
     try {
       const list = await userService.getAgents();
       setAgents(list);
+      return list;
     } catch {
       setToast({ message: "Erreur chargement agents", type: "error" });
+      return [];
     } finally {
       setLoadingAgents(false);
     }
-  };
+  }, []);
 
-  const handleAssign = async (agentId: number) => {
+  const handleAssign = async (agentId: number, agentName?: string) => {
     if (!ticket) return;
     setSubmittingAssign(true);
     try {
       await ticketService.assignTicket(ticket.id, { agentId });
       const agent = agents.find((a) => a.id === agentId);
       setShowAssignDropdown(false);
-      setToast({ message: `Assigné à ${agent?.fullName || "l'agent"}`, type: "success" });
+      setToast({
+        message: `Assigne a ${agentName || agent?.fullName || "l'agent"}`,
+        type: "success",
+      });
       await loadTicket();
       onTicketUpdated?.();
     } catch (err: any) {
@@ -679,12 +783,6 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     return items;
   }, [ticket, comments, history]);
 
-  // ==========================================================================
-  // RENDER NULL GUARD
-  // ==========================================================================
-
-  if (!isOpen) return null;
-
   const pCfg = ticket
     ? priorityConfig[ticket.priority] || priorityConfig.MEDIUM
     : priorityConfig.MEDIUM;
@@ -703,13 +801,23 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           label: "SLA",
           value: formatSlaRemainingValue(ticket.slaRemainingMinutes),
           helper: formatPercent(ticket.slaPercentage || 0),
-          tone: ticket.breachedSla || ticket.overdue ? "danger" : ticket.slaWarning ? "warning" : "success",
+          tone:
+            ticket.breachedSla || ticket.overdue
+              ? "danger"
+              : ticket.slaWarning
+                ? "warning"
+                : "success",
           icon: <Clock size={16} />,
         },
         {
           label: "Assignation",
           value: ticket.assignedToName || "Non assigne",
-          helper: canAssign && isAssignmentLocked ? "Verrouillee" : ticket.assignedToId ? "En cours" : "A traiter",
+          helper:
+            canAssign && isAssignmentLocked
+              ? "Verrouillee"
+              : ticket.assignedToId
+                ? "En cours"
+                : "A traiter",
           tone: ticket.assignedToId ? "info" : "neutral",
           icon: <UserPlus size={16} />,
         },
@@ -729,6 +837,100 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         },
       ]
     : [];
+  const allieTicketContext =
+    ticket && isManagerContext
+      ? buildManagerCopilotTicketContext({
+          ticket,
+          duplicates,
+          service: relatedService,
+          incidents: relatedIncidents,
+          snapshot: managerCopilotSnapshot,
+          canAssign: Boolean(canAssign),
+          isAssignmentLocked,
+        })
+      : null;
+
+  const focusAssignmentPanel = useCallback(() => {
+    setActiveTab("details");
+    setShowAssignDropdown(true);
+
+    if (agents.length === 0) {
+      void loadAgents();
+    }
+
+    window.requestAnimationFrame(() => {
+      assignmentPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [agents.length, loadAgents]);
+
+  useEffect(() => {
+    if (!isOpen || !ticket || entryActionContext !== "assign" || showAssignDropdown) {
+      return;
+    }
+
+    focusAssignmentPanel();
+  }, [entryActionContext, focusAssignmentPanel, isOpen, showAssignDropdown, ticket]);
+
+  // ==========================================================================
+  // RENDER NULL GUARD
+  // ==========================================================================
+
+  if (!isOpen) return null;
+
+  const handleAllieAction = (actionId: ManagerCopilotTicketActionId) => {
+    if (!allieTicketContext) {
+      return;
+    }
+
+    switch (actionId) {
+      case "assign-recommended":
+        if (allieTicketContext.recommendedAgentId) {
+          void handleAssign(
+            allieTicketContext.recommendedAgentId,
+            allieTicketContext.recommendedAgentName,
+          );
+          return;
+        }
+
+        focusAssignmentPanel();
+        return;
+
+      case "open-assignment":
+        focusAssignmentPanel();
+        return;
+
+      case "open-sla":
+        setActiveTab("sla");
+        return;
+
+      case "open-service-health":
+        if (allieTicketContext.serviceHealthHref) {
+          navigate(allieTicketContext.serviceHealthHref);
+        }
+        return;
+
+      case "open-incidents":
+        if (allieTicketContext.incidentsHref) {
+          navigate(allieTicketContext.incidentsHref);
+        }
+        return;
+
+      case "prepare-incident":
+        navigate("/incidents/new", {
+          state: allieTicketContext.incidentDraftState,
+        });
+        return;
+
+      case "view-similar":
+        if (allieTicketContext.similarTicketsHref) {
+          navigate(allieTicketContext.similarTicketsHref);
+        }
+        return;
+
+      default:
+        return;
+    }
+  };
 
   // ==========================================================================
   // TAB RENDERERS
@@ -738,164 +940,175 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     if (!ticket) return null;
     return (
       <div className="space-y-5">
+        {entryActionContext === "assign" && (
+          <div className="rounded-xl border border-primary-200 bg-primary-50/80 px-4 py-3 text-sm text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-200">
+            ALLIE a prepare ce ticket pour une decision d'affectation. Verifiez ici l'agent
+            recommande puis validez l'assignation si le contexte vous convient.
+          </div>
+        )}
+
         <SectionCard
           icon={<FileText size={18} />}
           title="Pilotage du ticket"
           subtitle="Statut, priorite, categorie et assignation."
         >
           <div className="grid gap-4 sm:grid-cols-2">
-          {/* Statut — dropdown inline */}
-          <FieldPanel label="Statut" helper="Transitions disponibles sans quitter le drawer.">
-            {canChangeStatus &&
-            ticket.allowedTransitions &&
-            ticket.allowedTransitions.length > 0 ? (
-              <div className="relative">
-                <button
-                  onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-ds-border hover:border-primary-400 transition-colors ${sCfg.bg} ${sCfg.text}`}
+            {/* Statut — dropdown inline */}
+            <FieldPanel label="Statut" helper="Transitions disponibles sans quitter le drawer.">
+              {canChangeStatus &&
+              ticket.allowedTransitions &&
+              ticket.allowedTransitions.length > 0 ? (
+                <div className="relative">
+                  <button
+                    onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-ds-border hover:border-primary-400 transition-colors ${sCfg.bg} ${sCfg.text}`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${sCfg.dot}`} />
+                      {sCfg.label}
+                    </span>
+                    <ChevronDown size={14} />
+                  </button>
+                  {showStatusDropdown && (
+                    <div className="absolute z-20 mt-1 w-full bg-ds-card border border-ds-border rounded-lg shadow-lg overflow-hidden">
+                      {ticket.allowedTransitions.map((s) => {
+                        const cfg = statusConfig[s] || statusConfig.NEW;
+                        return (
+                          <button
+                            key={s}
+                            onClick={() => {
+                              setNewStatus(s);
+                              setShowStatusDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-ds-elevated transition-colors flex items-center gap-2"
+                          >
+                            <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+                            {cfg.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className={`px-3 py-2 rounded-lg text-sm font-medium ${sCfg.bg} ${sCfg.text} flex items-center gap-2`}
                 >
-                  <span className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${sCfg.dot}`} />
-                    {sCfg.label}
-                  </span>
-                  <ChevronDown size={14} />
-                </button>
-                {showStatusDropdown && (
-                  <div className="absolute z-20 mt-1 w-full bg-ds-card border border-ds-border rounded-lg shadow-lg overflow-hidden">
-                    {ticket.allowedTransitions.map((s) => {
-                      const cfg = statusConfig[s] || statusConfig.NEW;
-                      return (
-                        <button
-                          key={s}
-                          onClick={() => {
-                            setNewStatus(s);
-                            setShowStatusDropdown(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-ds-elevated transition-colors flex items-center gap-2"
-                        >
-                          <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                          {cfg.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                  <span className={`w-2 h-2 rounded-full ${sCfg.dot}`} />
+                  {sCfg.label}
+                </div>
+              )}
+            </FieldPanel>
+
+            {/* Priorité — badge */}
+            <FieldPanel label="Priorité" helper="Niveau de traitement attendu.">
+              <div className={`px-3 py-2 rounded-lg text-sm font-medium ${pCfg.bg} ${pCfg.text}`}>
+                {pCfg.label}
               </div>
-            ) : (
-              <div
-                className={`px-3 py-2 rounded-lg text-sm font-medium ${sCfg.bg} ${sCfg.text} flex items-center gap-2`}
+            </FieldPanel>
+
+            {/* Catégorie */}
+            <FieldPanel label="Catégorie" helper="Classification métier du ticket.">
+              <div className="px-3 py-2 rounded-lg text-sm bg-ds-elevated text-ds-primary">
+                {ticket.categoryLabel || CategoryLabels[ticket.category] || ticket.category}
+              </div>
+            </FieldPanel>
+
+            {/* Assignation */}
+            <div ref={assignmentPanelRef}>
+              <FieldPanel
+                label="Assignation"
+                helper={
+                  canAssign
+                    ? "Affectation modifiable tant que le ticket reste ouvert."
+                    : "Lecture seule selon votre role."
+                }
               >
-                <span className={`w-2 h-2 rounded-full ${sCfg.dot}`} />
-                {sCfg.label}
-              </div>
-            )}
-          </FieldPanel>
-
-          {/* Priorité — badge */}
-          <FieldPanel label="Priorité" helper="Niveau de traitement attendu.">
-            <div className={`px-3 py-2 rounded-lg text-sm font-medium ${pCfg.bg} ${pCfg.text}`}>
-              {pCfg.label}
-            </div>
-          </FieldPanel>
-
-          {/* Catégorie */}
-          <FieldPanel label="Catégorie" helper="Classification métier du ticket.">
-            <div className="px-3 py-2 rounded-lg text-sm bg-ds-elevated text-ds-primary">
-              {ticket.categoryLabel || CategoryLabels[ticket.category] || ticket.category}
-            </div>
-          </FieldPanel>
-
-          {/* Assignation */}
-          <FieldPanel
-            label="Assignation"
-            helper={
-              canAssign
-                ? "Affectation modifiable tant que le ticket reste ouvert."
-                : "Lecture seule selon votre role."
-            }
-          >
-            {canAssign ? (
-              <div className="relative">
-                <button
-                  onClick={() => {
-                    setShowAssignDropdown(!showAssignDropdown);
-                    if (!showAssignDropdown && agents.length === 0) loadAgents();
-                  }}
-                  disabled={submittingAssign || isAssignmentLocked}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm border border-ds-border hover:border-primary-400 transition-colors ${
-                    ticket.assignedToName
-                      ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
-                      : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300"
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <UserPlus size={14} />
-                    {ticket.assignedToName || "Non assigné"}
-                  </span>
-                  <ChevronDown size={14} />
-                </button>
-                {showAssignDropdown && (
-                  <div className="absolute z-20 mt-1 w-full bg-ds-card border border-ds-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                    {ticket.assignedToId && (
-                      <button
-                        onClick={() => {
-                          handleUnassign();
-                          setShowAssignDropdown(false);
-                        }}
-                        className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2 border-b border-ds-border"
-                      >
-                        <UserMinus size={14} />
-                        Désassigner
-                      </button>
-                    )}
-                    {loadingAgents ? (
-                      <div className="px-3 py-4 text-center text-ds-muted text-sm">
-                        <Loader2 size={16} className="animate-spin inline mr-2" />
-                        Chargement...
-                      </div>
-                    ) : agents.length === 0 ? (
-                      <div className="px-3 py-3 text-center text-ds-muted text-sm">Aucun agent</div>
-                    ) : (
-                      agents.map((agent) => (
-                        <button
-                          key={agent.id}
-                          onClick={() => {
-                            handleAssign(agent.id);
-                            setShowAssignDropdown(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm hover:bg-ds-elevated transition-colors flex items-center gap-2 ${
-                            agent.id === ticket.assignedToId
-                              ? "bg-primary-50 dark:bg-primary-900/20 font-medium"
-                              : ""
-                          }`}
-                        >
-                          <div className="w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                            {agent.fullName?.charAt(0).toUpperCase() || "?"}
+                {canAssign ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        setShowAssignDropdown(!showAssignDropdown);
+                        if (!showAssignDropdown && agents.length === 0) loadAgents();
+                      }}
+                      disabled={submittingAssign || isAssignmentLocked}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm border border-ds-border hover:border-primary-400 transition-colors ${
+                        ticket.assignedToName
+                          ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                          : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <UserPlus size={14} />
+                        {ticket.assignedToName || "Non assigné"}
+                      </span>
+                      <ChevronDown size={14} />
+                    </button>
+                    {showAssignDropdown && (
+                      <div className="absolute z-20 mt-1 w-full bg-ds-card border border-ds-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {ticket.assignedToId && (
+                          <button
+                            onClick={() => {
+                              handleUnassign();
+                              setShowAssignDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2 border-b border-ds-border"
+                          >
+                            <UserMinus size={14} />
+                            Désassigner
+                          </button>
+                        )}
+                        {loadingAgents ? (
+                          <div className="px-3 py-4 text-center text-ds-muted text-sm">
+                            <Loader2 size={16} className="animate-spin inline mr-2" />
+                            Chargement...
                           </div>
-                          <span className="truncate">{agent.fullName}</span>
-                        </button>
-                      ))
+                        ) : agents.length === 0 ? (
+                          <div className="px-3 py-3 text-center text-ds-muted text-sm">
+                            Aucun agent
+                          </div>
+                        ) : (
+                          agents.map((agent) => (
+                            <button
+                              key={agent.id}
+                              onClick={() => {
+                                handleAssign(agent.id);
+                                setShowAssignDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-ds-elevated transition-colors flex items-center gap-2 ${
+                                agent.id === ticket.assignedToId
+                                  ? "bg-primary-50 dark:bg-primary-900/20 font-medium"
+                                  : ""
+                              }`}
+                            >
+                              <div className="w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                {agent.fullName?.charAt(0).toUpperCase() || "?"}
+                              </div>
+                              <span className="truncate">{agent.fullName}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                    {isAssignmentLocked && (
+                      <p className="mt-2 text-xs text-ds-muted">
+                        L'assignation est verrouillee apres resolution, cloture ou annulation.
+                      </p>
                     )}
                   </div>
+                ) : (
+                  <div
+                    className={`px-3 py-2 rounded-lg text-sm ${
+                      ticket.assignedToName
+                        ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
+                        : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300"
+                    }`}
+                  >
+                    {ticket.assignedToName || "Non assigné"}
+                  </div>
                 )}
-                {isAssignmentLocked && (
-                  <p className="mt-2 text-xs text-ds-muted">
-                    L'assignation est verrouillee apres resolution, cloture ou annulation.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div
-                className={`px-3 py-2 rounded-lg text-sm ${
-                  ticket.assignedToName
-                    ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
-                    : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300"
-                }`}
-              >
-                {ticket.assignedToName || "Non assigné"}
-              </div>
-            )}
-          </FieldPanel>
+              </FieldPanel>
+            </div>
           </div>
         </SectionCard>
 
@@ -906,7 +1119,10 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           subtitle="Client, service et horodatages utiles."
         >
           <div className="grid gap-3 sm:grid-cols-2">
-            <InlineFact label="Client" value={ticket.clientName || ticket.clientCompanyName || "-"} />
+            <InlineFact
+              label="Client"
+              value={ticket.clientName || ticket.clientCompanyName || "-"}
+            />
             <InlineFact label="Entreprise" value={ticket.clientCompanyName || "-"} />
             <InlineFact label="Service" value={ticket.serviceName || "-"} />
             <InlineFact label="Créé par" value={ticket.createdByName || "-"} />
@@ -971,7 +1187,6 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             ) : undefined
           }
         >
-
           {/* Loading state */}
           {sentimentLoading && !sentiment && (
             <div className="bg-purple-50 dark:bg-purple-900/10 rounded-xl p-4 border border-purple-200 dark:border-purple-800 flex items-center gap-3">
@@ -1137,7 +1352,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 )}
                 {typeof sentiment.latency_ms === "number" && (
                   <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
-                    latence: {formatNumberValue(sentiment.latency_ms, { maximumFractionDigits: 1 })} ms
+                    latence: {formatNumberValue(sentiment.latency_ms, { maximumFractionDigits: 1 })}{" "}
+                    ms
                   </span>
                 )}
               </div>
@@ -1151,7 +1367,6 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           title="Doublons IA"
           subtitle="Recherche de tickets proches pour qualifier un doublon ou un incident de masse."
         >
-
           {/* Loading */}
           {duplicatesLoading && (
             <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-xl p-4 border border-indigo-200 dark:border-indigo-800 flex items-center gap-3">
@@ -1334,7 +1549,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 )}
                 {typeof duplicates.latency_ms === "number" && (
                   <span className="px-2 py-0.5 rounded-full bg-white/60 dark:bg-black/20">
-                    latence: {formatNumberValue(duplicates.latency_ms, { maximumFractionDigits: 1 })} ms
+                    latence:{" "}
+                    {formatNumberValue(duplicates.latency_ms, { maximumFractionDigits: 1 })} ms
                   </span>
                 )}
                 {(duplicates.sources?.length || 0) > 0 && (
@@ -1557,9 +1773,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-ds-muted">
-                    {formatDateTimeValue(c.createdAt)}
-                  </span>
+                  <span className="text-xs text-ds-muted">{formatDateTimeValue(c.createdAt)}</span>
                 </div>
                 <p className="text-sm text-ds-primary whitespace-pre-wrap leading-relaxed pl-9">
                   {c.content}
@@ -1680,6 +1894,12 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     if (!ticket) return null;
     return (
       <div className="space-y-6">
+        {(entryActionContext === "sla" || entryTab === "sla") && (
+          <div className="rounded-xl border border-orange-200 bg-orange-50/80 px-4 py-3 text-sm text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">
+            ALLIE a ouvert directement la vue SLA pour accelerer l'arbitrage manager sur ce dossier.
+          </div>
+        )}
+
         {/* SLA Status Hero */}
         <div
           className={`rounded-xl p-6 text-center ${
@@ -2123,7 +2343,15 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                     value={metric.value}
                     helper={metric.helper}
                     icon={metric.icon}
-                    tone={metric.tone as "default" | "success" | "warning" | "danger" | "info" | "neutral"}
+                    tone={
+                      metric.tone as
+                        | "default"
+                        | "success"
+                        | "warning"
+                        | "danger"
+                        | "info"
+                        | "neutral"
+                    }
                   />
                 ))}
               </div>
@@ -2141,6 +2369,13 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 
             {/* ---- Tab content (scrollable) ---- */}
             <div className="flex-1 overflow-y-auto px-5 py-4">
+              {allieTicketContext && (
+                <ManagerCopilotTicketCard
+                  context={allieTicketContext}
+                  isBusy={submittingAssign || loadingAgents}
+                  onAction={handleAllieAction}
+                />
+              )}
               {activeTab === "details" && renderDetailsTab()}
               {activeTab === "activity" && renderActivityTab()}
               {activeTab === "comments" && renderCommentsTab()}
@@ -2226,7 +2461,8 @@ const MetricTile: React.FC<{
   tone?: "default" | "success" | "warning" | "danger" | "info" | "neutral";
 }> = ({ label, value, helper, icon, tone = "default" }) => {
   const toneClasses: Record<string, string> = {
-    default: "border-primary-200/70 bg-primary-50/80 dark:border-primary-500/20 dark:bg-primary-500/10",
+    default:
+      "border-primary-200/70 bg-primary-50/80 dark:border-primary-500/20 dark:bg-primary-500/10",
     success: "border-green-200/70 bg-green-50/80 dark:border-green-500/20 dark:bg-green-500/10",
     warning: "border-orange-200/70 bg-orange-50/80 dark:border-orange-500/20 dark:bg-orange-500/10",
     danger: "border-red-200/70 bg-red-50/80 dark:border-red-500/20 dark:bg-red-500/10",
@@ -2238,7 +2474,9 @@ const MetricTile: React.FC<{
     <div className={`rounded-2xl border p-3 ${toneClasses[tone]}`}>
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">{label}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">
+            {label}
+          </p>
           <p className="mt-2 text-base font-semibold text-ds-primary break-words">{value}</p>
           {helper && <p className="mt-1 text-xs text-ds-secondary">{helper}</p>}
         </div>
@@ -2247,17 +2485,6 @@ const MetricTile: React.FC<{
     </div>
   );
 };
-
-const TicketEmptyState: React.FC<{
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  action?: React.ReactNode;
-}> = ({ icon, title, description, action }) => (
-  <div className="rounded-2xl border border-ds-border/70 bg-ds-elevated/35">
-    <EmptyState icon={icon} title={title} description={description} action={action} className="py-10" />
-  </div>
-);
 
 const InlineFact: React.FC<{
   label: string;
@@ -2276,21 +2503,6 @@ const InlineFact: React.FC<{
   </div>
 );
 
-const InsightState: React.FC<{
-  tone?: "info" | "danger";
-  children: React.ReactNode;
-}> = ({ tone = "info", children }) => (
-  <div
-    className={`rounded-2xl border px-4 py-3 text-sm flex items-center gap-3 ${
-      tone === "danger"
-        ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
-        : "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300"
-    }`}
-  >
-    {children}
-  </div>
-);
-
 const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> = ({
   label,
   value,
@@ -2298,7 +2510,9 @@ const InfoRow: React.FC<{ label: string; value: string; highlight?: boolean }> =
 }) => (
   <div className="grid grid-cols-[minmax(0,120px)_1fr] gap-3 text-sm items-start">
     <span className="text-ds-muted">{label}</span>
-    <span className={`font-medium text-right break-words ${highlight ? "text-red-600 dark:text-red-400" : "text-ds-primary"}`}>
+    <span
+      className={`font-medium text-right break-words ${highlight ? "text-red-600 dark:text-red-400" : "text-ds-primary"}`}
+    >
       {value}
     </span>
   </div>

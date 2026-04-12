@@ -3,6 +3,7 @@
  */
 import React, { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import {
   Activity,
   Server,
@@ -29,11 +30,7 @@ import {
   CriticalityLabels,
   SeverityLabels,
 } from "../types";
-import {
-  formatDateTime,
-  formatDurationMinutes,
-  formatPercent,
-} from "../utils/formatters";
+import { formatDateTime, formatDurationMinutes, formatPercent } from "../utils/formatters";
 
 const statusIcon: Record<ServiceStatus, React.ReactNode> = {
   [ServiceStatus.UP]: <CheckCircle2 size={20} />,
@@ -77,6 +74,7 @@ const statusCardConfig: Record<
 };
 
 const HealthMonitoringPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [services, setServices] = useState<TelecomService[]>([]);
   const [activeIncidents, setActiveIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -103,18 +101,38 @@ const HealthMonitoringPage: React.FC = () => {
     load();
   }, [load]);
 
-  const selectService = async (svc: TelecomService) => {
-    setSelectedService(svc);
-    setLoadingHistory(true);
-    try {
-      const history = await telecomServiceService.getRecentStatusHistory(svc.id, 30);
-      setStatusHistory(history);
-    } catch {
-      setStatusHistory([]);
-    } finally {
-      setLoadingHistory(false);
+  const selectService = useCallback(
+    async (svc: TelecomService) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("serviceId", String(svc.id));
+      setSearchParams(params, { replace: true });
+      setSelectedService(svc);
+      setLoadingHistory(true);
+      try {
+        const history = await telecomServiceService.getRecentStatusHistory(svc.id, 30);
+        setStatusHistory(history);
+      } catch {
+        setStatusHistory([]);
+      } finally {
+        setLoadingHistory(false);
+      }
+    },
+    [searchParams, setSearchParams],
+  );
+
+  useEffect(() => {
+    const requestedServiceId = Number(searchParams.get("serviceId"));
+    if (Number.isNaN(requestedServiceId) || requestedServiceId <= 0 || services.length === 0) {
+      return;
     }
-  };
+
+    const requestedService = services.find((service) => service.id === requestedServiceId);
+    if (!requestedService || selectedService?.id === requestedService.id) {
+      return;
+    }
+
+    void selectService(requestedService);
+  }, [searchParams, selectService, services, selectedService?.id]);
 
   const byStatus = React.useMemo(() => {
     const m: Record<ServiceStatus, number> = {
@@ -293,7 +311,7 @@ const HealthMonitoringPage: React.FC = () => {
               </Link>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="ds-table-raw w-full">
                 <thead className="bg-ds-elevated">
                   <tr>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">

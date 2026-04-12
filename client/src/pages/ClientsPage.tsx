@@ -413,7 +413,7 @@ export default function ClientsPage() {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="ds-table-raw w-full">
                 <thead className="bg-ds-card">
                   <tr>
                     <Th label="Client" sortKey="companyName" />

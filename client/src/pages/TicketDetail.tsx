@@ -409,31 +409,6 @@ const TicketDetail: React.FC = () => {
   // HELPERS D'AFFICHAGE
   // ==========================================================================
 
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return "—";
-    return new Date(dateStr).toLocaleString("fr-TN", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  /**
-   * Formate le temps SLA restant en format lisible.
-   * Ex: 180 minutes → "3h 00min"
-   * Ex: -60 minutes → "Dépassé de 1h 00min"
-   */
-  const formatSlaRemaining = (minutes?: number): string => {
-    if (minutes === undefined || minutes === null) return "—";
-    const absMinutes = Math.abs(minutes);
-    const hours = Math.floor(absMinutes / 60);
-    const mins = absMinutes % 60;
-    const timeStr = `${hours}h ${mins.toString().padStart(2, "0")}min`;
-    return minutes < 0 ? `Dépassé de ${timeStr}` : timeStr;
-  };
-
   const getSlaColor = () => {
     if (!ticket) return "text-ds-muted";
     if (ticket.overdue || ticket.breachedSla) return "text-red-600 dark:text-red-400";
@@ -777,9 +752,7 @@ const TicketDetail: React.FC = () => {
               <div className="mt-2">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-ds-muted">0%</span>
-                  <span className={getSlaColor()}>
-                    {formatPercent(ticket.slaPercentage || 0)}
-                  </span>
+                  <span className={getSlaColor()}>{formatPercent(ticket.slaPercentage || 0)}</span>
                   <span className="text-ds-muted">100%</span>
                 </div>
                 <div className="w-full bg-ds-elevated rounded-full h-2.5">

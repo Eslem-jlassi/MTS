@@ -26,11 +26,11 @@ const icons: Record<ToastVariant, React.ReactNode> = {
 
 const skinClasses: Record<ToastVariant, string> = {
   success:
-    "border-success-200/90 bg-success-50/92 dark:border-success-500/20 dark:bg-success-500/10",
-  error: "border-error-200/90 bg-error-50/92 dark:border-error-500/20 dark:bg-error-500/10",
+    "border-success-200/90 bg-success-50/94 dark:border-success-500/20 dark:bg-success-500/10",
+  error: "border-error-200/90 bg-error-50/94 dark:border-error-500/20 dark:bg-error-500/10",
   warning:
-    "border-warning-200/90 bg-warning-50/92 dark:border-warning-500/20 dark:bg-warning-500/10",
-  info: "border-info-200/90 bg-info-50/92 dark:border-info-500/20 dark:bg-info-500/10",
+    "border-warning-200/90 bg-warning-50/94 dark:border-warning-500/20 dark:bg-warning-500/10",
+  info: "border-primary-200/90 bg-primary-50/94 dark:border-primary-500/20 dark:bg-primary-500/10",
 };
 
 const progressClasses: Record<ToastVariant, string> = {
@@ -61,7 +61,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
       role="alert"
     >
       <div className={`absolute inset-x-0 top-0 h-1 ${progressClasses[toast.variant]}`} />
-      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-white/30 bg-white/50 text-current dark:border-white/10 dark:bg-white/5">
+      <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-white/55 text-current shadow-[inset_0_1px_0_rgb(255_255_255_/_0.28)] dark:border-white/10 dark:bg-white/5">
         {icons[toast.variant]}
       </span>
       <div className="min-w-0 flex-1">

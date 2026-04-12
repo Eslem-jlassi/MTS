@@ -42,6 +42,7 @@ import CommandPalette from "../command/CommandPalette";
 import OnboardingModal from "../auth/OnboardingModal";
 import NotificationCenter from "../notifications/NotificationCenter";
 import { ChatbotWidget } from "../chatbot";
+import { ManagerCopilotWidget } from "../manager-copilot";
 
 interface NavItem {
   name: string;
@@ -153,6 +154,9 @@ const MainLayout: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const shouldRenderChatbot = user?.role === UserRole.CLIENT;
+  const shouldRenderManagerCopilot =
+    user?.role === UserRole.MANAGER || user?.role === UserRole.ADMIN;
+  const isDashboardRoute = location.pathname.startsWith("/dashboard");
   const roleLabel = user?.role ? RoleLabels[user.role] : "";
 
   useWebSocketNotifications(dispatch, Boolean(user));
@@ -463,6 +467,9 @@ const MainLayout: React.FC = () => {
 
       {user && <OnboardingModal userRole={user.role} userId={user.id} />}
 
+      {shouldRenderManagerCopilot && !isDashboardRoute && (
+        <ManagerCopilotWidget role={user?.role} />
+      )}
       {shouldRenderChatbot && <ChatbotWidget />}
     </div>
   );
