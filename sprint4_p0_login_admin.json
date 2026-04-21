@@ -1,1 +1,0 @@
-{"title":"Bad Request","status":400,"detail":"Malformed request body. Please verify JSON syntax.","instance":"/api/auth/login","timestamp":"2026-04-04T22:17:42.025471803Z","properties":{"traceId":"db91bc77"}}

@@ -43,6 +43,7 @@ import OnboardingModal from "../auth/OnboardingModal";
 import NotificationCenter from "../notifications/NotificationCenter";
 import { ChatbotWidget } from "../chatbot";
 import { ManagerCopilotWidget } from "../manager-copilot";
+import { isManagerCopilotAllowedRole } from "../manager-copilot/managerCopilotUi";
 
 interface NavItem {
   name: string;
@@ -154,8 +155,7 @@ const MainLayout: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.auth);
   const shouldRenderChatbot = user?.role === UserRole.CLIENT;
-  const shouldRenderManagerCopilot =
-    user?.role === UserRole.MANAGER || user?.role === UserRole.ADMIN;
+  const shouldRenderManagerCopilot = isManagerCopilotAllowedRole(user?.role);
   const isDashboardRoute = location.pathname.startsWith("/dashboard");
   const roleLabel = user?.role ? RoleLabels[user.role] : "";
 

@@ -1,4 +1,0 @@
-total 1316
-drwxr-xr-x    2 root     root          4096 Apr  4 02:19 .
-drwxr-xr-x    1 root     root          4096 Apr  4 19:00 ..
--rw-r--r--    1 root     root       1332239 Apr  4 19:00 mts-telecom.log

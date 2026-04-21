@@ -4,6 +4,7 @@ import com.billcom.mts.dto.incident.*;
 import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.*;
 import com.billcom.mts.enums.*;
+import com.billcom.mts.exception.BadRequestException;
 import com.billcom.mts.exception.ForbiddenException;
 import com.billcom.mts.exception.ResourceNotFoundException;
 import com.billcom.mts.repository.*;
@@ -11,6 +12,7 @@ import com.billcom.mts.service.IncidentService;
 import com.billcom.mts.service.SensitiveActionVerificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -44,23 +46,23 @@ public class IncidentServiceImpl implements IncidentService {
         ensureStaff(currentUser);
 
         TelecomService service = telecomServiceRepository.findById(request.getServiceId())
-            .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
 
         // Generate incident number
         String incidentNumber = generateIncidentNumber();
 
         Incident incident = Incident.builder()
-            .incidentNumber(incidentNumber)
-            .title(request.getTitle())
-            .description(request.getDescription())
-            .severity(request.getSeverity())
-            .impact(request.getImpact() != null ? request.getImpact() : IncidentImpact.LOCALIZED)
-            .status(request.getStatus() != null ? request.getStatus() : IncidentStatus.OPEN)
-            .service(service)
-            .startedAt(request.getStartedAt())
-            .resolvedAt(request.getResolvedAt())
-            .cause(request.getCause())
-            .build();
+                .incidentNumber(incidentNumber)
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .severity(request.getSeverity())
+                .impact(request.getImpact() != null ? request.getImpact() : IncidentImpact.LOCALIZED)
+                .status(request.getStatus() != null ? request.getStatus() : IncidentStatus.OPEN)
+                .service(service)
+                .startedAt(request.getStartedAt())
+                .resolvedAt(request.getResolvedAt())
+                .cause(request.getCause())
+                .build();
 
         // Legacy single ticket
         if (request.getTicketId() != null) {
@@ -70,7 +72,7 @@ public class IncidentServiceImpl implements IncidentService {
         // Commander
         if (request.getCommanderId() != null) {
             User commander = userRepository.findById(request.getCommanderId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getCommanderId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getCommanderId()));
             incident.setCommander(commander);
         }
 
@@ -100,7 +102,7 @@ public class IncidentServiceImpl implements IncidentService {
 
         // Timeline: creation event
         addTimelineEntry(incident, IncidentTimelineEventType.STATUS_CHANGE,
-            "Incident créé", null, IncidentStatus.OPEN.name(), currentUser);
+                "Incident créé", null, IncidentStatus.OPEN.name(), currentUser);
 
         log.info("Incident {} created by {}", incidentNumber, currentUser.getEmail());
         return toResponse(incident);
@@ -111,16 +113,19 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse update(Long id, IncidentRequest request, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         // Track status change
         IncidentStatus oldStatus = incident.getStatus();
 
         incident.setTitle(request.getTitle());
-        if (request.getDescription() != null) incident.setDescription(request.getDescription());
+        if (request.getDescription() != null)
+            incident.setDescription(request.getDescription());
         incident.setSeverity(request.getSeverity());
-        if (request.getImpact() != null) incident.setImpact(request.getImpact());
-        if (request.getStatus() != null) incident.setStatus(request.getStatus());
+        if (request.getImpact() != null)
+            incident.setImpact(request.getImpact());
+        if (request.getStatus() != null)
+            incident.setStatus(request.getStatus());
         incident.setStartedAt(request.getStartedAt());
         incident.setResolvedAt(request.getResolvedAt());
         incident.setCause(request.getCause());
@@ -128,7 +133,7 @@ public class IncidentServiceImpl implements IncidentService {
         // Service principal
         if (request.getServiceId() != null && !request.getServiceId().equals(incident.getService().getId())) {
             TelecomService service = telecomServiceRepository.findById(request.getServiceId())
-                .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Service", "id", request.getServiceId()));
             incident.setService(service);
         }
 
@@ -140,7 +145,7 @@ public class IncidentServiceImpl implements IncidentService {
         // Commander
         if (request.getCommanderId() != null) {
             User commander = userRepository.findById(request.getCommanderId())
-                .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getCommanderId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getCommanderId()));
             incident.setCommander(commander);
         }
 
@@ -149,7 +154,7 @@ public class IncidentServiceImpl implements IncidentService {
         // Timeline: status change
         if (request.getStatus() != null && oldStatus != request.getStatus()) {
             addTimelineEntry(incident, IncidentTimelineEventType.STATUS_CHANGE,
-                "Statut modifié", oldStatus.name(), request.getStatus().name(), currentUser);
+                    "Statut modifié", oldStatus.name(), request.getStatus().name(), currentUser);
         }
 
         return toResponse(incident);
@@ -159,7 +164,7 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse getById(Long id, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
         return toResponse(incident);
     }
 
@@ -170,35 +175,48 @@ public class IncidentServiceImpl implements IncidentService {
             User currentUser,
             String ipAddress,
             AdminHardDeleteRequest request) {
-        log.info("Tentative de SUPPRESSION DEFINITIVE de l'incident ID: {} par admin: {} depuis IP: {}", 
-                 id, currentUser.getEmail(), ipAddress);
+        log.info("Tentative de SUPPRESSION DEFINITIVE de l'incident ID: {} par admin: {} depuis IP: {}",
+                id, currentUser.getEmail(), ipAddress);
 
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         sensitiveActionVerificationService.verifyHardDeleteAuthorization(
                 currentUser,
-                id,
+                incident.getIncidentNumber(),
                 request,
-                "suppression definitive de l'incident " + incident.getIncidentNumber()
-        );
+                "suppression definitive de l'incident " + incident.getIncidentNumber());
 
         String incidentNumber = incident.getIncidentNumber();
         String deletionSnapshot = buildHardDeleteSnapshot(incident, currentUser);
 
         try {
             auditService.log("Incident", id.toString(), "DELETE", currentUser,
-                "Suppression definitive " + incidentNumber + " | " + deletionSnapshot, ipAddress);
+                    "Suppression definitive " + incidentNumber + " | " + deletionSnapshot, ipAddress);
         } catch (Exception e) {
             log.warn("Audit log failed: {}", e.getMessage());
         }
 
-        // Casser les relations ManyToMany proprement pour eviter les problemes de contraintes
+        // Casser les relations ManyToMany proprement pour eviter les problemes de
+        // contraintes
+        incident.setTicket(null);
         incident.getTickets().clear();
         incident.getAffectedServices().clear();
         incidentRepository.saveAndFlush(incident);
 
-        incidentRepository.delete(incident);
+        try {
+            incidentRepository.delete(incident);
+            incidentRepository.flush();
+        } catch (DataIntegrityViolationException exception) {
+            log.warn(
+                    "Hard delete blocked by data integrity for incident {}: {}",
+                    incidentNumber,
+                    exception.getMostSpecificCause() != null
+                            ? exception.getMostSpecificCause().getMessage()
+                            : exception.getMessage());
+            throw new BadRequestException(
+                    "Suppression definitive impossible: des references techniques residuelles existent encore pour cet incident.");
+        }
     }
 
     @Override
@@ -209,8 +227,7 @@ public class IncidentServiceImpl implements IncidentService {
 
         sensitiveActionVerificationService.issueHardDeleteVerificationCode(
                 currentUser,
-                "la suppression definitive de l'incident " + incident.getIncidentNumber()
-        );
+                "la suppression definitive de l'incident " + incident.getIncidentNumber());
 
         try {
             auditService.log(
@@ -220,8 +237,7 @@ public class IncidentServiceImpl implements IncidentService {
                     currentUser,
                     "Challenge de verification emis avant suppression definitive de l'incident "
                             + incident.getIncidentNumber(),
-                    ipAddress
-            );
+                    ipAddress);
         } catch (Exception e) {
             log.warn("Audit log failed: {}", e.getMessage());
         }
@@ -243,22 +259,22 @@ public class IncidentServiceImpl implements IncidentService {
     public List<IncidentResponse> findActive(User currentUser) {
         ensureStaff(currentUser);
         return incidentRepository.findActive().stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     public long countActive() {
         return incidentRepository.countByStatus(IncidentStatus.OPEN)
-            + incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS);
+                + incidentRepository.countByStatus(IncidentStatus.IN_PROGRESS);
     }
 
     @Override
     public Page<IncidentResponse> findFiltered(IncidentStatus status, Severity severity, Long serviceId,
-                                                Pageable pageable, User currentUser) {
+            Pageable pageable, User currentUser) {
         ensureStaff(currentUser);
         return incidentRepository.findFiltered(status, severity, serviceId, pageable)
-            .map(this::toResponse);
+                .map(this::toResponse);
     }
 
     // =========================================================================
@@ -270,27 +286,28 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse changeStatus(Long id, IncidentStatus newStatus, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         IncidentStatus oldStatus = incident.getStatus();
-        if (oldStatus == newStatus) return toResponse(incident);
+        if (oldStatus == newStatus)
+            return toResponse(incident);
 
         incident.setStatus(newStatus);
 
         // Auto-set resolvedAt
-        if ((newStatus == IncidentStatus.RESOLVED || newStatus == IncidentStatus.CLOSED) 
-            && incident.getResolvedAt() == null) {
+        if ((newStatus == IncidentStatus.RESOLVED || newStatus == IncidentStatus.CLOSED)
+                && incident.getResolvedAt() == null) {
             incident.setResolvedAt(LocalDateTime.now());
         }
 
         incident = incidentRepository.save(incident);
 
         addTimelineEntry(incident, IncidentTimelineEventType.STATUS_CHANGE,
-            "Statut modifié de " + oldStatus.getLabel() + " vers " + newStatus.getLabel(),
-            oldStatus.name(), newStatus.name(), currentUser);
+                "Statut modifié de " + oldStatus.getLabel() + " vers " + newStatus.getLabel(),
+                oldStatus.name(), newStatus.name(), currentUser);
 
-        log.info("Incident {} status: {} -> {} by {}", 
-            incident.getIncidentNumber(), oldStatus, newStatus, currentUser.getEmail());
+        log.info("Incident {} status: {} -> {} by {}",
+                incident.getIncidentNumber(), oldStatus, newStatus, currentUser.getEmail());
         return toResponse(incident);
     }
 
@@ -309,10 +326,10 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentTimelineResponse addNote(Long id, IncidentNoteRequest request, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         IncidentTimeline entry = addTimelineEntry(incident, IncidentTimelineEventType.NOTE,
-            request.getContent(), null, null, currentUser);
+                request.getContent(), null, null, currentUser);
 
         log.info("Note added to incident {} by {}", incident.getIncidentNumber(), currentUser.getEmail());
         return mapTimelineToResponse(entry);
@@ -325,8 +342,8 @@ public class IncidentServiceImpl implements IncidentService {
             throw new ResourceNotFoundException("Incident", "id", id);
         }
         return timelineRepository.findByIncidentIdOrderByCreatedAtDesc(id).stream()
-            .map(this::mapTimelineToResponse)
-            .collect(Collectors.toList());
+                .map(this::mapTimelineToResponse)
+                .collect(Collectors.toList());
     }
 
     // =========================================================================
@@ -338,17 +355,17 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse savePostMortem(Long id, PostMortemRequest request, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         incident.setPostMortem(request.getContent());
         incident.setPostMortemAt(LocalDateTime.now());
         incident = incidentRepository.save(incident);
 
         addTimelineEntry(incident, IncidentTimelineEventType.POST_MORTEM,
-            "Post-mortem enregistré", null, null, currentUser);
+                "Post-mortem enregistré", null, null, currentUser);
 
-        log.info("Post-mortem saved for incident {} by {}", 
-            incident.getIncidentNumber(), currentUser.getEmail());
+        log.info("Post-mortem saved for incident {} by {}",
+                incident.getIncidentNumber(), currentUser.getEmail());
         return toResponse(incident);
     }
 
@@ -361,14 +378,14 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse linkTickets(Long id, List<Long> ticketIds, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         for (Long ticketId : ticketIds) {
             Ticket ticket = ticketRepository.findById(ticketId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
             if (incident.getTickets().add(ticket)) {
                 addTimelineEntry(incident, IncidentTimelineEventType.TICKET_LINKED,
-                    "Ticket " + ticket.getTicketNumber() + " lié", null, String.valueOf(ticketId), currentUser);
+                        "Ticket " + ticket.getTicketNumber() + " lié", null, String.valueOf(ticketId), currentUser);
             }
         }
 
@@ -381,14 +398,14 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse unlinkTicket(Long id, Long ticketId, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         Ticket ticket = ticketRepository.findById(ticketId)
-            .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
 
         if (incident.getTickets().remove(ticket)) {
             addTimelineEntry(incident, IncidentTimelineEventType.TICKET_UNLINKED,
-                "Ticket " + ticket.getTicketNumber() + " délié", String.valueOf(ticketId), null, currentUser);
+                    "Ticket " + ticket.getTicketNumber() + " délié", String.valueOf(ticketId), null, currentUser);
         }
 
         incident = incidentRepository.save(incident);
@@ -404,14 +421,14 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse linkServices(Long id, List<Long> serviceIds, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         for (Long serviceId : serviceIds) {
             TelecomService svc = telecomServiceRepository.findById(serviceId)
-                .orElseThrow(() -> new ResourceNotFoundException("Service", "id", serviceId));
+                    .orElseThrow(() -> new ResourceNotFoundException("Service", "id", serviceId));
             if (incident.getAffectedServices().add(svc)) {
                 addTimelineEntry(incident, IncidentTimelineEventType.SERVICE_ADDED,
-                    "Service " + svc.getName() + " ajouté", null, String.valueOf(serviceId), currentUser);
+                        "Service " + svc.getName() + " ajouté", null, String.valueOf(serviceId), currentUser);
             }
         }
 
@@ -424,14 +441,14 @@ public class IncidentServiceImpl implements IncidentService {
     public IncidentResponse unlinkService(Long id, Long serviceId, User currentUser) {
         ensureStaff(currentUser);
         Incident incident = incidentRepository.findById(id)
-            .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
+                .orElseThrow(() -> new ResourceNotFoundException("Incident", "id", id));
 
         TelecomService svc = telecomServiceRepository.findById(serviceId)
-            .orElseThrow(() -> new ResourceNotFoundException("Service", "id", serviceId));
+                .orElseThrow(() -> new ResourceNotFoundException("Service", "id", serviceId));
 
         if (incident.getAffectedServices().remove(svc)) {
             addTimelineEntry(incident, IncidentTimelineEventType.SERVICE_REMOVED,
-                "Service " + svc.getName() + " retiré", String.valueOf(serviceId), null, currentUser);
+                    "Service " + svc.getName() + " retiré", String.valueOf(serviceId), null, currentUser);
         }
 
         incident = incidentRepository.save(incident);
@@ -446,8 +463,8 @@ public class IncidentServiceImpl implements IncidentService {
     public List<IncidentResponse> findByAffectedService(Long serviceId, User currentUser) {
         ensureStaff(currentUser);
         return incidentRepository.findByAffectedServiceId(serviceId).stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
+                .map(this::toResponse)
+                .collect(Collectors.toList());
     }
 
     // =========================================================================
@@ -461,20 +478,21 @@ public class IncidentServiceImpl implements IncidentService {
     }
 
     private IncidentTimeline addTimelineEntry(Incident incident, IncidentTimelineEventType eventType,
-                                                String content, String oldValue, String newValue, User author) {
+            String content, String oldValue, String newValue, User author) {
         IncidentTimeline entry = IncidentTimeline.builder()
-            .incident(incident)
-            .eventType(eventType)
-            .content(content)
-            .oldValue(oldValue)
-            .newValue(newValue)
-            .author(author)
-            .build();
+                .incident(incident)
+                .eventType(eventType)
+                .content(content)
+                .oldValue(oldValue)
+                .newValue(newValue)
+                .author(author)
+                .build();
         return timelineRepository.save(entry);
     }
 
     private void ensureStaff(User user) {
-        if (user.getRole() == UserRole.CLIENT) throw new ForbiddenException("Réservé au staff");
+        if (user.getRole() == UserRole.CLIENT)
+            throw new ForbiddenException("Réservé au staff");
     }
 
     private String buildHardDeleteSnapshot(Incident incident, User currentUser) {
@@ -494,8 +512,7 @@ public class IncidentServiceImpl implements IncidentService {
                 linkedServicesCount,
                 timelineCount,
                 incident.hasPostMortem(),
-                sensitiveActionVerificationService.resolveReauthMode(currentUser)
-        );
+                sensitiveActionVerificationService.resolveReauthMode(currentUser));
     }
 
     // =========================================================================
@@ -531,49 +548,49 @@ public class IncidentServiceImpl implements IncidentService {
         }
 
         return IncidentResponse.builder()
-            .id(i.getId())
-            .incidentNumber(i.getIncidentNumber())
-            .title(i.getTitle())
-            .description(i.getDescription())
-            .severity(i.getSeverity())
-            .severityLabel(i.getSeverity() != null ? i.getSeverity().getLabel() : null)
-            .impact(i.getImpact())
-            .impactLabel(i.getImpact() != null ? i.getImpact().getLabel() : null)
-            .status(i.getStatus())
-            .statusLabel(i.getStatus() != null ? i.getStatus().getLabel() : null)
-            .serviceId(i.getService().getId())
-            .serviceName(i.getService().getName())
-            .ticketId(i.getTicket() != null ? i.getTicket().getId() : null)
-            .ticketNumber(i.getTicket() != null ? i.getTicket().getTicketNumber() : null)
-            .ticketIds(ticketIds)
-            .ticketNumbers(ticketNumbers)
-            .affectedServiceIds(serviceIds)
-            .affectedServiceNames(serviceNames)
-            .commanderId(i.getCommander() != null ? i.getCommander().getId() : null)
-            .commanderName(i.getCommander() != null ? i.getCommander().getFullName() : null)
-            .postMortem(i.getPostMortem())
-            .postMortemAt(i.getPostMortemAt())
-            .hasPostMortem(i.hasPostMortem())
-            .timelineCount(tlCount)
-            .startedAt(i.getStartedAt())
-            .resolvedAt(i.getResolvedAt())
-            .cause(i.getCause())
-            .createdAt(i.getCreatedAt())
-            .updatedAt(i.getUpdatedAt())
-            .build();
+                .id(i.getId())
+                .incidentNumber(i.getIncidentNumber())
+                .title(i.getTitle())
+                .description(i.getDescription())
+                .severity(i.getSeverity())
+                .severityLabel(i.getSeverity() != null ? i.getSeverity().getLabel() : null)
+                .impact(i.getImpact())
+                .impactLabel(i.getImpact() != null ? i.getImpact().getLabel() : null)
+                .status(i.getStatus())
+                .statusLabel(i.getStatus() != null ? i.getStatus().getLabel() : null)
+                .serviceId(i.getService().getId())
+                .serviceName(i.getService().getName())
+                .ticketId(i.getTicket() != null ? i.getTicket().getId() : null)
+                .ticketNumber(i.getTicket() != null ? i.getTicket().getTicketNumber() : null)
+                .ticketIds(ticketIds)
+                .ticketNumbers(ticketNumbers)
+                .affectedServiceIds(serviceIds)
+                .affectedServiceNames(serviceNames)
+                .commanderId(i.getCommander() != null ? i.getCommander().getId() : null)
+                .commanderName(i.getCommander() != null ? i.getCommander().getFullName() : null)
+                .postMortem(i.getPostMortem())
+                .postMortemAt(i.getPostMortemAt())
+                .hasPostMortem(i.hasPostMortem())
+                .timelineCount(tlCount)
+                .startedAt(i.getStartedAt())
+                .resolvedAt(i.getResolvedAt())
+                .cause(i.getCause())
+                .createdAt(i.getCreatedAt())
+                .updatedAt(i.getUpdatedAt())
+                .build();
     }
 
     private IncidentTimelineResponse mapTimelineToResponse(IncidentTimeline tl) {
         return IncidentTimelineResponse.builder()
-            .id(tl.getId())
-            .eventType(tl.getEventType())
-            .eventTypeLabel(tl.getEventType() != null ? tl.getEventType().getLabel() : null)
-            .content(tl.getContent())
-            .oldValue(tl.getOldValue())
-            .newValue(tl.getNewValue())
-            .authorId(tl.getAuthor() != null ? tl.getAuthor().getId() : null)
-            .authorName(tl.getAuthor() != null ? tl.getAuthor().getFullName() : null)
-            .createdAt(tl.getCreatedAt())
-            .build();
+                .id(tl.getId())
+                .eventType(tl.getEventType())
+                .eventTypeLabel(tl.getEventType() != null ? tl.getEventType().getLabel() : null)
+                .content(tl.getContent())
+                .oldValue(tl.getOldValue())
+                .newValue(tl.getNewValue())
+                .authorId(tl.getAuthor() != null ? tl.getAuthor().getId() : null)
+                .authorName(tl.getAuthor() != null ? tl.getAuthor().getFullName() : null)
+                .createdAt(tl.getCreatedAt())
+                .build();
     }
 }

@@ -11,6 +11,7 @@ import com.billcom.mts.enums.AuditAction;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -62,6 +63,10 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     );
 
     long countByUserId(Long userId);
+
+    @Modifying
+    @Query("UPDATE AuditLog a SET a.user = NULL WHERE a.user.id = :userId")
+    int clearUserReference(@Param("userId") Long userId);
 
     /**
      * Get all actions of a specific type (e.g., all TICKET_CREATED)

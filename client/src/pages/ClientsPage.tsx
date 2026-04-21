@@ -3,6 +3,7 @@
 // =============================================================================
 
 import React, { useCallback, useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import {
   Search,
   Plus,
@@ -12,7 +13,6 @@ import {
   Mail,
   Phone,
   RefreshCw,
-  X,
   Check,
   Ticket,
   User as UserIcon,
@@ -26,15 +26,17 @@ import {
   Trash2,
 } from "lucide-react";
 import { clientService, ClientsQueryParams } from "../api/clientService";
-import { Client, CreateClientFormData } from "../types";
+import { Client, CreateClientFormData, UserRole } from "../types";
 import Toast, { ToastMessage } from "../components/tickets/Toast";
-import { Card, Button, EmptyState, SkeletonTable, ConfirmModal } from "../components/ui";
+import { Card, Button, EmptyState, SkeletonTable, ConfirmModal, Modal } from "../components/ui";
 import { getErrorMessage } from "../api/client";
 import { usePermissions } from "../hooks/usePermissions";
+import { RootState } from "../redux/store";
 import {
   getPasswordConfirmationError,
   getPasswordValidationError,
 } from "../utils/passwordValidation";
+import { getAdminHardDeleteErrorMessage } from "../utils/hardDeleteFeedback";
 
 const PAGE_SIZES = [10, 25, 50];
 const DEFAULT_SORT = "companyName";
@@ -79,9 +81,21 @@ export default function ClientsPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [archiveSubmitting, setArchiveSubmitting] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteVerificationCode, setDeleteVerificationCode] = useState("");
+  const [isSendingDeleteCode, setIsSendingDeleteCode] = useState(false);
 
   const [createForm, setCreateForm] = useState<CreateClientFormData>(emptyCreateForm);
   const [editForm, setEditForm] = useState({ companyName: "", address: "" });
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+  const isAdmin = currentUser?.role === ("ADMIN" as UserRole);
+  const isOauthAdmin = Boolean(isAdmin && currentUser?.oauthProvider);
+  const getClientHardDeleteIdentifier = (client: Client) => client.clientCode?.trim() || "";
+  const isClientHardDeleteReauthValid = isOauthAdmin
+    ? deleteVerificationCode.trim().length > 0
+    : deletePassword.trim().length > 0;
+  const isClientHardDeleteFormInvalid =
+    !clientToHardDelete || !isClientHardDeleteReauthValid;
 
   const fetchClients = useCallback(
     async (overrides?: Partial<ClientsQueryParams>) => {
@@ -225,18 +239,79 @@ export default function ClientsPage() {
   const handleHardDeleteClient = async () => {
     if (!clientToHardDelete) return;
 
+    const providedClientIdentifier =
+      getClientHardDeleteIdentifier(clientToHardDelete) || String(clientToHardDelete.id);
+
+    if (!isOauthAdmin && !deletePassword.trim()) {
+      setToast({
+        message:
+          "Saisissez votre mot de passe administrateur pour confirmer cette suppression definitive.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (isOauthAdmin && !deleteVerificationCode.trim()) {
+      setToast({
+        message:
+          "Saisissez le code de verification recu par email pour confirmer cette suppression definitive.",
+        type: "error",
+      });
+      return;
+    }
+
     setDeleteSubmitting(true);
     try {
-      await clientService.hardDeleteClient(clientToHardDelete.id);
+      await clientService.hardDeleteClient(clientToHardDelete.id, {
+        confirmationKeyword: "SUPPRIMER",
+        confirmationTargetId: providedClientIdentifier,
+        currentPassword: isOauthAdmin ? undefined : deletePassword,
+        verificationCode: isOauthAdmin ? deleteVerificationCode : undefined,
+      });
       setToast({ message: "Client supprime definitivement.", type: "success" });
       setClientToHardDelete(null);
       await fetchClients();
     } catch (error: unknown) {
-      setToast({ message: getErrorMessage(error), type: "error" });
+      setToast({
+        message: getAdminHardDeleteErrorMessage(
+          "client",
+          error,
+          "Suppression definitive impossible pour ce client.",
+        ),
+        type: "error",
+      });
     } finally {
       setDeleteSubmitting(false);
     }
   };
+
+  const handleRequestDeleteChallenge = async () => {
+    if (!clientToHardDelete) return;
+
+    setIsSendingDeleteCode(true);
+    try {
+      await clientService.requestHardDeleteChallenge(clientToHardDelete.id);
+      setToast({
+        message: "Un code de verification a ete envoye sur votre email administrateur.",
+        type: "success",
+      });
+    } catch (error: unknown) {
+      setToast({ message: getErrorMessage(error), type: "error" });
+    } finally {
+      setIsSendingDeleteCode(false);
+    }
+  };
+
+  useEffect(() => {
+    if (clientToHardDelete) {
+      setDeletePassword("");
+      setDeleteVerificationCode("");
+      return;
+    }
+
+    setDeletePassword("");
+    setDeleteVerificationCode("");
+  }, [clientToHardDelete]);
 
   const clients = pageResponse.content;
   const totalElements = pageResponse.totalElements;
@@ -629,11 +704,64 @@ export default function ClientsPage() {
             <>
               <p>
                 Le client {clientToHardDelete.clientCode} et son compte associe seront supprimes
-                definitivement si aucune dependance critique n'existe.
+                definitivement.
               </p>
               <p className="mt-2">
-                Si des tickets, historiques ou autres references metier existent, la suppression
-                sera refusee et l'archivage restera l'option professionnelle.
+                Les tickets du client, son compte d'acces et les relations associees seront
+                nettoyes cote backend pour aboutir a une suppression reelle et coherente.
+              </p>
+              <div className="mt-3 space-y-3 rounded-xl border border-ds-border bg-ds-surface/70 p-3 text-left">
+                <p className="rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-xs text-ds-secondary">
+                  Reference affichee pour controle :{" "}
+                  <span className="font-semibold text-ds-primary">
+                    {getClientHardDeleteIdentifier(clientToHardDelete) ||
+                      `ID ${clientToHardDelete.id}`}
+                  </span>
+                </p>
+
+                {isOauthAdmin ? (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Code de verification email
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={deleteVerificationCode}
+                        onChange={(event) => setDeleteVerificationCode(event.target.value)}
+                        className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                        placeholder="Code a 6 chiffres"
+                        autoComplete="one-time-code"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRequestDeleteChallenge}
+                        disabled={isSendingDeleteCode || deleteSubmitting}
+                      >
+                        {isSendingDeleteCode ? "Envoi..." : "Envoyer un code"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Mot de passe administrateur
+                    </label>
+                    <input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(event) => setDeletePassword(event.target.value)}
+                      className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
+                      placeholder="Confirmez avec votre mot de passe"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                )}
+              </div>
+              <p className="mt-2">
+                Cette suppression est irreversible et doit rester exceptionnelle.
               </p>
             </>
           ) : (
@@ -644,211 +772,191 @@ export default function ClientsPage() {
         cancelLabel="Conserver"
         variant="danger"
         loading={deleteSubmitting}
+        confirmDisabled={isClientHardDeleteFormInvalid}
         confirmationKeyword="SUPPRIMER"
-        confirmationHint="Tapez SUPPRIMER pour confirmer la suppression definitive de ce client."
+        confirmationHint="Tapez SUPPRIMER, puis confirmez votre re-authentification administrateur."
       />
 
-      {canCreateClient && showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-ds-card rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6 border-b border-ds-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-ds-primary">Nouveau client</h3>
-              <button
-                type="button"
-                onClick={closeCreateModal}
-                className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      <Modal
+        isOpen={canCreateClient && showCreateModal}
+        onClose={closeCreateModal}
+        title="Nouveau client"
+        size="lg"
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <p className="text-sm text-ds-secondary">
+            Ce flux cree le compte d'acces client et son profil back-office en une seule operation.
+          </p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ds-primary">Prenom *</label>
+              <input
+                type="text"
+                required
+                value={createForm.firstName}
+                onChange={(e) => setCreateForm({ ...createForm, firstName: e.target.value })}
+                className={inputClass}
+              />
             </div>
-            <form onSubmit={handleCreate} className="p-4 sm:p-6 space-y-4">
-              <p className="text-sm text-ds-secondary">
-                Ce flux cree le compte d'acces client et son profil back-office en une seule
-                operation.
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-ds-primary mb-1">Prenom *</label>
-                  <input
-                    type="text"
-                    required
-                    value={createForm.firstName}
-                    onChange={(e) => setCreateForm({ ...createForm, firstName: e.target.value })}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-ds-primary mb-1">Nom *</label>
-                  <input
-                    type="text"
-                    required
-                    value={createForm.lastName}
-                    onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })}
-                    className={inputClass}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={createForm.email}
-                  onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Mot de passe initial *
-                </label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={createForm.password}
-                  onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
-                  className={inputClass}
-                />
-                <p className="mt-1 text-xs text-ds-muted">
-                  Minimum 8 caracteres, avec une majuscule, une minuscule et un chiffre.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Confirmation du mot de passe *
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={createForm.confirmPassword ?? ""}
-                  onChange={(e) =>
-                    setCreateForm({ ...createForm, confirmPassword: e.target.value })
-                  }
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Telephone</label>
-                <input
-                  type="tel"
-                  value={createForm.phone}
-                  onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Nom de l'entreprise *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={createForm.companyName}
-                  onChange={(e) => setCreateForm({ ...createForm, companyName: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Adresse</label>
-                <textarea
-                  rows={2}
-                  value={createForm.address}
-                  onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="secondary" type="button" onClick={closeCreateModal}>
-                  Annuler
-                </Button>
-                <Button
-                  variant="primary"
-                  type="submit"
-                  icon={<Check className="w-4 h-4" />}
-                  loading={createSubmitting}
-                >
-                  Creer
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {canUpdateClient && showEditModal && selectedClient && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-ds-card rounded-xl shadow-xl max-w-lg w-full">
-            <div className="p-4 sm:p-6 border-b border-ds-border flex items-center justify-between">
-              <h3 className="text-lg font-bold text-ds-primary">Modifier le client</h3>
-              <button
-                type="button"
-                onClick={closeEditModal}
-                className="p-2 hover:bg-ds-elevated rounded-lg text-ds-secondary"
-              >
-                <X className="w-5 h-5" />
-              </button>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-ds-primary">Nom *</label>
+              <input
+                type="text"
+                required
+                value={createForm.lastName}
+                onChange={(e) => setCreateForm({ ...createForm, lastName: e.target.value })}
+                className={inputClass}
+              />
             </div>
-            <form onSubmit={handleEdit} className="p-4 sm:p-6 space-y-4">
-              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary-100 dark:bg-primary-900/40 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-ds-primary">{selectedClient.userFullName}</p>
-                    <p className="text-sm text-ds-muted">{selectedClient.clientCode}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
-                  Nom de l'entreprise
-                </label>
-                <input
-                  type="text"
-                  value={editForm.companyName}
-                  onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Adresse</label>
-                <textarea
-                  rows={3}
-                  value={editForm.address}
-                  onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button variant="secondary" type="button" onClick={closeEditModal}>
-                  Annuler
-                </Button>
-                <Button
-                  variant="primary"
-                  type="submit"
-                  icon={<Check className="w-4 h-4" />}
-                  loading={editSubmitting}
-                >
-                  Enregistrer
-                </Button>
-              </div>
-            </form>
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">Email *</label>
+            <input
+              type="email"
+              required
+              value={createForm.email}
+              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">
+              Mot de passe initial *
+            </label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={createForm.password}
+              onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-ds-muted">
+              Minimum 8 caracteres, avec une majuscule, une minuscule et un chiffre.
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">
+              Confirmation du mot de passe *
+            </label>
+            <input
+              type="password"
+              required
+              value={createForm.confirmPassword ?? ""}
+              onChange={(e) => setCreateForm({ ...createForm, confirmPassword: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">Telephone</label>
+            <input
+              type="tel"
+              value={createForm.phone}
+              onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">
+              Nom de l'entreprise *
+            </label>
+            <input
+              type="text"
+              required
+              value={createForm.companyName}
+              onChange={(e) => setCreateForm({ ...createForm, companyName: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">Adresse</label>
+            <textarea
+              rows={2}
+              value={createForm.address}
+              onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" type="button" onClick={closeCreateModal}>
+              Annuler
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              icon={<Check className="w-4 h-4" />}
+              loading={createSubmitting}
+            >
+              Creer
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        isOpen={canUpdateClient && showEditModal && selectedClient != null}
+        onClose={closeEditModal}
+        title="Modifier le client"
+        size="lg"
+      >
+        <form onSubmit={handleEdit} className="space-y-4">
+          <div className="rounded-lg bg-slate-50 p-4 dark:bg-slate-700/50">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/40">
+                <Building2 className="h-5 w-5 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div>
+                <p className="font-medium text-ds-primary">{selectedClient?.userFullName}</p>
+                <p className="text-sm text-ds-muted">{selectedClient?.clientCode}</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">
+              Nom de l'entreprise
+            </label>
+            <input
+              type="text"
+              value={editForm.companyName}
+              onChange={(e) => setEditForm({ ...editForm, companyName: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-ds-primary">Adresse</label>
+            <textarea
+              rows={3}
+              value={editForm.address}
+              onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" type="button" onClick={closeEditModal}>
+              Annuler
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              icon={<Check className="w-4 h-4" />}
+              loading={editSubmitting}
+            >
+              Enregistrer
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

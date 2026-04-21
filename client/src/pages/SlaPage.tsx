@@ -42,6 +42,7 @@ import type {
 import { Card, Button, Badge, Tabs, Modal, Input, Select } from "../components/ui";
 import type { Tab } from "../components/ui";
 import { useToast } from "../context/ToastContext";
+import { formatDateDayMonth, formatHours, formatPercent } from "../utils/formatters";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ function KpiCards({
           </div>
           <div>
             <p className="text-xs text-ds-secondary uppercase tracking-wider">Respect SLA</p>
-            <p className="text-2xl font-bold text-ds-primary">{complianceRate}%</p>
+            <p className="text-2xl font-bold text-ds-primary">{formatPercent(complianceRate)}</p>
           </div>
         </div>
       </Card>
@@ -195,14 +196,11 @@ function SlaTrendCard({ trend7 }: { trend7: DashboardStats["trendLast7Days"] }) 
                   key={day.date ?? i}
                   className={`flex flex-col items-center justify-center w-20 h-20 rounded-xl ${COMPLIANCE_COLOR(rate)}/20 border border-ds-border`}
                 >
-                  <span className="text-lg font-bold text-ds-primary">{rate}%</span>
+                  <span className="text-lg font-bold text-ds-primary">
+                    {formatPercent(rate, { maximumFractionDigits: 0 })}
+                  </span>
                   <span className="text-xs text-ds-secondary">
-                    {day.date
-                      ? new Date(day.date).toLocaleDateString("fr-FR", {
-                          day: "2-digit",
-                          month: "short",
-                        })
-                      : `J${i + 1}`}
+                    {day.date ? formatDateDayMonth(day.date) : `J${i + 1}`}
                   </span>
                 </div>
               );
@@ -751,8 +749,12 @@ function SlaPoliciesList() {
                       {p.priority}
                     </Badge>
                   </td>
-                  <td className="py-2.5 pr-4 text-ds-secondary">{p.responseTimeHours ?? "—"}h</td>
-                  <td className="py-2.5 pr-4 text-ds-secondary">{p.resolutionTimeHours}h</td>
+                  <td className="py-2.5 pr-4 text-ds-secondary">
+                    {p.responseTimeHours != null ? formatHours(p.responseTimeHours) : "—"}
+                  </td>
+                  <td className="py-2.5 pr-4 text-ds-secondary">
+                    {formatHours(p.resolutionTimeHours)}
+                  </td>
                   <td className="py-2.5 pr-4 text-ds-secondary">{p.businessHoursName ?? "24/7"}</td>
                   <td className="py-2.5">
                     <Badge variant={p.active ? "success" : "default"}>
@@ -876,7 +878,7 @@ export default function SlaPage() {
                 </p>
                 <p className="text-3xl font-bold text-ds-primary">
                   {escalation.averageResolutionHours > 0
-                    ? `${escalation.averageResolutionHours}h`
+                    ? formatHours(escalation.averageResolutionHours)
                     : "—"}
                 </p>
               </Card>

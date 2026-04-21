@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { authService } from "../../api";
+import { getErrorMessage } from "../../api/client";
 import { AuthResponse, LoginRequest, RegisterRequest, UserResponse } from "../../types";
 import { RootState } from "../store";
 
@@ -24,22 +25,11 @@ const initialState: AuthState = {
 };
 
 function extractErrorMessage(error: unknown, fallback: string): string {
-  const axiosError = error as {
-    response?: { data?: { detail?: string; message?: string } };
-    message?: string;
-  };
-  const data = axiosError?.response?.data;
-  if (data) {
-    if (typeof data.detail === "string") return data.detail;
-    if (typeof data.message === "string") return data.message;
+  const normalizedMessage = getErrorMessage(error);
+  if (!normalizedMessage || normalizedMessage === "Une erreur inattendue est survenue") {
+    return fallback;
   }
-  if (
-    typeof axiosError?.message === "string" &&
-    axiosError.message !== "Request failed with status code 400"
-  ) {
-    return axiosError.message;
-  }
-  return fallback;
+  return normalizedMessage;
 }
 
 function shouldAuthenticate(response: AuthResponse): boolean {

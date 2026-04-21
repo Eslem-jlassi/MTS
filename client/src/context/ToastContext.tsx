@@ -31,6 +31,13 @@ const titleDefaults: Record<ToastType, string> = {
   warning: "Attention",
 };
 
+const durationDefaults: Record<ToastType, number> = {
+  success: 4200,
+  error: 6200,
+  info: 5000,
+  warning: 5600,
+};
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
@@ -39,17 +46,27 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addToast = useCallback((type: ToastType, message: string, title?: string) => {
-    const id = nextId();
-    setToasts((prev) => [
-      ...prev.slice(-4),
-      {
-        id,
-        variant: type,
-        title: title ?? titleDefaults[type],
-        description: message,
-        duration: 5000,
-      },
-    ]);
+    const normalizedMessage = message.trim();
+    if (!normalizedMessage) return;
+
+    setToasts((prev) => {
+      const hasDuplicate = prev.some(
+        (toast) => toast.variant === type && toast.description === normalizedMessage,
+      );
+
+      if (hasDuplicate) return prev;
+
+      return [
+        ...prev.slice(-4),
+        {
+          id: nextId(),
+          variant: type,
+          title: title ?? titleDefaults[type],
+          description: normalizedMessage,
+          duration: durationDefaults[type],
+        },
+      ];
+    });
   }, []);
 
   const success = useCallback(
@@ -82,7 +99,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <ToastContainer toasts={toasts} onDismiss={removeToast} position="bottom-right" />
+      <ToastContainer toasts={toasts} onDismiss={removeToast} position="top-right" />
     </ToastContext.Provider>
   );
 }

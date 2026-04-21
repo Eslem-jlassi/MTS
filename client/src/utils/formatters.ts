@@ -1,7 +1,7 @@
 type DateLike = string | number | Date | null | undefined;
 
 const DEFAULT_LOCALE = "fr-FR";
-const EMPTY_VALUE = "--";
+const EMPTY_VALUE = "—";
 
 const isFiniteNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
@@ -81,7 +81,7 @@ export const formatRelativeTime = (value: DateLike): string => {
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.floor(diffMs / 60_000);
 
-  if (diffMinutes < 1) return "A l'instant";
+  if (diffMinutes < 1) return "À l'instant";
   if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
 
   const diffHours = Math.floor(diffMinutes / 60);
@@ -154,7 +154,7 @@ export const formatSlaRemaining = (value: number | null | undefined): string => 
   if (!isFiniteNumber(value)) return EMPTY_VALUE;
 
   if (value < 0) {
-    return `Depasse de ${formatDurationMinutes(Math.abs(value), {
+    return `Dépassé de ${formatDurationMinutes(Math.abs(value), {
       alwaysIncludeMinutes: true,
     })}`;
   }

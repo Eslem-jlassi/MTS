@@ -19,6 +19,8 @@ export interface ConfirmModalProps {
   loading?: boolean;
   confirmationKeyword?: string;
   confirmationHint?: string;
+  confirmDisabled?: boolean;
+  size?: "sm" | "md" | "lg" | "xl";
 }
 
 const variantIcon: Record<string, string> = {
@@ -39,6 +41,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   loading = false,
   confirmationKeyword,
   confirmationHint,
+  confirmDisabled = false,
+  size,
 }) => {
   const [confirmationValue, setConfirmationValue] = useState("");
   const normalizedConfirmationKeyword = confirmationKeyword?.trim() ?? "";
@@ -56,17 +60,30 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      size="sm"
+      size={size ?? (requiresTypedConfirmation ? "md" : "sm")}
       title={title}
       description="Verifiez l'impact avant de confirmer. Cette action doit rester rare et explicite."
     >
-      <div className="flex flex-col items-center text-center">
-        <div className={`mb-4 rounded-full p-3 ${variantIcon[variant]}`}>
-          <AlertTriangle size={28} />
+      <div
+        className={`flex flex-col ${requiresTypedConfirmation ? "items-stretch text-left" : "items-center text-center"}`}
+      >
+        <div
+          className={`mb-3 rounded-full p-3 ${variantIcon[variant]} ${requiresTypedConfirmation ? "w-fit" : ""}`}
+        >
+          <AlertTriangle size={26} />
         </div>
-        <div className="mb-6 max-w-md text-sm leading-6 text-ds-secondary">{message}</div>
+        <div
+          className={`mb-5 text-sm leading-6 text-ds-secondary ${requiresTypedConfirmation ? "" : "max-w-md text-center"}`}
+        >
+          {message}
+        </div>
+        {variant === "danger" && (
+          <p className="mb-4 rounded-xl border border-error-200/70 bg-error-50/70 px-3 py-2 text-xs font-medium text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300">
+            Action destructive: vérifiez les informations avant de confirmer.
+          </p>
+        )}
         {requiresTypedConfirmation && (
-          <div className="mb-6 w-full rounded-2xl border border-ds-border bg-ds-elevated/35 p-4 text-left">
+          <div className="mb-5 w-full rounded-2xl border border-ds-border bg-ds-elevated/35 p-4 text-left">
             <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-ds-muted">
               Confirmation forte
             </label>
@@ -83,7 +100,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             />
           </div>
         )}
-        <div className="flex w-full items-center gap-3">
+        <div className="flex w-full flex-col-reverse items-center gap-2.5 sm:flex-row sm:gap-3">
           <Button variant="secondary" fullWidth onClick={onClose} disabled={loading}>
             {cancelLabel}
           </Button>
@@ -92,7 +109,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             fullWidth
             onClick={onConfirm}
             loading={loading}
-            disabled={loading || !isTypedConfirmationValid}
+            disabled={loading || !isTypedConfirmationValid || confirmDisabled}
           >
             {confirmLabel}
           </Button>

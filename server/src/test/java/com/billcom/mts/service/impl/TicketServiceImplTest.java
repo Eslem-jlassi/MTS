@@ -772,6 +772,8 @@ class TicketServiceImplTest {
                         when(slaTimelineRepository.countByTicket_Id(100L)).thenReturn(0L);
                         when(incidentRepository.countByTicketId(100L)).thenReturn(0L);
                         when(incidentRepository.countByTickets_Id(100L)).thenReturn(0L);
+                        when(incidentRepository.findByTicketId(100L)).thenReturn(List.of());
+                        when(incidentRepository.findDistinctByTickets_Id(100L)).thenReturn(List.of());
                         when(notificationRepository.deleteByReferenceTypeAndReferenceId("TICKET", 100L)).thenReturn(2L);
 
                         ticketService.hardDeleteTicketAsAdmin(
@@ -782,10 +784,12 @@ class TicketServiceImplTest {
                         );
 
                         verify(ticketRepository).delete(testTicket);
+                        verify(historyRepository).deleteByTicketId(100L);
+                        verify(slaTimelineRepository).deleteByTicketId(100L);
                         verify(notificationRepository).deleteByReferenceTypeAndReferenceId("TICKET", 100L);
                         verify(sensitiveActionVerificationService).verifyHardDeleteAuthorization(
                                 eq(adminUser),
-                                eq(100L),
+                                eq("TKT-2026-00001"),
                                 any(AdminHardDeleteRequest.class),
                                 contains("ticket")
                         );
@@ -793,30 +797,37 @@ class TicketServiceImplTest {
                 }
 
                 @Test
-                @DisplayName("Devrait refuser le hard delete si le ticket contient deja des commentaires")
-                void hardDeleteTicketAsAdmin_refuse_when_comments_exist() {
+                @DisplayName("Devrait supprimer un ticket meme si des commentaires existent deja")
+                void hardDeleteTicketAsAdmin_allows_existingComments() {
                         testTicket.setStatus(TicketStatus.NEW);
                         testTicket.setAssignedTo(null);
 
                         when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
                         when(commentRepository.countByTicketId(100L)).thenReturn(2L);
+                        when(incidentRepository.findByTicketId(100L)).thenReturn(List.of());
+                        when(incidentRepository.findDistinctByTickets_Id(100L)).thenReturn(List.of());
 
-                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(
+                        ticketService.hardDeleteTicketAsAdmin(
                                 100L,
                                 adminUser,
                                 "127.0.0.1",
                                 hardDeleteRequest(100L)
-                        ))
-                                .isInstanceOf(BadRequestException.class)
-                                .hasMessageContaining("commentaires");
-                        verify(ticketRepository, never()).delete(any(Ticket.class));
+                        );
+
+                        verify(ticketRepository).delete(testTicket);
                 }
 
                 @Test
-                @DisplayName("Devrait refuser le hard delete si le ticket est lie a un incident")
-                void hardDeleteTicketAsAdmin_refuse_when_linked_to_incident() {
+                @DisplayName("Devrait detacher les incidents lies avant de supprimer le ticket")
+                void hardDeleteTicketAsAdmin_detachesLinkedIncidents() {
                         testTicket.setStatus(TicketStatus.NEW);
                         testTicket.setAssignedTo(null);
+                        com.billcom.mts.entity.Incident incident = com.billcom.mts.entity.Incident.builder()
+                                .id(9L)
+                                .incidentNumber("INC-00009")
+                                .ticket(testTicket)
+                                .tickets(new java.util.HashSet<>(List.of(testTicket)))
+                                .build();
 
                         when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
                         when(commentRepository.countByTicketId(100L)).thenReturn(0L);
@@ -824,17 +835,19 @@ class TicketServiceImplTest {
                         when(historyRepository.countByTicketId(100L)).thenReturn(1L);
                         when(slaTimelineRepository.countByTicket_Id(100L)).thenReturn(0L);
                         when(incidentRepository.countByTicketId(100L)).thenReturn(1L);
-                        when(incidentRepository.countByTickets_Id(100L)).thenReturn(0L);
+                        when(incidentRepository.countByTickets_Id(100L)).thenReturn(1L);
+                        when(incidentRepository.findByTicketId(100L)).thenReturn(List.of(incident));
+                        when(incidentRepository.findDistinctByTickets_Id(100L)).thenReturn(List.of(incident));
 
-                        assertThatThrownBy(() -> ticketService.hardDeleteTicketAsAdmin(
+                        ticketService.hardDeleteTicketAsAdmin(
                                 100L,
                                 adminUser,
                                 "127.0.0.1",
                                 hardDeleteRequest(100L)
-                        ))
-                                .isInstanceOf(BadRequestException.class)
-                                .hasMessageContaining("incident");
-                        verify(ticketRepository, never()).delete(any(Ticket.class));
+                        );
+
+                        verify(incidentRepository).save(incident);
+                        verify(ticketRepository).delete(testTicket);
                 }
         }
 

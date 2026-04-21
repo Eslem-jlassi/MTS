@@ -38,6 +38,12 @@ public abstract class AiGatewaySupport {
     ) {
         String endpoint = buildEndpoint(baseUrl, path);
         if (!localAiServiceManager.ensureServiceRunning(serviceName, baseUrl)) {
+            log.warn(
+                    "{} fallback triggered before request dispatch. baseUrl={}, path={}",
+                    serviceName,
+                    baseUrl,
+                    path
+            );
             return unavailableFactory.apply(unavailableMessage);
         }
 

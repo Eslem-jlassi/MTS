@@ -67,7 +67,7 @@ describe("normalizeChatbotResponse", () => {
   it("provides safe defaults for incomplete payloads", () => {
     const response = normalizeChatbotResponse(undefined);
 
-    expect(response.answer).toBe("Aucune reponse disponible.");
+    expect(response.answer).toBe("Analyse partielle disponible.");
     expect(response.confidence).toBe("low");
     expect(response.serviceDetected).toBe("N/A");
     expect(response.responseLanguage).toBe("fr");
@@ -75,6 +75,27 @@ describe("normalizeChatbotResponse", () => {
     expect(response.modelVersion).toBe("rag-chatbot-1.2.0");
     expect(response.reasoningSteps).toEqual([]);
     expect(response.missingInformation).toEqual([]);
+  });
+
+  it("sanitizes technical backend answer text and keeps business analysis summary", () => {
+    const response = normalizeChatbotResponse({
+      available: false,
+      answer: "java.net.ConnectException: Connection refused",
+      confidence: "low",
+      service_detected: "N/A",
+      response_language: "fr",
+      analysis: {
+        summary: "Analyse partielle disponible pour la fibre FTTH.",
+        impact: "Impact local a confirmer.",
+        next_action: "Verifier incidents similaires.",
+        clarification_needed: true,
+        missing_information: ["heure de debut"],
+      },
+      results: [],
+    });
+
+    expect(response.answer).toBe("Analyse partielle disponible pour la fibre FTTH.");
+    expect(response.analysis?.summary).toBe("Analyse partielle disponible pour la fibre FTTH.");
   });
 
   it("keeps English response language when returned by the backend", () => {

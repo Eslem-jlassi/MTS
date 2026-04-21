@@ -8,6 +8,7 @@ import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.IncidentStatus;
 import com.billcom.mts.enums.Severity;
 import com.billcom.mts.enums.UserRole;
+import com.billcom.mts.exception.BadRequestException;
 import com.billcom.mts.repository.IncidentRepository;
 import com.billcom.mts.repository.IncidentTimelineRepository;
 import com.billcom.mts.repository.TelecomServiceRepository;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -72,9 +74,6 @@ class IncidentServiceImplTest {
                 .build();
 
         TelecomService telecomService = TelecomService.builder().id(5L).name("Core MPLS").build();
-        Ticket linkedTicket = Ticket.builder().id(11L).ticketNumber("TKT-00011").build();
-        TelecomService linkedService = TelecomService.builder().id(6L).name("Backhaul").build();
-
         incident = Incident.builder()
                 .id(7L)
                 .incidentNumber("INC-00007")
@@ -86,20 +85,17 @@ class IncidentServiceImplTest {
                 .tickets(new HashSet<>())
                 .affectedServices(new HashSet<>())
                 .build();
-
-        incident.getTickets().add(linkedTicket);
-        incident.getAffectedServices().add(linkedService);
     }
 
     @Test
     @DisplayName("hardDeleteIncidentAsAdmin should enforce reauth and delete incident safely")
     void hardDeleteIncidentAsAdmin_success() {
         when(incidentRepository.findById(7L)).thenReturn(Optional.of(incident));
-        when(timelineRepository.countByIncidentId(7L)).thenReturn(4L);
+        when(timelineRepository.countByIncidentId(7L)).thenReturn(1L);
 
         AdminHardDeleteRequest request = AdminHardDeleteRequest.builder()
                 .confirmationKeyword("SUPPRIMER")
-                .confirmationTargetId("7")
+                .confirmationTargetId("INC-00007")
                 .currentPassword("Password1!")
                 .build();
 
@@ -107,13 +103,33 @@ class IncidentServiceImplTest {
 
         verify(sensitiveActionVerificationService).verifyHardDeleteAuthorization(
                 eq(admin),
-                eq(7L),
+                eq("INC-00007"),
                 eq(request),
                 contains("INC-00007")
         );
         verify(incidentRepository).saveAndFlush(incident);
         verify(incidentRepository).delete(incident);
         verify(auditService).log(eq("Incident"), eq("7"), eq("DELETE"), eq(admin), contains("snapshot"), eq("127.0.0.1"));
+    }
+
+    @Test
+    @DisplayName("hardDeleteIncidentAsAdmin should detach business dependencies before delete")
+    void hardDeleteIncidentAsAdmin_detachesDependencies() {
+        incident.getTickets().add(Ticket.builder().id(11L).ticketNumber("TKT-00011").build());
+        incident.setTicket(Ticket.builder().id(12L).ticketNumber("TKT-00012").build());
+        when(incidentRepository.findById(7L)).thenReturn(Optional.of(incident));
+        when(timelineRepository.countByIncidentId(7L)).thenReturn(1L);
+
+        AdminHardDeleteRequest request = AdminHardDeleteRequest.builder()
+                .confirmationKeyword("SUPPRIMER")
+                .confirmationTargetId("INC-00007")
+                .currentPassword("Password1!")
+                .build();
+
+        service.hardDeleteIncidentAsAdmin(7L, admin, "127.0.0.1", request);
+
+        verify(incidentRepository).saveAndFlush(incident);
+        verify(incidentRepository).delete(incident);
     }
 
     @Test

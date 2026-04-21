@@ -32,6 +32,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -72,9 +75,14 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse login(LoginRequest request, String clientIp) {
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        if (!StringUtils.hasText(normalizedEmail)) {
+            throw new UnauthorizedException("Email ou mot de passe incorrect");
+        }
+
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(normalizedEmail, request.getPassword())
             );
 
             User user = (User) authentication.getPrincipal();
@@ -92,7 +100,7 @@ public class AuthServiceImpl implements AuthService {
             log.info("Login reussi: {} ({})", user.getEmail(), user.getRole());
             return createAuthResponse(user, refreshToken.getToken());
         } catch (AuthenticationException ex) {
-            log.warn("Tentative de connexion echouee pour: {}", request.getEmail());
+            log.warn("Tentative de connexion echouee pour: {}", normalizedEmail);
             throw new UnauthorizedException("Email ou mot de passe incorrect");
         }
     }
@@ -102,7 +110,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse register(RegisterRequest request, String clientIp) {
         UserRole role = request.getRole() != null ? request.getRole() : UserRole.CLIENT;
 
-        if (role != UserRole.CLIENT && !allowInternalSignup) {
+        if (role != UserRole.CLIENT) {
             throw new ForbiddenException(
                     "L'inscription avec le role " + role + " n'est pas autorisee. "
                             + "Contactez un administrateur pour creer votre compte."
@@ -125,6 +133,7 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse refreshToken(String refreshToken, String clientIp) {
         RefreshToken validToken = refreshTokenService.validateRefreshToken(refreshToken);
         User user = validToken.getUser();
+        ensureEmailVerifiedForAuthenticatedSession(user, refreshToken);
 
         RefreshToken newToken = refreshTokenService.rotateRefreshToken(
                 refreshToken,
@@ -148,7 +157,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse googleLogin(String idToken, String clientIp) {
-        if (!StringUtils.hasText(googleClientId)) {
+        if (!StringUtils.hasText(idToken)) {
+            throw new BadRequestException("Token Google manquant");
+        }
+
+        String normalizedGoogleClientId = googleClientId == null ? "" : googleClientId.trim();
+        if (!StringUtils.hasText(normalizedGoogleClientId)
+                || !normalizedGoogleClientId.endsWith(".apps.googleusercontent.com")) {
             log.warn("Google Client ID not configured - cannot verify Google token");
             throw new BadRequestException("Connexion Google non configuree. Contactez l'administrateur.");
         }
@@ -157,7 +172,7 @@ public class AuthServiceImpl implements AuthService {
                 new NetHttpTransport(),
                 GsonFactory.getDefaultInstance()
         )
-                .setAudience(Collections.singletonList(googleClientId))
+            .setAudience(Collections.singletonList(normalizedGoogleClientId))
                 .build();
 
         GoogleIdToken googleIdToken;
@@ -176,8 +191,9 @@ public class AuthServiceImpl implements AuthService {
         String email = payload.getEmail();
         String googleSub = payload.getSubject();
         boolean googleEmailVerified = Boolean.TRUE.equals(payload.getEmailVerified());
+        String normalizedEmail = normalizeEmail(email);
 
-        if (!StringUtils.hasText(email)) {
+        if (!StringUtils.hasText(normalizedEmail)) {
             throw new BadRequestException("Email non fourni par Google");
         }
         if (!googleEmailVerified) {
@@ -190,7 +206,9 @@ public class AuthServiceImpl implements AuthService {
         String pictureUrl = (String) payload.get("picture");
 
         Optional<User> byProvider = userRepository.findByOauthProviderAndOauthProviderId("GOOGLE", googleSub);
-        Optional<User> byEmail = byProvider.isPresent() ? Optional.empty() : userRepository.findByEmail(email);
+        Optional<User> byEmail = byProvider.isPresent()
+            ? Optional.empty()
+            : userRepository.findByEmail(normalizedEmail);
 
         User user;
 
@@ -203,7 +221,7 @@ public class AuthServiceImpl implements AuthService {
                 user.setProfilePhotoUrl(pictureUrl);
             }
             markUserAsVerified(user);
-            log.info("Connexion Google reussie (providerId match): {}", email);
+            log.info("Connexion Google reussie (providerId match): {}", normalizedEmail);
         } else if (byEmail.isPresent()) {
             user = byEmail.get();
             if (!Boolean.TRUE.equals(user.getIsActive())) {
@@ -215,7 +233,7 @@ public class AuthServiceImpl implements AuthService {
                 user.setProfilePhotoUrl(pictureUrl);
             }
             markUserAsVerified(user);
-            log.info("Connexion Google reussie - compte existant lie: {}", email);
+            log.info("Connexion Google reussie - compte existant lie: {}", normalizedEmail);
         } else {
             String firstName = StringUtils.hasText(givenName)
                     ? givenName
@@ -232,7 +250,7 @@ public class AuthServiceImpl implements AuthService {
 
             String randomPassword = UUID.randomUUID().toString().replace("-", "") + "A1!";
             user = User.builder()
-                    .email(email)
+                    .email(normalizedEmail)
                     .password(passwordEncoder.encode(randomPassword))
                     .firstName(firstName)
                     .lastName(lastName)
@@ -245,7 +263,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
             user = userRepository.save(user);
             createClientProfile(user, RegisterRequest.builder().build());
-            log.info("Inscription Google reussie (nouveau client): {} [sub={}]", email, googleSub);
+            log.info("Inscription Google reussie (nouveau client): {} [sub={}]", normalizedEmail, googleSub);
         }
 
         user.setLastLoginAt(LocalDateTime.now());
@@ -275,7 +293,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = optUser.get();
         String token = generateSecureToken();
-        user.setPasswordResetToken(token);
+        user.setPasswordResetToken(hashToken(token));
         user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(passwordResetExpirationHours));
         userRepository.save(user);
 
@@ -286,7 +304,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void resetPassword(String token, String newPassword) {
-        User user = userRepository.findByPasswordResetToken(token)
+        String normalizedToken = normalizeOpaqueToken(token);
+        if (!StringUtils.hasText(normalizedToken)) {
+            throw new BadRequestException("Token invalide ou expire");
+        }
+
+        User user = findUserByPasswordResetToken(normalizedToken)
                 .orElseThrow(() -> new BadRequestException("Token invalide ou expire"));
 
         if (user.getPasswordResetTokenExpiry() == null
@@ -305,7 +328,12 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void verifyEmail(String token) {
-        User user = userRepository.findByEmailVerificationToken(token)
+        String normalizedToken = normalizeOpaqueToken(token);
+        if (!StringUtils.hasText(normalizedToken)) {
+            throw new BadRequestException("Token de verification invalide");
+        }
+
+        User user = findUserByEmailVerificationToken(normalizedToken)
                 .orElseThrow(() -> new BadRequestException("Token de verification invalide"));
 
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
@@ -342,13 +370,13 @@ public class AuthServiceImpl implements AuthService {
             return;
         }
 
-        prepareEmailVerification(user);
+        String rawVerificationToken = prepareEmailVerification(user);
         userRepository.save(user);
 
         emailService.sendEmailVerificationEmail(
                 user.getEmail(),
                 resolveRecipientName(user),
-                user.getEmailVerificationToken(),
+            rawVerificationToken,
                 user.getEmailVerificationTokenExpiry()
         );
         log.info("Verification email resent for user: {}", normalizedEmail);
@@ -375,6 +403,7 @@ public class AuthServiceImpl implements AuthService {
         validatePasswordStrength(request.getPassword());
 
         boolean verificationRequired = requireEmailVerification;
+        String rawEmailVerificationToken = null;
 
         User user = User.builder()
                 .email(normalizedEmail)
@@ -388,7 +417,7 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         if (verificationRequired) {
-            prepareEmailVerification(user);
+            rawEmailVerificationToken = prepareEmailVerification(user);
         } else {
             markUserAsVerified(user);
         }
@@ -404,7 +433,7 @@ public class AuthServiceImpl implements AuthService {
             emailService.sendEmailVerificationEmail(
                     user.getEmail(),
                     resolveRecipientName(user),
-                    user.getEmailVerificationToken(),
+                    rawEmailVerificationToken,
                     user.getEmailVerificationTokenExpiry()
             );
         }
@@ -433,10 +462,26 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    private void prepareEmailVerification(User user) {
+    private void ensureEmailVerifiedForAuthenticatedSession(User user, String refreshToken) {
+        if (!requireEmailVerification || Boolean.TRUE.equals(user.getEmailVerified())) {
+            return;
+        }
+
+        if (StringUtils.hasText(refreshToken)) {
+            refreshTokenService.revokeToken(refreshToken);
+        }
+
+        throw new ForbiddenException(
+                "Votre adresse email n'est pas encore verifiee. Consultez votre boite mail ou renvoyez le lien de verification."
+        );
+    }
+
+    private String prepareEmailVerification(User user) {
         user.setEmailVerified(false);
-        user.setEmailVerificationToken(generateSecureToken());
+        String rawToken = generateSecureToken();
+        user.setEmailVerificationToken(hashToken(rawToken));
         user.setEmailVerificationTokenExpiry(LocalDateTime.now().plusHours(emailVerificationExpirationHours));
+        return rawToken;
     }
 
     private void markUserAsVerified(User user) {
@@ -465,6 +510,52 @@ public class AuthServiceImpl implements AuthService {
         byte[] buffer = new byte[32];
         secureRandom.nextBytes(buffer);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(buffer);
+    }
+
+    private Optional<User> findUserByPasswordResetToken(String rawToken) {
+        String hashedToken = hashToken(rawToken);
+        Optional<User> hashedMatch = Optional.ofNullable(userRepository.findByPasswordResetToken(hashedToken))
+                .orElse(Optional.empty());
+        if (hashedMatch.isPresent()) {
+            return hashedMatch;
+        }
+
+        Optional<User> legacyPlaintextMatch = Optional.ofNullable(userRepository.findByPasswordResetToken(rawToken))
+                .orElse(Optional.empty());
+        if (legacyPlaintextMatch.isPresent()) {
+            log.info("Legacy plaintext password reset token accepted for user {}", legacyPlaintextMatch.get().getEmail());
+        }
+        return legacyPlaintextMatch;
+    }
+
+    private Optional<User> findUserByEmailVerificationToken(String rawToken) {
+        String hashedToken = hashToken(rawToken);
+        Optional<User> hashedMatch = Optional.ofNullable(userRepository.findByEmailVerificationToken(hashedToken))
+                .orElse(Optional.empty());
+        if (hashedMatch.isPresent()) {
+            return hashedMatch;
+        }
+
+        Optional<User> legacyPlaintextMatch = Optional.ofNullable(userRepository.findByEmailVerificationToken(rawToken))
+                .orElse(Optional.empty());
+        if (legacyPlaintextMatch.isPresent()) {
+            log.info("Legacy plaintext email verification token accepted for user {}", legacyPlaintextMatch.get().getEmail());
+        }
+        return legacyPlaintextMatch;
+    }
+
+    private String normalizeOpaqueToken(String token) {
+        return token == null ? null : token.trim();
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashBytes = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(hashBytes);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("Algorithme SHA-256 indisponible", ex);
+        }
     }
 
     private void validatePasswordStrength(String password) {

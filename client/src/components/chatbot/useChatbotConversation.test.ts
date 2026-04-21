@@ -385,12 +385,112 @@ describe("useChatbotConversation persistence", () => {
     await waitFor(() => {
       expect(result.current.errorMessage).toContain("indisponible");
     });
+    expect(result.current.errorTone).toBe("error");
+    expect(result.current.canRetryLastMessage).toBe(true);
+
+    const assistantErrorMessage = [...result.current.messages]
+      .reverse()
+      .find((message) => message.role === "assistant" && message.isError);
+
+    expect(assistantErrorMessage).toBeUndefined();
+  });
+
+  it("shows clean service-unavailable state when backend returns unavailable payload", async () => {
+    askMock.mockResolvedValue({
+      available: false,
+      answer: "Le chatbot IA est indisponible pour le moment.",
+      confidence: "low",
+      serviceDetected: "N/A",
+      results: [],
+      fallbackMode: "service_unavailable",
+    } as ChatbotResponse);
+
+    const { result } = renderHook(() => useChatbotConversation("user-service-unavailable"));
+
+    await act(async () => {
+      await result.current.sendMessage("Analyse cette panne fibre.");
+    });
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe(
+        "Assistant temporairement indisponible. Reessayez dans quelques instants.",
+      );
+    });
+    expect(result.current.errorTone).toBe("error");
+    expect(result.current.canRetryLastMessage).toBe(true);
 
     const assistantMessage = [...result.current.messages]
       .reverse()
       .find((message) => message.role === "assistant" && message.isError);
 
-    expect(assistantMessage?.content).toContain("Je n'ai pas pu joindre le backend IA.");
-    expect(assistantMessage?.content).toContain("Le chatbot IA est indisponible.");
+    expect(assistantMessage).toBeUndefined();
+  });
+
+  it("keeps business blocks and shows a separate warning banner on partial service failure", async () => {
+    askMock.mockResolvedValue({
+      available: false,
+      answer: "Assistant temporairement indisponible. Reessayez dans quelques instants.",
+      confidence: "low",
+      serviceDetected: "Fibre FTTH",
+      analysis: {
+        summary: "Perte de signal detectee sur le segment FTTH.",
+        impact: "Impact localise sur un sous-ensemble de clients.",
+        nextAction: "Verifier l'OLT et les incidents similaires.",
+        clarificationNeeded: true,
+        missingInformation: ["heure de debut"],
+      },
+      results: [
+        {
+          docType: "incident",
+          title: "Coupure FTTH sur OLT Casablanca",
+          serviceName: "Fibre FTTH",
+          language: "fr",
+          score: 0.72,
+          docId: "incident-42",
+        },
+      ],
+      fallbackMode: "service_unavailable",
+    } as ChatbotResponse);
+
+    const { result } = renderHook(() => useChatbotConversation("user-partial-failure"));
+
+    await act(async () => {
+      await result.current.sendMessage("Analyse cette panne FTTH.");
+    });
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe(
+        "Analyse partielle disponible. Certains composants IA sont temporairement indisponibles.",
+      );
+    });
+    expect(result.current.errorTone).toBe("warning");
+    expect(result.current.canRetryLastMessage).toBe(true);
+
+    const assistantMessage = [...result.current.messages]
+      .reverse()
+      .find((message) => message.role === "assistant" && !message.isError);
+
+    expect(assistantMessage?.analysis?.summary).toBe(
+      "Perte de signal detectee sur le segment FTTH.",
+    );
+    expect(assistantMessage?.results?.length).toBeGreaterThan(0);
+  });
+
+  it("does not expose retry action for non-retryable processing errors", async () => {
+    askMock.mockRejectedValue(new Error("Invalid answer payload format"));
+
+    const { result } = renderHook(() => useChatbotConversation("user-non-retryable"));
+
+    await act(async () => {
+      await result.current.sendMessage("Analyse cet incident de mediation.");
+    });
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe(
+        "L'analyse IA a rencontre un probleme de format. Reformulez votre demande puis reessayez.",
+      );
+    });
+    expect(result.current.errorTone).toBe("error");
+    expect(result.current.canRetryLastMessage).toBe(false);
   });
 });

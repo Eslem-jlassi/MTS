@@ -70,8 +70,22 @@ public class SensitiveActionVerificationService {
             Long targetId,
             AdminHardDeleteRequest request,
             String actionLabel) {
+        verifyHardDeleteAuthorization(
+                admin,
+                targetId != null ? String.valueOf(targetId) : "",
+                request,
+                actionLabel
+        );
+    }
+
+    @Transactional
+    public void verifyHardDeleteAuthorization(
+            User admin,
+            String expectedIdentifier,
+            AdminHardDeleteRequest request,
+            String actionLabel) {
         ensureAdmin(admin);
-        validateStrongConfirmation(targetId, request);
+        validateStrongConfirmation(expectedIdentifier, request);
 
         if (isOauthAccount(admin)) {
             verifyOauthCode(admin, request != null ? request.getVerificationCode() : null);
@@ -101,7 +115,7 @@ public class SensitiveActionVerificationService {
         }
     }
 
-    private void validateStrongConfirmation(Long targetId, AdminHardDeleteRequest request) {
+    private void validateStrongConfirmation(String expectedIdentifier, AdminHardDeleteRequest request) {
         if (request == null) {
             throw new BadRequestException("Une confirmation forte est requise pour cette operation");
         }
@@ -109,15 +123,6 @@ public class SensitiveActionVerificationService {
         String confirmationKeyword = request.getConfirmationKeyword();
         if (!REQUIRED_KEYWORD.equals(confirmationKeyword != null ? confirmationKeyword.trim() : null)) {
             throw new BadRequestException("Le mot-cle de confirmation doit etre exactement SUPPRIMER");
-        }
-
-        String expectedId = targetId != null ? String.valueOf(targetId) : "";
-        String providedId = request.getConfirmationTargetId() != null
-                ? request.getConfirmationTargetId().trim()
-                : "";
-
-        if (!expectedId.equals(providedId)) {
-            throw new BadRequestException("L'identifiant saisi ne correspond pas a la ressource a supprimer");
         }
     }
 

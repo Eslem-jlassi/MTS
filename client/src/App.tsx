@@ -291,6 +291,16 @@ export default function App() {
                 {/* Tableau de bord principal */}
                 <Route path="dashboard" element={<Dashboard />} />
 
+                {/* Garde URL explicite pour le cockpit manager (pas de page dédiée publique) */}
+                <Route
+                  path="manager-ai/*"
+                  element={
+                    <RoleBasedRoute allowedRoles={[UserRole.MANAGER]}>
+                      <Navigate to="/dashboard" replace />
+                    </RoleBasedRoute>
+                  }
+                />
+
                 {/* Liste des tickets (Enterprise) */}
                 <Route path="tickets" element={<TicketList />} />
                 {/* Vue Kanban pour agents */}

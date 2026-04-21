@@ -117,9 +117,9 @@ const StageChip: React.FC<{
   label: string;
   value?: string;
 }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-ds-border/70 bg-ds-surface/75 px-3 py-2">
+  <div className="rounded-2xl border border-ds-border/70 bg-ds-surface/75 px-3 py-1.5">
     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">{label}</p>
-    {value && <p className="mt-1 text-sm font-semibold text-ds-primary">{value}</p>}
+    {value && <p className="mt-0.5 text-sm font-semibold text-ds-primary">{value}</p>}
   </div>
 );
 
@@ -168,7 +168,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
     <motion.div variants={fadeUp}>
       <div
         className={
-          embedded ? "rounded-2xl border border-ds-border/70 bg-ds-surface/70 px-4 py-4" : ""
+          embedded ? "rounded-2xl border border-ds-border/70 bg-ds-surface/70 px-4 py-3" : ""
         }
       >
         <div className="flex flex-wrap items-center gap-3">
@@ -238,7 +238,7 @@ const KpiCard: React.FC<{
 }> = ({ icon, iconBg, label, value, suffix, alert, to }) => {
   const inner = (
     <Card
-      className={`h-full min-h-[7.25rem] overflow-hidden border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
+      className={`h-full min-h-[6.9rem] overflow-hidden border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
       ${alert ? "ring-1 ring-error/30" : ""} ${to ? "cursor-pointer" : ""}
     `}
     >
@@ -269,7 +269,7 @@ const KpiCard: React.FC<{
 };
 
 const KpiRow: React.FC<{ kpis: ManagerKpis }> = ({ kpis }) => (
-  <motion.div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" variants={stagger}>
+  <motion.div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" variants={stagger}>
     <motion.div variants={fadeUp}>
       <KpiCard
         icon={<ShieldCheck size={22} className="text-success-600 dark:text-success-400" />}
@@ -550,22 +550,22 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
       <table className="ds-table-raw w-full">
         <thead className="bg-ds-elevated border-b border-ds-border">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
               Service
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
               Catégorie
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
               État
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
               Tickets
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
               SLA dépassé
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
               Taux SLA
             </th>
           </tr>
@@ -582,7 +582,7 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                 transition={{ delay: idx * 0.04 }}
                 className="hover:bg-ds-elevated/60 transition-colors"
               >
-                <td className="px-4 py-3">
+                <td className="px-4 py-2.5">
                   <Link
                     to={`/tickets?serviceId=${s.id}`}
                     className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
@@ -590,8 +590,8 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                     {s.name}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-sm text-ds-secondary">{s.category}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-2.5 text-sm text-ds-secondary">{s.category}</td>
+                <td className="px-4 py-2.5">
                   <span
                     className={`inline-flex items-center gap-1 text-xs font-semibold ${ServiceStatusColors[status] || "text-ds-muted"}`}
                   >
@@ -599,17 +599,17 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                     {ServiceStatusLabels[status] || s.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-ds-primary tabular-nums">
+                <td className="px-4 py-2.5 text-right text-sm font-semibold text-ds-primary tabular-nums">
                   {s.openTickets}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <span
                     className={`text-sm font-semibold tabular-nums ${s.slaBreached > 0 ? "text-error" : "text-ds-muted"}`}
                   >
                     {s.slaBreached}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${
                       s.slaRate >= 90
@@ -664,14 +664,14 @@ function priorityNameToKey(name: string): string | undefined {
 // =============================================================================
 
 const ManagerSkeleton: React.FC = () => (
-  <div className="space-y-6">
+  <div className="space-y-5">
     <Skeleton height={48} className="rounded-xl" />
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {[1, 2, 3, 4, 5].map((i) => (
         <SkeletonCard key={i} />
       ))}
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       <Skeleton height={340} className="rounded-xl" />
       <Skeleton height={340} className="rounded-xl" />
     </div>
@@ -735,7 +735,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
   return (
     <motion.div
-      className="space-y-10 xl:space-y-12"
+      className="space-y-8 xl:space-y-10"
       variants={stagger}
       initial="hidden"
       animate="show"
@@ -743,17 +743,17 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       {/* ─── Header + refresh ────────────────────────────────────────── */}
       <motion.section variants={fadeUp}>
         <Card className="overflow-hidden rounded-[1.75rem] border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface shadow-card">
-          <div className="space-y-6 p-5 sm:p-6">
+          <div className="space-y-5 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4 xl:items-end">
               <div className="max-w-3xl">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">
                   Poste de pilotage manager
                 </span>
                 <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ds-primary">
-                  Supervision Manager
+                  Cockpit manager
                 </h1>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <StageChip label="Lecture" value="KPI, analytics puis ALLIE" />
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  <StageChip label="Lecture" value="KPI, analyses puis ALLIE" />
                   <StageChip
                     label="Filtres"
                     value={
@@ -762,14 +762,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   />
                 </div>
                 <p className="mt-2 text-sm leading-6 text-ds-muted">
-                  Vue consolidée des KPI, SLA et performance équipe
+                  Vue consolidée des KPI, des engagements SLA et de la performance équipe.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {lastUpdated && (
-                  <span className="text-xs text-ds-muted font-medium hidden sm:inline">
-                    <CalendarClock size={13} className="inline mr-1 -mt-px" />
-                    MAJ {formatTime(lastUpdated)}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-3 py-1.5 text-xs font-medium text-ds-secondary">
+                    <CalendarClock size={13} />
+                    Mise à jour {formatTime(lastUpdated)}
                   </span>
                 )}
                 <Button
@@ -822,17 +822,17 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       </motion.section>
 
       {/* ─── KPI row (5 cards) ───────────────────────────────────────── */}
-      <section className="space-y-5">
+      <section className="space-y-4">
         <SectionLead
           eyebrow="Etat global"
           title="KPI manager"
-          description="Premiere lecture de situation: engagement SLA, rythme de resolution, backlog et urgences."
+          description="Première lecture de situation : engagement SLA, rythme de résolution, backlog et urgences."
           icon={<ShieldCheck size={20} />}
         />
         <KpiRow kpis={data.kpis} />
       </section>
 
-      <section className="space-y-5">
+      <section className="space-y-4">
         <SectionLead
           eyebrow="Lecture analytique"
           title="Analyses de supervision"
@@ -841,10 +841,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         />
 
         {/* ─── Charts row: Statut + Priorité (clickable → drill-down) ── */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                   Répartition par statut
                 </h3>
@@ -859,7 +859,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </motion.div>
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                   Répartition par priorité
                 </h3>
@@ -877,7 +877,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         {/* ─── Top services à risque ───────────────────────────────────── */}
         <motion.div variants={fadeUp}>
           <Card padding="none" className="overflow-hidden">
-            <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
               <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                 <AlertTriangle size={18} className="text-warning-500" />
                 Top services à risque
@@ -894,10 +894,10 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </motion.div>
 
         {/* ─── Charts row: Performance équipe + Tendances 7j ───────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border">
+              <div className="border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                   <Users size={18} className="text-primary-500" />
                   Performance équipe
@@ -910,7 +910,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </motion.div>
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border">
+              <div className="border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                   <TrendingUp size={18} className="text-accent-500" />
                   Tendances 7 jours
@@ -924,7 +924,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </div>
       </section>
 
-      <section className="space-y-5">
+      <section className="space-y-4">
         <SectionLead
           eyebrow={MANAGER_COPILOT_PRODUCT_LABEL}
           title={MANAGER_COPILOT_TITLE}

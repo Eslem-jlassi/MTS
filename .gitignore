@@ -7,6 +7,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.defense.example
 client/.env
 client/.env.local
 client/.env.development.local
@@ -29,10 +30,17 @@ server/.m2/
 # Logs
 logs/
 *.log
+*.status
 
 # Uploads / generated files
 server/uploads/reports/*
 !server/uploads/reports/.gitkeep
+
+# QA / evidence artifacts that must not live at repo root
+qa_*
+*.cookies
+sprint4_p0_*
+docker_info_check.txt
 
 # IDE / OS
 .vscode/

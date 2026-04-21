@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Minimize2, PanelRightClose, Radar } from "lucide-react";
+import { Minimize2, PanelRightClose } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UserRole } from "../../types";
 import ManagerCopilotAvatar from "./ManagerCopilotAvatar";
@@ -9,8 +9,7 @@ import ManagerCopilotPanel from "./ManagerCopilotMainPanel";
 import { useManagerCopilot } from "./useManagerCopilot";
 import {
   MANAGER_COPILOT_FULL_LABEL,
-  MANAGER_COPILOT_PRODUCT_LABEL,
-  getManagerCopilotMoment,
+  isManagerCopilotAllowedRole,
   MANAGER_COPILOT_TITLE,
   MANAGER_COPILOT_WIDGET_SUBTITLE,
 } from "./managerCopilotUi";
@@ -22,13 +21,13 @@ interface ManagerCopilotWidgetProps {
 const ManagerCopilotWidget: React.FC<ManagerCopilotWidgetProps> = ({ role }) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const isAllowed = role === UserRole.MANAGER || role === UserRole.ADMIN;
+  const isAllowed = isManagerCopilotAllowedRole(role);
   const { snapshot, isLoading, isRefreshing, error, refresh } = useManagerCopilot({
     enabled: isAllowed,
+    role,
   });
 
   const badgeCount = snapshot?.urgentCount || (isLoading ? null : 0);
-  const moment = getManagerCopilotMoment(snapshot);
 
   if (!isAllowed) {
     return null;
@@ -40,7 +39,12 @@ const ManagerCopilotWidget: React.FC<ManagerCopilotWidgetProps> = ({ role }) => 
   };
 
   return (
-    <div className="manager-copilot-widget-container">
+    <div
+      className={`manager-copilot-widget-container ${
+        isOpen ? "manager-copilot-widget-container-open" : ""
+      }`}
+      data-testid="manager-copilot-widget"
+    >
       <AnimatePresence>
         {isOpen && (
           <motion.section
@@ -77,6 +81,7 @@ const ManagerCopilotWidget: React.FC<ManagerCopilotWidgetProps> = ({ role }) => 
               error={error}
               onRefresh={refresh}
               onNavigate={handleNavigate}
+              onClose={() => setIsOpen(false)}
             />
           </motion.section>
         )}
@@ -84,41 +89,40 @@ const ManagerCopilotWidget: React.FC<ManagerCopilotWidgetProps> = ({ role }) => 
 
       <motion.button
         type="button"
-        className="manager-copilot-fab"
+        className={`manager-copilot-launcher ${isOpen ? "manager-copilot-launcher-open" : ""}`}
         onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
         aria-label={
           isOpen ? `Fermer ${MANAGER_COPILOT_FULL_LABEL}` : `Ouvrir ${MANAGER_COPILOT_FULL_LABEL}`
         }
-        whileHover={{ y: -4, scale: 1.02 }}
+        whileHover={{ y: -2, scale: 1.01 }}
         whileTap={{ scale: 0.97 }}
       >
-        <span className="manager-copilot-fab-glow" aria-hidden />
-        <span className="manager-copilot-fab-core" aria-hidden>
+        <span className="manager-copilot-launcher-icon" aria-hidden>
           {isOpen ? (
-            <PanelRightClose size={24} />
+            <PanelRightClose size={20} />
           ) : (
-            <ManagerCopilotAvatar className="manager-copilot-fab-avatar" />
+            <ManagerCopilotAvatar className="manager-copilot-launcher-avatar" />
           )}
         </span>
-        {!isOpen && (
-          <span className="manager-copilot-fab-label">
-            <span className="manager-copilot-fab-topline">
-              <span className="manager-copilot-fab-nameplate">
-                <strong>{MANAGER_COPILOT_TITLE}</strong>
-                <span>{MANAGER_COPILOT_PRODUCT_LABEL}</span>
-              </span>
-              <span
-                className={`manager-copilot-fab-status manager-copilot-fab-status-${moment.tone}`}
-              >
-                <Radar size={12} />
-                {snapshot?.priorityTickets.length ?? 0} arbitrage(s)
-              </span>
-            </span>
-            <small>{MANAGER_COPILOT_WIDGET_SUBTITLE}</small>
-          </span>
-        )}
+        <span className="manager-copilot-launcher-copy">
+          <strong>
+            {isOpen
+              ? `Fermer le cockpit ${MANAGER_COPILOT_TITLE}`
+              : `Ouvrir le cockpit ${MANAGER_COPILOT_TITLE}`}
+          </strong>
+          {!isOpen && (
+            <small>
+              {snapshot
+                ? `${snapshot.priorityTickets.length} arbitrage(s) prioritaire(s)`
+                : MANAGER_COPILOT_WIDGET_SUBTITLE}
+            </small>
+          )}
+        </span>
         {badgeCount !== null && badgeCount > 0 && (
-          <span className="manager-copilot-fab-badge">{badgeCount > 9 ? "9+" : badgeCount}</span>
+          <span className="manager-copilot-launcher-badge">
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </span>
         )}
       </motion.button>
     </div>

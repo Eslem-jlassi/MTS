@@ -1,48 +1,49 @@
 // =============================================================================
-// MTS TELECOM - Auth Layout (Enterprise-Grade Split Screen)
-// Left: Deep blue branding + 3D AI robot + glassmorphism chat bubbles
-// Right: Clean form area (white/dark adaptive)
-// Billcom Consulting - PFE 2026
+// MTS TELECOM - Auth Layout (Enterprise split view)
 // =============================================================================
 
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
-import { Bot, Sparkles, MessageCircle, Zap, Sun, Moon } from "lucide-react";
+import { Bot, MessageCircle, Moon, ShieldCheck, Sparkles, Sun, Zap } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
-// ── Floating glassmorphism chat bubbles ──────────────────────────────────────
 const CHAT_BUBBLES = [
   {
-    text: "Bonjour ! Je suis votre assistant IA 🤖",
-    top: "14%",
-    left: "10%",
-    delay: 0.6,
-    rotate: -3,
-  },
-  {
-    text: "Analyse terminée ✅",
-    top: "32%",
-    right: "8%",
-    delay: 1.0,
-    rotate: 2,
-  },
-  {
-    text: "3 tickets résolus aujourd'hui",
-    bottom: "30%",
+    text: "ALLIE prépare votre support prioritaire.",
+    top: "10%",
     left: "6%",
+    delay: 0.6,
+    rotate: -2,
+  },
+  {
+    text: "Analyse d'incident finalisée.",
+    top: "28%",
+    right: "5%",
+    delay: 1.0,
+    rotate: 1,
+  },
+  {
+    text: "SLA critiques traités en 4 min.",
+    bottom: "30%",
+    left: "5%",
     delay: 1.4,
     rotate: -2,
   },
   {
-    text: "Conformité SLA : 98,7 %",
-    bottom: "14%",
-    right: "12%",
+    text: "Disponibilité réseau : 99,95 %",
+    bottom: "12%",
+    right: "8%",
     delay: 1.8,
     rotate: 1,
   },
 ];
 
-/** Single glassmorphism floating bubble */
+const LEFT_BADGES = [
+  { icon: ShieldCheck, value: "Conformité SLA", label: "98,7 %" },
+  { icon: Zap, value: "Escalades critiques", label: "Réponse en 4 min" },
+  { icon: Sparkles, value: "Assistants IA", label: "Pilotage temps réel" },
+];
+
 const ChatBubble: React.FC<{
   text: string;
   delay: number;
@@ -50,24 +51,22 @@ const ChatBubble: React.FC<{
   style: React.CSSProperties;
 }> = React.memo(({ text, delay, rotate, style }) => (
   <motion.div
-    className="absolute z-20 px-4 py-2.5 rounded-2xl
-               bg-white/10 backdrop-blur-md border border-white/15
-               text-white/90 text-xs font-medium shadow-lg
-               select-none pointer-events-none"
+    className="absolute z-20 rounded-2xl border border-white/20 bg-white/[0.12] px-4 py-2.5 text-xs font-medium text-white/95 shadow-xl backdrop-blur-lg select-none pointer-events-none"
     style={style}
     initial={{ opacity: 0, y: 20, rotate: 0 }}
     animate={{ opacity: 1, y: 0, rotate }}
     transition={{ delay, duration: 0.7, type: "spring", stiffness: 80 }}
   >
-    <div className="flex items-center gap-1.5">
-      <MessageCircle size={12} className="text-accent-400 flex-shrink-0" />
+    <div className="flex items-center gap-2">
+      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-400/25">
+        <MessageCircle size={11} className="text-orange-300" />
+      </span>
       <span>{text}</span>
     </div>
   </motion.div>
 ));
 ChatBubble.displayName = "ChatBubble";
 
-/** 3D Robot placeholder with orange glow halo */
 const RobotIllustration: React.FC = React.memo(() => (
   <motion.div
     className="relative flex items-center justify-center"
@@ -75,34 +74,38 @@ const RobotIllustration: React.FC = React.memo(() => (
     animate={{ scale: 1, opacity: 1 }}
     transition={{ delay: 0.3, type: "spring", stiffness: 100, damping: 14 }}
   >
-    {/* Orange glow halo */}
-    <div className="absolute w-56 h-56 rounded-full bg-accent-500 blur-3xl opacity-20 pointer-events-none" />
-    <div className="absolute w-40 h-40 rounded-full bg-accent-400 blur-2xl opacity-15 pointer-events-none animate-pulse" />
+    {/* Deep orange halo layers */}
+    <div className="pointer-events-none absolute h-80 w-80 rounded-full bg-orange-500/30 blur-[80px]" />
+    <div className="pointer-events-none absolute h-60 w-60 rounded-full bg-amber-400/28 blur-[60px] animate-pulse" />
+    <div className="pointer-events-none absolute h-48 w-48 rounded-full bg-orange-300/15 blur-2xl" />
+    {/* Decorative ring */}
+    <div className="pointer-events-none absolute h-48 w-48 rounded-full border border-orange-300/20" />
+    <div className="pointer-events-none absolute h-56 w-56 rounded-full border border-orange-200/10" />
 
-    {/* Robot container — glassmorphism circle */}
     <motion.div
-      className="relative z-10 flex items-center justify-center w-32 h-32 rounded-full
-                 bg-white/10 backdrop-blur-lg border border-white/15
-                 shadow-2xl shadow-accent-500/10"
+      className="relative z-10 flex h-40 w-40 items-center justify-center rounded-full border-2 border-orange-300/25 bg-gradient-to-br from-white/15 to-white/5 shadow-2xl shadow-orange-500/30 backdrop-blur-xl"
       whileHover={{ scale: 1.06, rotate: 3 }}
       transition={{ type: "spring", stiffness: 260, damping: 20 }}
     >
-      <Bot size={56} className="text-accent-400 drop-shadow-lg" />
-
-      {/* Sparkle accent */}
+      <Bot size={64} className="text-amber-200 drop-shadow-[0_0_24px_rgba(251,191,36,0.4)]" />
       <motion.div
-        className="absolute -top-1 -right-1"
+        className="absolute -right-1 -top-1"
         animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
         transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
       >
-        <Sparkles size={18} className="text-accent-300" />
+        <Sparkles size={20} className="text-indigo-200 drop-shadow-lg" />
+      </motion.div>
+      <motion.div
+        className="absolute -left-2 bottom-2"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }}
+        transition={{ repeat: Infinity, duration: 3.2, ease: "easeInOut", delay: 0.8 }}
+      >
+        <Sparkles size={14} className="text-orange-200" />
       </motion.div>
     </motion.div>
   </motion.div>
 ));
 RobotIllustration.displayName = "RobotIllustration";
-
-// ── Main Layout ──────────────────────────────────────────────────────────────
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -112,7 +115,6 @@ interface AuthLayoutProps {
 const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
   const { theme, toggleTheme } = useTheme();
 
-  // Memoize bubble styles so objects aren't re-created every render
   const bubbleStyles = useMemo(
     () =>
       CHAT_BUBBLES.map(({ text, delay, rotate, ...pos }) => ({
@@ -125,47 +127,39 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
   );
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
-      {/* ================================================================= */}
-      {/* LEFT PANEL — Deep blue branding + AI Robot + Chat Bubbles          */}
-      {/* ================================================================= */}
+    <div className="auth-shell min-h-screen flex flex-col lg:flex-row">
       <motion.div
-        className="relative hidden lg:flex lg:w-1/2 min-h-screen bg-slate-900 overflow-hidden"
+        className="relative hidden min-h-screen overflow-hidden lg:flex lg:w-[47%] xl:w-[44%]"
+        style={{ background: "linear-gradient(168deg, #020617 0%, #0c1529 35%, #0f172a 60%, #131c31 100%)" }}
         initial={{ opacity: 0, x: -40 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Subtle radial gradient */}
+        {/* Deep ambient gradients */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 40%, rgb(var(--color-accent) / 0.08) 0%, transparent 60%)",
+              "radial-gradient(ellipse at 46% 36%, rgba(249,115,22,0.22) 0%, transparent 52%), radial-gradient(circle at 78% 18%, rgba(37,99,235,0.18) 0%, transparent 26%), radial-gradient(ellipse at 20% 82%, rgba(79,70,229,0.12) 0%, transparent 36%)",
           }}
         />
-
-        {/* Dot grid pattern */}
         <div
-          className="absolute inset-0 pointer-events-none opacity-[0.04]"
+          className="pointer-events-none absolute inset-0 opacity-[0.065]"
           style={{
             backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)",
             backgroundSize: "28px 28px",
           }}
         />
 
-        {/* Floating Chat Bubbles */}
-        {bubbleStyles.map((b) => (
-          <ChatBubble key={b.text} {...b} />
+        {bubbleStyles.map((bubble) => (
+          <ChatBubble key={bubble.text} {...bubble} />
         ))}
 
-        {/* Center content */}
-        <div className="relative z-10 flex flex-col items-center justify-center w-full px-12">
-          {/* Robot */}
+        <div className="relative z-10 flex w-full flex-col items-center justify-center px-10 xl:px-14">
           <RobotIllustration />
 
-          {/* Brand */}
           <motion.h1
-            className="mt-10 text-3xl font-extrabold text-white tracking-tight"
+            className="mt-10 text-center text-3xl font-black tracking-tight text-white xl:text-[2.6rem] xl:leading-tight"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.45 }}
@@ -174,29 +168,51 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
           </motion.h1>
 
           <motion.div
-            className="flex items-center gap-2 mt-3"
+            className="mt-3.5 inline-flex items-center gap-2 rounded-full border border-orange-300/25 bg-gradient-to-r from-orange-400/15 to-amber-300/10 px-4 py-1.5 shadow-lg shadow-orange-500/10"
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.55 }}
           >
-            <Zap size={14} className="text-accent-400" />
-            <span className="text-xs font-semibold text-accent-400 uppercase tracking-widest">
-              Plateforme propulsée par l'IA
+            <Zap size={14} className="text-orange-300" />
+            <span className="text-xs font-semibold uppercase tracking-widest text-amber-100">
+              Plateforme pilotée par l'IA
             </span>
           </motion.div>
 
           <motion.p
-            className="mt-4 text-sm text-slate-400 text-center max-w-xs leading-relaxed"
+            className="mt-5 max-w-md text-center text-[0.9rem] leading-relaxed text-slate-300/90"
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.65 }}
           >
-            Supervision intelligente et support automatisé pour opérateurs télécoms
+            Supervision intelligente et support automatisé pour la continuité des opérations télécom
+            B2B pendant la période de soutenance.
           </motion.p>
 
-          {/* Footer */}
+          <motion.div
+            className="mt-9 grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-3"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+          >
+            {LEFT_BADGES.map((badge) => (
+              <div
+                key={badge.value}
+                className="rounded-2xl border border-white/[0.12] bg-white/[0.07] px-3.5 py-3.5 backdrop-blur-md transition-colors duration-300 hover:bg-white/[0.1]"
+              >
+                <div className="mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-orange-300/15 bg-orange-400/10 text-orange-200">
+                  <badge.icon size={15} />
+                </div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-200/90">
+                  {badge.value}
+                </p>
+                <p className="mt-1 text-xs text-slate-400">{badge.label}</p>
+              </div>
+            ))}
+          </motion.div>
+
           <motion.p
-            className="absolute bottom-8 text-xs text-slate-500"
+            className="absolute bottom-8 text-xs text-slate-400/75"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
@@ -206,26 +222,18 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
         </div>
       </motion.div>
 
-      {/* ================================================================= */}
-      {/* RIGHT PANEL — Form area (white / dark adaptive)                   */}
-      {/* ================================================================= */}
       <motion.div
-        className="relative flex-1 flex flex-col min-h-screen
-                   bg-white dark:bg-slate-800 transition-colors duration-300"
+        className="relative flex min-h-screen flex-1 flex-col bg-white/95 transition-colors duration-300 dark:bg-slate-900"
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
       >
-        {/* Theme toggle + optional header */}
-        <div className="relative z-10 flex justify-end items-center gap-3 p-6 min-[900px]:p-8">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.10),transparent_22%),radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_26%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.12),transparent_22%),radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_28%)]" />
+
+        <div className="relative z-10 flex items-center justify-end gap-3 p-4 min-[900px]:p-6">
           <button
             onClick={toggleTheme}
-            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-700
-                       hover:bg-slate-200 dark:hover:bg-slate-600
-                       text-slate-500 dark:text-slate-400
-                       hover:text-slate-900 dark:hover:text-white
-                       border border-slate-200 dark:border-slate-600
-                       transition-all duration-200"
+            className="rounded-xl border border-slate-200 bg-slate-100 p-2.5 text-slate-500 transition-all duration-200 hover:bg-slate-200 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white"
             aria-label="Changer de thème"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -233,15 +241,13 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
           {rightHeader}
         </div>
 
-        {/* Centered form container */}
-        <div className="relative z-10 flex-1 flex items-center justify-center px-6 pb-8 min-[900px]:px-12">
-          <div className="w-full max-w-md">{children}</div>
+        <div className="relative z-10 flex flex-1 items-center justify-center px-6 pb-8 pt-1 min-[900px]:px-12 min-[900px]:pb-10">
+          <div className="w-full max-w-[42rem]">{children}</div>
         </div>
 
-        {/* Mobile branding (visible only on small screens) */}
-        <div className="lg:hidden flex items-center justify-center gap-2 pb-6 text-xs text-slate-400">
+        <div className="flex items-center justify-center gap-2 pb-5 text-xs text-slate-400 lg:hidden">
           <Bot size={14} className="text-accent-500" />
-          <span>MTS Telecom · Billcom Consulting</span>
+          <span>MTS Telecom · Billcom Consulting · Auth sécurisé</span>
         </div>
       </motion.div>
     </div>

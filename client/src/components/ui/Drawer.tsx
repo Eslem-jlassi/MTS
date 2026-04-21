@@ -14,6 +14,7 @@ interface DrawerProps {
   /** "left" | "right" */
   side?: "left" | "right";
   width?: "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
+  contentClassName?: string;
 }
 
 const widthClasses = {
@@ -32,6 +33,7 @@ const Drawer: React.FC<DrawerProps> = ({
   children,
   side = "right",
   width = "md",
+  contentClassName,
 }) => {
   useEffect(() => {
     if (!isOpen) return;
@@ -45,6 +47,8 @@ const Drawer: React.FC<DrawerProps> = ({
       document.body.style.overflow = "";
     };
   }, [isOpen, onClose]);
+
+  const bodyClassName = contentClassName ?? "flex-1 overflow-y-auto p-5";
 
   return (
     <AnimatePresence>
@@ -96,7 +100,7 @@ const Drawer: React.FC<DrawerProps> = ({
                 </button>
               </div>
             )}
-            <div className="flex-1 overflow-y-auto p-5">{children}</div>
+            <div className={bodyClassName}>{children}</div>
           </motion.aside>
         </div>
       )}

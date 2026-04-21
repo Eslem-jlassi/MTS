@@ -1,9 +1,11 @@
 package com.billcom.mts.repository;
 
 import com.billcom.mts.entity.TicketComment;
+import com.billcom.mts.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -35,4 +37,8 @@ public interface TicketCommentRepository extends JpaRepository<TicketComment, Lo
     long countByTicketId(Long ticketId);
 
     long countByAuthorId(Long authorId);
+
+    @Modifying
+    @Query("UPDATE TicketComment c SET c.author = :replacementUser WHERE c.author.id = :authorId")
+    int reassignAuthor(@Param("authorId") Long authorId, @Param("replacementUser") User replacementUser);
 }

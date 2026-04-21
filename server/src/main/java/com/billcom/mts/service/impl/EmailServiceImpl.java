@@ -29,6 +29,10 @@ public class EmailServiceImpl implements EmailService {
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
+    private static final String EMAIL_BRAND_TITLE = "MTS Telecom";
+    private static final String EMAIL_SAFE_NOTICE =
+            "Cet email est emis automatiquement. Si vous n'etes pas concerne, ignorez-le.";
+
     private final JavaMailSender mailSender;
 
     @Value("${app.mail.enabled:false}")
@@ -98,16 +102,22 @@ public class EmailServiceImpl implements EmailService {
     @Override
     public void sendPasswordResetEmail(String toEmail, String resetToken) {
         String resetUrl = buildFrontendUrl("/reset-password?token=" + encode(resetToken));
+        String safeResetUrl = escapeHtml(resetUrl);
+
         sendEmail(
                 toEmail,
                 "Reinitialisation de votre mot de passe MTS Telecom",
-                "Utilisez ce lien pour reinitialiser votre mot de passe: " + resetUrl,
-                """
-                <p>Bonjour,</p>
-                <p>Une demande de reinitialisation de mot de passe a ete effectuee pour votre compte MTS Telecom.</p>
-                <p><a href="%s">Definir un nouveau mot de passe</a></p>
-                <p>Si vous n'etes pas a l'origine de cette demande, vous pouvez ignorer cet email.</p>
-                """.formatted(escapeHtml(resetUrl)),
+                "Une demande de reinitialisation a ete recue. Utilisez ce lien: " + resetUrl,
+                buildEmailLayout(
+                        "Reinitialisation du mot de passe",
+                        """
+                        <p>Bonjour,</p>
+                        <p>Nous avons recu une demande de reinitialisation pour votre compte MTS Telecom.</p>
+                        %s
+                        <p>Pour votre securite, ce lien est a usage unique et expire rapidement.</p>
+                        <p>Si vous n'etes pas a l'origine de cette demande, vous pouvez ignorer ce message.</p>
+                        """.formatted(buildActionButton(safeResetUrl, "Definir un nouveau mot de passe"))
+                ),
                 true);
     }
 
@@ -117,42 +127,49 @@ public class EmailServiceImpl implements EmailService {
             String recipientName,
             String verificationToken,
             LocalDateTime expiresAt) {
-        String verificationUrl = buildFrontendUrl("/verify-email?token=" + encode(verificationToken));
+        String verificationUrl = buildFrontendUrl(
+                "/verify-email?token=" + encode(verificationToken) + "&email=" + encode(toEmail)
+        );
         String safeRecipientName = StringUtils.hasText(recipientName) ? recipientName.trim() : "Bonjour";
         String expiresLabel = expiresAt != null ? DATE_FORMATTER.format(expiresAt) : "bientot";
+        String safeVerificationUrl = escapeHtml(verificationUrl);
+        String safeExpiresLabel = escapeHtml(expiresLabel);
 
         sendEmail(
                 toEmail,
                 "Verification de votre adresse email MTS Telecom",
                 "Confirmez votre adresse email via ce lien: " + verificationUrl,
-                """
-                <p>Bonjour %s,</p>
-                <p>Bienvenue sur la plateforme intelligente de supervision MTS Telecom.</p>
-                <p>Pour activer votre compte, merci de verifier votre adresse email via le lien ci-dessous :</p>
-                <p><a href="%s">Verifier mon adresse email</a></p>
-                <p>Ce lien expire le <strong>%s</strong>.</p>
-                <p>Si vous n'etes pas a l'origine de cette creation de compte, ignorez simplement cet email.</p>
-                """.formatted(
-                        escapeHtml(safeRecipientName),
-                        escapeHtml(verificationUrl),
-                        escapeHtml(expiresLabel)),
+                buildEmailLayout(
+                        "Verification de votre compte",
+                        """
+                        <p>Bonjour %s,</p>
+                        <p>Votre compte MTS Telecom vient d'etre cree.</p>
+                        <p>Pour finaliser l'activation, confirmez votre adresse email :</p>
+                        %s
+                        <p>Ce lien expire le <strong>%s</strong>.</p>
+                        <p>Si vous n'etes pas a l'origine de cette creation de compte, aucune action n'est requise.</p>
+                        """.formatted(
+                                escapeHtml(safeRecipientName),
+                                buildActionButton(safeVerificationUrl, "Verifier mon adresse email"),
+                                safeExpiresLabel)
+                ),
                 true);
     }
 
-            @Override
-            public void sendSensitiveActionCodeEmail(
-                String toEmail,
-                String recipientName,
-                String verificationCode,
-                LocalDateTime expiresAt,
-                String actionLabel) {
-            String safeRecipientName = StringUtils.hasText(recipientName) ? recipientName.trim() : "Administrateur";
-            String safeActionLabel = StringUtils.hasText(actionLabel)
-                ? actionLabel.trim()
-                : "cette action sensible";
-            String expiresLabel = expiresAt != null ? DATE_FORMATTER.format(expiresAt) : "bientot";
+    @Override
+    public void sendSensitiveActionCodeEmail(
+            String toEmail,
+            String recipientName,
+            String verificationCode,
+            LocalDateTime expiresAt,
+            String actionLabel) {
+        String safeRecipientName = StringUtils.hasText(recipientName) ? recipientName.trim() : "Administrateur";
+        String safeActionLabel = StringUtils.hasText(actionLabel)
+            ? actionLabel.trim()
+            : "cette action sensible";
+        String expiresLabel = expiresAt != null ? DATE_FORMATTER.format(expiresAt) : "bientot";
 
-            sendEmail(
+        sendEmail(
                 toEmail,
                 "Code de verification admin - MTS Telecom",
                 "Votre code de verification est: " + verificationCode,
@@ -164,12 +181,12 @@ public class EmailServiceImpl implements EmailService {
                 <p>Ce code expire le <strong>%s</strong>.</p>
                 <p>Si vous n'etes pas a l'origine de cette operation, contactez immediatement un administrateur de securite.</p>
                 """.formatted(
-                    escapeHtml(safeRecipientName),
-                    escapeHtml(safeActionLabel),
-                    escapeHtml(verificationCode),
-                    escapeHtml(expiresLabel)),
+                        escapeHtml(safeRecipientName),
+                        escapeHtml(safeActionLabel),
+                        escapeHtml(verificationCode),
+                        escapeHtml(expiresLabel)),
                 true);
-            }
+    }
 
     private void sendEmail(
             String toEmail,
@@ -231,6 +248,41 @@ public class EmailServiceImpl implements EmailService {
                 : frontendBaseUrl;
         return normalizedBase + relativePath;
     }
+
+        private String buildActionButton(String safeUrl, String label) {
+                return """
+                                <p style=\"margin: 24px 0;\">
+                                    <a href=\"%s\" style=\"display:inline-block;padding:12px 18px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">%s</a>
+                                </p>
+                                <p style=\"margin-top: 0; font-size: 12px; color: #64748b; word-break: break-all;\">Ou copiez ce lien dans votre navigateur : %s</p>
+                                """.formatted(safeUrl, escapeHtml(label), safeUrl);
+        }
+
+        private String buildEmailLayout(String title, String innerHtml) {
+                return """
+                                <div style=\"margin:0;padding:24px;background:#f8fafc;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;\">
+                                    <table role=\"presentation\" style=\"max-width:640px;width:100%%;margin:0 auto;border-collapse:collapse;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;\">
+                                        <tr>
+                                            <td style=\"padding:16px 20px;background:#0f172a;color:#e2e8f0;font-size:14px;font-weight:600;\">%s</td>
+                                        </tr>
+                                        <tr>
+                                            <td style=\"padding:24px 20px 18px 20px;\">
+                                                <h2 style=\"margin:0 0 12px 0;font-size:20px;color:#0f172a;\">%s</h2>
+                                                %s
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style=\"padding:0 20px 20px 20px;font-size:12px;color:#64748b;\">%s</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                """.formatted(
+                                escapeHtml(EMAIL_BRAND_TITLE),
+                                escapeHtml(title),
+                                innerHtml,
+                                escapeHtml(EMAIL_SAFE_NOTICE)
+                );
+        }
 
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);

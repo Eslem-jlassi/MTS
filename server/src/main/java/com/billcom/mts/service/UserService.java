@@ -65,13 +65,13 @@ public interface UserService {
      * Permanently delete an internal user account when business dependencies
      * make the operation safe.
      */
-    void hardDeleteUserByAdmin(Long userId);
+    void hardDeleteUserByAdmin(Long userId, User currentAdmin);
 
     /**
      * Permanently delete a client account when the related client profile is safe
      * to remove.
      */
-    void hardDeleteClientAccountByAdmin(Long userId);
+    void hardDeleteClientAccountByAdmin(Long userId, User currentAdmin);
 
     /**
      * Get all users with pagination.

@@ -14,6 +14,7 @@ import {
   Activity,
   Trash2,
 } from "lucide-react";
+import { getErrorMessage } from "../api/client";
 import { incidentService } from "../api/incidentService";
 import { usePermissions } from "../hooks/usePermissions";
 import { useToast } from "../context/ToastContext";
@@ -26,7 +27,9 @@ import {
   Severity,
 } from "../types";
 import { Card, Button, EmptyState, ErrorState, Badge, ConfirmModal } from "../components/ui";
+import { isManagerCopilotAllowedRole } from "../components/manager-copilot/managerCopilotUi";
 import { formatDateTime } from "../utils/formatters";
+import { getAdminHardDeleteErrorMessage } from "../utils/hardDeleteFeedback";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 
@@ -58,7 +61,6 @@ export default function IncidentsPage() {
 
   const [incidentToDelete, setIncidentToDelete] = useState<Incident | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteTargetIdInput, setDeleteTargetIdInput] = useState("");
   const [deletePassword, setDeletePassword] = useState("");
   const [deleteVerificationCode, setDeleteVerificationCode] = useState("");
   const [isSendingDeleteCode, setIsSendingDeleteCode] = useState(false);
@@ -66,14 +68,20 @@ export default function IncidentsPage() {
   const currentUser = useSelector((state: RootState) => state.auth.user);
   const isAdmin = currentUser?.role === ("ADMIN" as UserRole);
   const isOauthAdmin = Boolean(isAdmin && currentUser?.oauthProvider);
+  const isManagerCopilotContext = isManagerCopilotAllowedRole(currentUser?.role);
+  const getIncidentHardDeleteIdentifier = (incident: Incident) =>
+    incident.incidentNumber?.trim() || "";
+  const isIncidentHardDeleteReauthValid = isOauthAdmin
+    ? deleteVerificationCode.trim().length > 0
+    : deletePassword.trim().length > 0;
+  const isIncidentHardDeleteFormInvalid =
+    !incidentToDelete || !isIncidentHardDeleteReauthValid;
 
   const handleDeleteConfirm = async () => {
     if (!incidentToDelete) return;
 
-    if (deleteTargetIdInput.trim() !== String(incidentToDelete.id)) {
-      toast.error("L'identifiant exact de l'incident est requis.");
-      return;
-    }
+    const providedIncidentIdentifier =
+      getIncidentHardDeleteIdentifier(incidentToDelete) || String(incidentToDelete.id);
 
     if (!isOauthAdmin && !deletePassword.trim()) {
       toast.error("Saisissez votre mot de passe administrateur pour confirmer.");
@@ -89,15 +97,21 @@ export default function IncidentsPage() {
     try {
       await incidentService.hardDeleteIncident(incidentToDelete.id, {
         confirmationKeyword: "SUPPRIMER",
-        confirmationTargetId: String(incidentToDelete.id),
+        confirmationTargetId: providedIncidentIdentifier,
         currentPassword: isOauthAdmin ? undefined : deletePassword,
         verificationCode: isOauthAdmin ? deleteVerificationCode : undefined,
       });
-      toast.success(`Incident ${incidentToDelete.incidentNumber} supprimé définitivement`);
+      toast.success(`Incident ${incidentToDelete.incidentNumber} supprime definitivement`);
       setIncidentToDelete(null);
       load();
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || err?.message || "Erreur lors de la suppression");
+      toast.error(
+        getAdminHardDeleteErrorMessage(
+          "incident",
+          err,
+          "Suppression definitive impossible pour cet incident.",
+        ),
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -150,19 +164,22 @@ export default function IncidentsPage() {
 
   useEffect(() => {
     if (incidentToDelete) {
-      setDeleteTargetIdInput("");
       setDeletePassword("");
       setDeleteVerificationCode("");
       return;
     }
 
-    setDeleteTargetIdInput("");
     setDeletePassword("");
     setDeleteVerificationCode("");
   }, [incidentToDelete]);
 
   const routeServiceFilter = useMemo(() => {
-    const value = Number(searchParams.get("serviceId"));
+    const rawValue = searchParams.get("serviceId");
+    if (!rawValue) {
+      return undefined;
+    }
+
+    const value = Number(rawValue);
     return Number.isNaN(value) ? undefined : value;
   }, [searchParams]);
 
@@ -226,32 +243,27 @@ export default function IncidentsPage() {
         isOpen={!!incidentToDelete}
         onClose={() => setIncidentToDelete(null)}
         onConfirm={handleDeleteConfirm}
-        title="Supprimer définitivement l'incident ?"
+        title="Supprimer definitivement l'incident ?"
         message={
           incidentToDelete ? (
             <>
               <p>
-                Vous êtes sur le point de supprimer définitivement l'incident{" "}
+                Vous etes sur le point de supprimer definitivement l'incident{" "}
                 <strong>{incidentToDelete.incidentNumber}</strong>.
               </p>
               <p className="mt-2 text-sm">
-                Cette action est <strong>irréversible</strong> et supprimera également toutes les
-                notes et relations associées (les tickets liés seront conservés mais détachés).
+                Cette action est <strong>irreversible</strong> et supprimera egalement les notes,
+                le suivi et les relations associees. Les tickets lies seront conserves mais
+                detaches proprement.
               </p>
               <div className="mt-3 space-y-3 rounded-xl border border-ds-border bg-ds-surface/70 p-3 text-left">
-                <div>
-                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
-                    Identifiant exact de l'incident
-                  </label>
-                  <input
-                    type="text"
-                    value={deleteTargetIdInput}
-                    onChange={(event) => setDeleteTargetIdInput(event.target.value)}
-                    className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
-                    placeholder={`Tapez ${incidentToDelete.id}`}
-                    autoComplete="off"
-                  />
-                </div>
+                <p className="rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-xs text-ds-secondary">
+                  Reference affichee pour controle :{" "}
+                  <span className="font-semibold text-ds-primary">
+                    {getIncidentHardDeleteIdentifier(incidentToDelete) ||
+                      `ID ${incidentToDelete.id}`}
+                  </span>
+                </p>
 
                 {isOauthAdmin ? (
                   <div>
@@ -299,12 +311,13 @@ export default function IncidentsPage() {
             ""
           )
         }
-        confirmLabel="Supprimer"
+        confirmLabel="Supprimer definitivement"
         cancelLabel="Annuler"
         variant="danger"
         loading={isDeleting}
+        confirmDisabled={isIncidentHardDeleteFormInvalid}
         confirmationKeyword="SUPPRIMER"
-        confirmationHint="Tapez SUPPRIMER, puis confirmez l'ID exact et la re-authentification admin."
+        confirmationHint="Tapez SUPPRIMER, puis confirmez votre re-authentification administrateur."
       />
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -315,7 +328,9 @@ export default function IncidentsPage() {
           </p>
           {routeServiceFilter != null && (
             <p className="mt-2 text-xs font-medium text-primary-600 dark:text-primary-300">
-              Filtre ALLIE actif sur le service #{routeServiceFilter}
+              {isManagerCopilotContext
+                ? `Filtre ALLIE actif sur le service #${routeServiceFilter}`
+                : `Filtre de service actif sur le service #${routeServiceFilter}`}
             </p>
           )}
         </div>
@@ -349,7 +364,7 @@ export default function IncidentsPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-red-500/20 text-red-600 dark:text-red-400">
               <Activity size={20} />
@@ -360,7 +375,7 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400">
               <AlertTriangle size={20} />
@@ -371,7 +386,7 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-green-500/20 text-green-600 dark:text-green-400">
               <ChevronUp size={20} />
@@ -382,7 +397,7 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm">
+        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400">
               <Shield size={20} />
@@ -410,7 +425,7 @@ export default function IncidentsPage() {
 
       {/* Filtres */}
       {showFilters && (
-        <Card padding="md">
+        <Card padding="md" className="border border-ds-border/80">
           <div className="flex flex-wrap items-center gap-3">
             <span className="flex items-center gap-2 text-sm font-medium text-ds-primary">
               <Filter size={18} /> Filtres
@@ -444,7 +459,7 @@ export default function IncidentsPage() {
       )}
 
       {/* Tableau des incidents */}
-      <Card padding="none" className="overflow-hidden">
+      <Card padding="none" className="overflow-hidden border border-ds-border/80">
         {loading && incidents.length === 0 ? (
           <div className="py-12 text-center text-ds-secondary">Chargement…</div>
         ) : error ? (

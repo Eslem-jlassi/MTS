@@ -114,12 +114,16 @@ Le mode demo est volontairement explicite.
 
 - [Index documentation](docs/README.md)
 - [Guide de lancement/deploiement](docs/DEPLOYMENT.md)
+- [Checklist smoke defense](docs/DEFENSE_SMOKE_CHECKLIST.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Contrats API](docs/API_CONTRACTS.md)
 - [Matrice RBAC](docs/RBAC_MATRIX.md)
 - [Base de donnees](docs/DATABASE.md)
 - [Guide soutenance](docs/DEMO_JURY.md)
 - [Checklist soutenance finale](docs/DEMO_JURY_FINAL_CHECKLIST.md)
+- [Archives documentation](docs/archive/legacy/README.md)
+- [Archives integration](docs/archive/integration/README.md)
+- [Archives evidence](docs/archive/evidence/README.md)
 - [Readiness deploiement (Lot 8)](docs/final-audit/progress/lot-8-deploy-readiness.md)
 - [Progression des lots](docs/final-audit/progress/)
 
@@ -128,5 +132,6 @@ Le mode demo est volontairement explicite.
 - Le backend navigateur suit un modele `cookie-first` avec cookies HttpOnly.
 - La source de verite RBAC est le backend, pas l'UI.
 - `docker-compose.yml` est la source de verite du lancement conteneurise.
-- `INTEGRATION_DOCKER/docker-compose-full.yml` reste un fichier de compatibilite documentaire.
+- Les integrations historiques ont ete archivees sous `docs/archive/integration/`.
+- Les preuves de smoke/QA historiques ont ete sorties de la racine vers `docs/archive/evidence/`.
 - Les scripts historiques non officiels ont ete sortis du flux principal et archives dans `scripts/legacy/` quand ils n'etaient plus utiles au runtime.

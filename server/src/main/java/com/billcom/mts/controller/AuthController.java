@@ -58,6 +58,9 @@ public class AuthController {
     @Value("${auth.expose-tokens-in-body:false}")
     private boolean exposeTokensInBody;
 
+    @Value("${app.google.client-id:}")
+    private String googleClientId;
+
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Inscrit un nouvel utilisateur (client par defaut)")
@@ -82,6 +85,29 @@ public class AuthController {
         AuthResponse authResponse = authService.googleLogin(request.getToken(), resolveClientIp(httpRequest));
         writeAuthCookies(authResponse, response);
         return sanitizeBrowserResponse(authResponse);
+    }
+
+    @GetMapping("/google/config")
+    @Operation(summary = "Expose la disponibilite de la connexion Google cote backend")
+    public ResponseEntity<Map<String, Object>> googleConfig() {
+        String normalizedGoogleClientId = googleClientId == null ? "" : googleClientId.trim();
+        boolean hasClientId = StringUtils.hasText(normalizedGoogleClientId);
+        boolean enabled = hasClientId
+                && normalizedGoogleClientId.endsWith(".apps.googleusercontent.com");
+
+        String reason;
+        if (!hasClientId) {
+            reason = "missing-client-id";
+        } else if (!enabled) {
+            reason = "invalid-client-id";
+        } else {
+            reason = "configured";
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "enabled", enabled,
+                "reason", reason
+        ));
     }
 
     @PostMapping("/login")
@@ -209,6 +235,8 @@ public class AuthController {
                     .sameSite("Lax")
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
+        } else {
+            response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(AUTH_TOKEN, "/").toString());
         }
 
         if (StringUtils.hasText(authResponse.getRefreshToken())) {
@@ -220,27 +248,14 @@ public class AuthController {
                     .sameSite("Lax")
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        } else {
+            response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(REFRESH_TOKEN, "/api/auth/refresh").toString());
         }
     }
 
     private void clearAuthCookies(HttpServletResponse response) {
-        ResponseCookie accessCookie = ResponseCookie.from(AUTH_TOKEN, "")
-                .httpOnly(true)
-                .maxAge(0)
-                .path("/")
-                .secure(cookieSecure)
-                .sameSite("Lax")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
-
-        ResponseCookie refreshCookie = ResponseCookie.from(REFRESH_TOKEN, "")
-                .httpOnly(true)
-                .maxAge(0)
-                .path("/api/auth/refresh")
-                .secure(cookieSecure)
-                .sameSite("Lax")
-                .build();
-        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(AUTH_TOKEN, "/").toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie(REFRESH_TOKEN, "/api/auth/refresh").toString());
     }
 
     private AuthResponse sanitizeBrowserResponse(AuthResponse authResponse) {
@@ -294,5 +309,15 @@ public class AuthController {
         }
 
         throw new UnauthorizedException("Utilisateur authentifie introuvable");
+    }
+
+    private ResponseCookie expiredCookie(String cookieName, String path) {
+        return ResponseCookie.from(cookieName, "")
+                .httpOnly(true)
+                .maxAge(0)
+                .path(path)
+                .secure(cookieSecure)
+                .sameSite("Lax")
+                .build();
     }
 }

@@ -15,6 +15,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { RootState } from "../../redux/store";
@@ -53,7 +54,9 @@ import {
   Send,
   Loader2,
   Shield,
+  Lock,
   UserPlus,
+  UserCheck,
   UserMinus,
   Upload,
   Download,
@@ -62,6 +65,7 @@ import {
   RefreshCw,
   ChevronDown,
   X,
+  Trash2,
   Brain,
   Zap,
   ThumbsUp,
@@ -84,6 +88,7 @@ import {
   buildManagerCopilotTicketContext,
   type ManagerCopilotTicketActionId,
 } from "../manager-copilot/managerCopilotTicketContext";
+import { isManagerCopilotAllowedRole } from "../manager-copilot/managerCopilotUi";
 import { useManagerCopilot } from "../manager-copilot/useManagerCopilot";
 
 // =============================================================================
@@ -96,6 +101,7 @@ interface TicketDrawerProps {
   requestedTab?: string;
   actionContext?: string;
   onClose: () => void;
+  onRequestHardDelete?: (ticket: Ticket) => void;
   onTicketUpdated?: () => void; // callback pour rafraîchir la liste
 }
 
@@ -248,6 +254,104 @@ const dedupeIncidents = (items: Incident[]): Incident[] => {
   });
 };
 
+const normalizeAiFallbackMessage = (message: string, defaultMessage: string): string => {
+  const cleaned = message
+    .replace(/\s*V[eé]rifiez que le service Python tourne sur\s+https?:\/\/\S+\.?/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!cleaned) {
+    return defaultMessage;
+  }
+
+  return cleaned.endsWith(".") ? cleaned : `${cleaned}.`;
+};
+
+const buildSentimentFallback = (message: string): SentimentResponse => {
+  const normalizedMessage = normalizeAiFallbackMessage(
+    message,
+    "Analyse IA temporairement indisponible.",
+  );
+
+  return {
+    available: true,
+    message: normalizedMessage,
+    category: "N/A",
+    priority: "LOW",
+    service: "N/A",
+    urgency: "NORMAL",
+    sentiment: "NEUTRE",
+    criticality: "NORMAL",
+    confidence: 0,
+    reasoning: normalizedMessage,
+    score: 0,
+    label: "SERVICE_UNAVAILABLE",
+    details: normalizedMessage,
+    stars: 0,
+    is_angry: false,
+    priority_flag: "NORMAL",
+    model_version: "sentiment-hybrid-2.1.0",
+    fallback_mode: "service_unavailable",
+    reasoning_steps: ["Service IA indisponible, qualification manuelle recommandée."],
+    recommended_actions: [
+      "Poursuivre la qualification manuelle et relancer l'analyse IA plus tard.",
+    ],
+    risk_flags: ["SERVICE_UNAVAILABLE"],
+    missing_information: [],
+    sources: ["ui-fallback"],
+    latency_ms: 0,
+  };
+};
+
+const buildDuplicateFallback = (message: string): DuplicateResponse => {
+  const normalizedMessage = normalizeAiFallbackMessage(
+    message,
+    "Detection de doublons temporairement indisponible.",
+  );
+
+  return {
+    available: true,
+    message: normalizedMessage,
+    is_duplicate: false,
+    possible_mass_incident: false,
+    duplicate_confidence: 0,
+    confidence: 0,
+    matched_tickets: [],
+    reasoning: normalizedMessage,
+    recommendation:
+      "Aucun rapprochement automatique disponible. Poursuivre la vérification manuelle.",
+    model_version: "duplicate-detector-1.1.0",
+    fallback_mode: "service_unavailable",
+    reasoning_steps: ["Service IA indisponible, vérification manuelle nécessaire."],
+    recommended_actions: ["Comparer manuellement avec les tickets recents."],
+    risk_flags: ["SERVICE_UNAVAILABLE"],
+    missing_information: [],
+    sources: ["ui-fallback"],
+    latency_ms: 0,
+  };
+};
+
+const resolveUserDisplayName = (
+  user: Pick<UserResponse, "fullName" | "firstName" | "lastName" | "email"> | null | undefined,
+): string => {
+  if (!user) {
+    return "Agent";
+  }
+
+  const fullName = user.fullName?.trim();
+  if (fullName) {
+    return fullName;
+  }
+
+  const composedName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
+  if (composedName) {
+    return composedName;
+  }
+
+  const email = user.email?.trim();
+  return email || "Agent";
+};
+
 // =============================================================================
 // COMPOSANT PRINCIPAL
 // =============================================================================
@@ -258,16 +362,18 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   requestedTab,
   actionContext,
   onClose,
+  onRequestHardDelete,
   onTicketUpdated,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
   const userRole = user?.role as UserRole | undefined;
-  const isStaff = userRole && ["ADMIN", "MANAGER", "AGENT"].includes(userRole);
-  const canAssign = userRole && ["ADMIN", "MANAGER"].includes(userRole);
+  const isAdmin = userRole === UserRole.ADMIN;
+  const isStaff = Boolean(userRole && ["ADMIN", "MANAGER", "AGENT"].includes(userRole));
+  const canAssign = userRole === UserRole.ADMIN || userRole === UserRole.MANAGER;
   const canChangeStatus = isStaff;
-  const isManagerContext = userRole === UserRole.MANAGER || userRole === UserRole.ADMIN;
+  const isManagerContext = userRole === UserRole.MANAGER && isManagerCopilotAllowedRole(userRole);
 
   // --- Core state ---
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -304,11 +410,14 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   const [agents, setAgents] = useState<UserResponse[]>([]);
   const [loadingAgents, setLoadingAgents] = useState(false);
   const [submittingAssign, setSubmittingAssign] = useState(false);
+  const [assignDropdownStyle, setAssignDropdownStyle] = useState<React.CSSProperties>({});
 
   // --- Attachments ---
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const assignmentPanelRef = useRef<HTMLDivElement>(null);
+  const assignmentButtonRef = useRef<HTMLButtonElement>(null);
+  const assignmentDropdownRef = useRef<HTMLDivElement>(null);
 
   // --- Sentiment Analysis ---
   const [sentiment, setSentiment] = useState<SentimentResponse | null>(null);
@@ -319,9 +428,11 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   const [duplicates, setDuplicates] = useState<DuplicateResponse | null>(null);
   const [duplicatesLoading, setDuplicatesLoading] = useState(false);
   const [duplicatesError, setDuplicatesError] = useState<string | null>(null);
+  const canRequestHardDelete = Boolean(isAdmin && ticket);
   const { snapshot: managerCopilotSnapshot } = useManagerCopilot({
     enabled: Boolean(isOpen && isManagerContext && ticket?.serviceId),
     filters: ticket?.serviceId ? { serviceId: ticket.serviceId } : undefined,
+    role: userRole,
   });
 
   useEffect(() => {
@@ -374,7 +485,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         );
         setSentiment(result);
       } catch (error) {
-        setSentimentError(getErrorMessage(error));
+        setSentiment(buildSentimentFallback(getErrorMessage(error)));
+        setSentimentError(null);
       } finally {
         setSentimentLoading(false);
       }
@@ -423,7 +535,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         );
         setDuplicates(result);
       } catch (error) {
-        setDuplicatesError(getErrorMessage(error));
+        setDuplicates(buildDuplicateFallback(getErrorMessage(error)));
+        setDuplicatesError(null);
       } finally {
         setDuplicatesLoading(false);
       }
@@ -651,7 +764,126 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     }
   }, []);
 
-  const handleAssign = async (agentId: number, agentName?: string) => {
+  const closeAssignDropdown = useCallback((restoreFocus = false) => {
+    setShowAssignDropdown(false);
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => {
+        assignmentButtonRef.current?.focus();
+      });
+    }
+  }, []);
+
+  const updateAssignDropdownPosition = useCallback(() => {
+    const trigger = assignmentButtonRef.current;
+    if (!trigger) {
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const viewportPadding = 16;
+    const gap = 8;
+    const minMenuHeight = 160;
+    const preferredMenuHeight = 280;
+    const availableBelow = window.innerHeight - rect.bottom - viewportPadding - gap;
+    const availableAbove = rect.top - viewportPadding - gap;
+    const openAbove = availableBelow < minMenuHeight && availableAbove > availableBelow;
+    const usableHeight = openAbove ? availableAbove : availableBelow;
+    const maxHeight = Math.max(144, Math.min(preferredMenuHeight, usableHeight));
+    const minDropdownWidth = Math.min(360, window.innerWidth - viewportPadding * 2);
+    const width = Math.min(
+      Math.max(rect.width, minDropdownWidth),
+      window.innerWidth - viewportPadding * 2,
+    );
+    const left = Math.min(
+      Math.max(rect.left, viewportPadding),
+      window.innerWidth - viewportPadding - width,
+    );
+    const top = openAbove
+      ? Math.max(viewportPadding, rect.top - gap - maxHeight)
+      : Math.min(window.innerHeight - viewportPadding - maxHeight, rect.bottom + gap);
+
+    setAssignDropdownStyle({
+      position: "fixed",
+      top,
+      left,
+      width,
+      maxHeight,
+      zIndex: 140,
+    });
+  }, []);
+
+  const openAssignDropdown = useCallback(() => {
+    if (!canAssign) {
+      return;
+    }
+    setShowAssignDropdown(true);
+    if (agents.length === 0) {
+      void loadAgents();
+    }
+  }, [agents.length, canAssign, loadAgents]);
+
+  const toggleAssignDropdown = useCallback(() => {
+    if (!canAssign) {
+      return;
+    }
+    if (showAssignDropdown) {
+      closeAssignDropdown();
+      return;
+    }
+    openAssignDropdown();
+  }, [canAssign, closeAssignDropdown, openAssignDropdown, showAssignDropdown]);
+
+  useEffect(() => {
+    if (!showAssignDropdown) {
+      return;
+    }
+
+    updateAssignDropdownPosition();
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (assignmentDropdownRef.current?.contains(target)) {
+        return;
+      }
+      if (assignmentButtonRef.current?.contains(target)) {
+        return;
+      }
+      closeAssignDropdown();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeAssignDropdown(true);
+      }
+    };
+
+    const handleViewportChange = () => {
+      updateAssignDropdownPosition();
+    };
+
+    const focusFirstOption = window.requestAnimationFrame(() => {
+      updateAssignDropdownPosition();
+      assignmentDropdownRef.current
+        ?.querySelector<HTMLButtonElement>("[data-assign-option]")
+        ?.focus();
+    });
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    return () => {
+      window.cancelAnimationFrame(focusFirstOption);
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [closeAssignDropdown, showAssignDropdown, updateAssignDropdownPosition]);
+
+  const handleAssign = async (agentId: number) => {
     if (!ticket) return;
     setSubmittingAssign(true);
     try {
@@ -659,7 +891,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
       const agent = agents.find((a) => a.id === agentId);
       setShowAssignDropdown(false);
       setToast({
-        message: `Assigne a ${agentName || agent?.fullName || "l'agent"}`,
+        message: `Assigne a ${resolveUserDisplayName(agent)}`,
         type: "success",
       });
       await loadTicket();
@@ -684,6 +916,97 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     } finally {
       setSubmittingAssign(false);
     }
+  };
+
+  const renderAssignDropdownPortal = () => {
+    if (!showAssignDropdown || !ticket) {
+      return null;
+    }
+
+    const currentAssignmentLabel = ticket.assignedToName || "Non assigné";
+
+    return createPortal(
+      <div
+        ref={assignmentDropdownRef}
+        id={`ticket-assignment-menu-${ticket.id}`}
+        role="menu"
+        aria-label="Menu d'assignation du ticket"
+        data-testid="ticket-assignment-menu"
+        className="flex flex-col overflow-hidden rounded-xl border border-ds-border bg-ds-card shadow-dropdown backdrop-blur-sm"
+        style={assignDropdownStyle}
+      >
+        <div className="border-b border-ds-border bg-ds-elevated/55 px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-ds-muted">
+            Affectation actuelle
+          </p>
+          <p className="truncate text-sm font-semibold text-ds-primary">{currentAssignmentLabel}</p>
+        </div>
+        <div
+          className="min-h-0 flex-1 overflow-y-auto py-1"
+          style={{ scrollbarWidth: "thin", overscrollBehavior: "contain" }}
+        >
+          {ticket.assignedToId && (
+            <button
+              type="button"
+              data-assign-option
+              role="menuitem"
+              onClick={() => {
+                void handleUnassign();
+                closeAssignDropdown();
+              }}
+              className="flex w-full items-center gap-2 border-b border-ds-border px-3 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              <UserMinus size={14} />
+              Désassigner
+            </button>
+          )}
+          {loadingAgents ? (
+            <div className="px-3 py-4 text-center text-sm text-ds-muted">
+              <Loader2 size={16} className="mr-2 inline animate-spin" />
+              Chargement...
+            </div>
+          ) : agents.length === 0 ? (
+            <div className="px-3 py-3 text-center text-sm text-ds-muted">Aucun agent</div>
+          ) : (
+            agents.map((agent) => {
+              const displayName = resolveUserDisplayName(agent);
+              const isCurrentAssignee = agent.id === ticket.assignedToId;
+
+              return (
+                <button
+                  key={agent.id}
+                  type="button"
+                  data-assign-option
+                  role="menuitem"
+                  disabled={isCurrentAssignee}
+                  onClick={() => {
+                    void handleAssign(agent.id);
+                    closeAssignDropdown();
+                  }}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-ds-elevated disabled:cursor-default disabled:opacity-100 ${
+                    isCurrentAssignee ? "bg-primary-50 dark:bg-primary-900/20" : ""
+                  }`}
+                >
+                  <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary-500 text-xs font-bold text-white">
+                    {displayName.charAt(0).toUpperCase() || "?"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-ds-primary">{displayName}</p>
+                    {agent.email && <p className="truncate text-xs text-ds-muted">{agent.email}</p>}
+                  </div>
+                  {isCurrentAssignee && (
+                    <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[11px] font-semibold text-primary-700 dark:bg-primary-900/30 dark:text-primary-200">
+                      Actuel
+                    </span>
+                  )}
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>,
+      document.body,
+    );
   };
 
   const handleUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -811,25 +1134,25 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         },
         {
           label: "Assignation",
-          value: ticket.assignedToName || "Non assigne",
+          value: ticket.assignedToName || "Non assigné",
           helper:
             canAssign && isAssignmentLocked
-              ? "Verrouillee"
+              ? "Verrouillée"
               : ticket.assignedToId
                 ? "En cours"
-                : "A traiter",
+                : "À traiter",
           tone: ticket.assignedToId ? "info" : "neutral",
           icon: <UserPlus size={16} />,
         },
         {
-          label: "Activite",
+          label: "Activité",
           value: `${activityCount}`,
           helper: `${visibleCommentsCount} commentaire(s) visibles`,
           tone: activityCount > 0 ? "default" : "neutral",
           icon: <Activity size={16} />,
         },
         {
-          label: "Pieces jointes",
+          label: "Pièces jointes",
           value: `${attachmentCount}`,
           helper: attachmentCount > 0 ? "Disponibles" : "Aucune",
           tone: attachmentCount > 0 ? "info" : "neutral",
@@ -885,10 +1208,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     switch (actionId) {
       case "assign-recommended":
         if (allieTicketContext.recommendedAgentId) {
-          void handleAssign(
-            allieTicketContext.recommendedAgentId,
-            allieTicketContext.recommendedAgentName,
-          );
+          void handleAssign(allieTicketContext.recommendedAgentId);
           return;
         }
 
@@ -938,30 +1258,72 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 
   const renderDetailsTab = () => {
     if (!ticket) return null;
+    const assignmentStateLabel = isAssignmentLocked
+      ? "Assignation verrouillée"
+      : ticket.assignedToId
+        ? "Ticket assigné"
+        : "Ticket non assigné";
+    const assignmentStateTone = isAssignmentLocked
+      ? "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-300"
+      : ticket.assignedToId
+        ? "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
+        : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300";
     return (
-      <div className="space-y-5">
-        {entryActionContext === "assign" && (
+      <div className="space-y-6">
+        {isManagerContext && entryActionContext === "assign" && (
           <div className="rounded-xl border border-primary-200 bg-primary-50/80 px-4 py-3 text-sm text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-200">
-            ALLIE a prepare ce ticket pour une decision d'affectation. Verifiez ici l'agent
-            recommande puis validez l'assignation si le contexte vous convient.
+            ALLIE a préparé ce ticket pour une décision d'affectation. Vérifiez ici l'agent
+            recommandé puis validez l'assignation si le contexte vous convient.
           </div>
+        )}
+
+        {isAdmin && onRequestHardDelete && (
+          <SectionCard
+            icon={<Shield size={18} />}
+            title="Action définitive admin"
+            subtitle="Suppression physique avec re-authentification et audit."
+            className="overflow-visible"
+          >
+            {canRequestHardDelete && (
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50/70 p-3 dark:border-red-900/40 dark:bg-red-950/20">
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  Cette action est irreversible, tracee dans l'audit et declenche le nettoyage
+                  backend associe.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onRequestHardDelete(ticket)}
+                  data-testid="ticket-hard-delete-action"
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-300 bg-white px-3 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40"
+                >
+                  <Trash2 size={15} />
+                  Supprimer définitivement
+                </button>
+              </div>
+            )}
+          </SectionCard>
         )}
 
         <SectionCard
           icon={<FileText size={18} />}
           title="Pilotage du ticket"
-          subtitle="Statut, priorite, categorie et assignation."
+          subtitle="Statut, priorité, catégorie et assignation."
+          className="overflow-visible"
         >
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {/* Statut — dropdown inline */}
-            <FieldPanel label="Statut" helper="Transitions disponibles sans quitter le drawer.">
+            <FieldPanel
+              label="Statut"
+              helper="Transitions disponibles sans quitter le drawer."
+              className="h-full"
+            >
               {canChangeStatus &&
               ticket.allowedTransitions &&
               ticket.allowedTransitions.length > 0 ? (
                 <div className="relative">
                   <button
                     onClick={() => setShowStatusDropdown(!showStatusDropdown)}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm font-medium border border-ds-border hover:border-primary-400 transition-colors ${sCfg.bg} ${sCfg.text}`}
+                    className={`w-full flex items-center justify-between gap-2 rounded-lg border border-ds-border px-3 py-2 text-sm font-medium transition-colors hover:border-primary-400 ${sCfg.bg} ${sCfg.text}`}
                   >
                     <span className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${sCfg.dot}`} />
@@ -970,7 +1332,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                     <ChevronDown size={14} />
                   </button>
                   {showStatusDropdown && (
-                    <div className="absolute z-20 mt-1 w-full bg-ds-card border border-ds-border rounded-lg shadow-lg overflow-hidden">
+                    <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-ds-border bg-ds-card shadow-lg">
                       {ticket.allowedTransitions.map((s) => {
                         const cfg = statusConfig[s] || statusConfig.NEW;
                         return (
@@ -992,7 +1354,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 </div>
               ) : (
                 <div
-                  className={`px-3 py-2 rounded-lg text-sm font-medium ${sCfg.bg} ${sCfg.text} flex items-center gap-2`}
+                  className={`flex min-h-[40px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${sCfg.bg} ${sCfg.text}`}
                 >
                   <span className={`w-2 h-2 rounded-full ${sCfg.dot}`} />
                   {sCfg.label}
@@ -1001,15 +1363,21 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             </FieldPanel>
 
             {/* Priorité — badge */}
-            <FieldPanel label="Priorité" helper="Niveau de traitement attendu.">
-              <div className={`px-3 py-2 rounded-lg text-sm font-medium ${pCfg.bg} ${pCfg.text}`}>
+            <FieldPanel label="Priorité" helper="Niveau de traitement attendu." className="h-full">
+              <div
+                className={`flex min-h-[40px] items-center rounded-lg px-3 py-2 text-sm font-medium ${pCfg.bg} ${pCfg.text}`}
+              >
                 {pCfg.label}
               </div>
             </FieldPanel>
 
             {/* Catégorie */}
-            <FieldPanel label="Catégorie" helper="Classification métier du ticket.">
-              <div className="px-3 py-2 rounded-lg text-sm bg-ds-elevated text-ds-primary">
+            <FieldPanel
+              label="Catégorie"
+              helper="Classification métier du ticket."
+              className="h-full"
+            >
+              <div className="flex min-h-[40px] items-center rounded-lg bg-ds-elevated px-3 py-2 text-sm text-ds-primary">
                 {ticket.categoryLabel || CategoryLabels[ticket.category] || ticket.category}
               </div>
             </FieldPanel>
@@ -1020,91 +1388,69 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                 label="Assignation"
                 helper={
                   canAssign
-                    ? "Affectation modifiable tant que le ticket reste ouvert."
-                    : "Lecture seule selon votre role."
+                    ? "Modification réservée admin/manager tant que le ticket n'est pas résolu, fermé ou annulé."
+                    : "Lecture seule pour votre rôle."
                 }
+                className="h-full"
               >
                 {canAssign ? (
-                  <div className="relative">
+                  <div className="relative space-y-2">
                     <button
-                      onClick={() => {
-                        setShowAssignDropdown(!showAssignDropdown);
-                        if (!showAssignDropdown && agents.length === 0) loadAgents();
+                      ref={assignmentButtonRef}
+                      type="button"
+                      onClick={toggleAssignDropdown}
+                      onKeyDown={(event) => {
+                        if (event.key === "ArrowDown" && !showAssignDropdown) {
+                          event.preventDefault();
+                          openAssignDropdown();
+                        }
                       }}
                       disabled={submittingAssign || isAssignmentLocked}
-                      className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm border border-ds-border hover:border-primary-400 transition-colors ${
-                        ticket.assignedToName
-                          ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
-                          : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300"
+                      aria-expanded={showAssignDropdown}
+                      aria-haspopup="menu"
+                      aria-controls={ticket ? `ticket-assignment-menu-${ticket.id}` : undefined}
+                      data-testid="ticket-assignment-trigger"
+                      className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors ${assignmentStateTone} ${
+                        !isAssignmentLocked ? "hover:border-primary-400" : ""
                       }`}
                     >
-                      <span className="flex items-center gap-2">
-                        <UserPlus size={14} />
-                        {ticket.assignedToName || "Non assigné"}
-                      </span>
-                      <ChevronDown size={14} />
-                    </button>
-                    {showAssignDropdown && (
-                      <div className="absolute z-20 mt-1 w-full bg-ds-card border border-ds-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {ticket.assignedToId && (
-                          <button
-                            onClick={() => {
-                              handleUnassign();
-                              setShowAssignDropdown(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2 border-b border-ds-border"
-                          >
-                            <UserMinus size={14} />
-                            Désassigner
-                          </button>
-                        )}
-                        {loadingAgents ? (
-                          <div className="px-3 py-4 text-center text-ds-muted text-sm">
-                            <Loader2 size={16} className="animate-spin inline mr-2" />
-                            Chargement...
-                          </div>
-                        ) : agents.length === 0 ? (
-                          <div className="px-3 py-3 text-center text-ds-muted text-sm">
-                            Aucun agent
-                          </div>
+                      <span className="flex min-w-0 items-center gap-2">
+                        {ticket.assignedToId ? (
+                          <UserCheck size={14} className="flex-shrink-0" />
                         ) : (
-                          agents.map((agent) => (
-                            <button
-                              key={agent.id}
-                              onClick={() => {
-                                handleAssign(agent.id);
-                                setShowAssignDropdown(false);
-                              }}
-                              className={`w-full text-left px-3 py-2 text-sm hover:bg-ds-elevated transition-colors flex items-center gap-2 ${
-                                agent.id === ticket.assignedToId
-                                  ? "bg-primary-50 dark:bg-primary-900/20 font-medium"
-                                  : ""
-                              }`}
-                            >
-                              <div className="w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                {agent.fullName?.charAt(0).toUpperCase() || "?"}
-                              </div>
-                              <span className="truncate">{agent.fullName}</span>
-                            </button>
-                          ))
+                          <UserPlus size={14} className="flex-shrink-0" />
                         )}
-                      </div>
-                    )}
+                        <span className="min-w-0 text-left">
+                          <span className="block truncate text-xs uppercase tracking-[0.14em] opacity-80">
+                            {assignmentStateLabel}
+                          </span>
+                          <span className="block truncate font-semibold text-ds-primary">
+                            {ticket.assignedToName || "Non assigné"}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1 text-ds-muted">
+                        {isAssignmentLocked && <Lock size={13} />}
+                        <ChevronDown size={14} className="flex-shrink-0" />
+                      </span>
+                    </button>
+                    {renderAssignDropdownPortal()}
                     {isAssignmentLocked && (
                       <p className="mt-2 text-xs text-ds-muted">
-                        L'assignation est verrouillee apres resolution, cloture ou annulation.
+                        L'assignation est verrouillée après résolution, clôture ou annulation.
                       </p>
                     )}
                   </div>
                 ) : (
                   <div
-                    className={`px-3 py-2 rounded-lg text-sm ${
-                      ticket.assignedToName
-                        ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
-                        : "bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300"
-                    }`}
+                    className={`flex min-h-[40px] items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${assignmentStateTone}`}
                   >
-                    {ticket.assignedToName || "Non assigné"}
+                    <span className="truncate font-semibold text-ds-primary">
+                      {ticket.assignedToName || "Non assigné"}
+                    </span>
+                    <span className="rounded-full bg-ds-card/70 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ds-muted">
+                      Lecture seule
+                    </span>
                   </div>
                 )}
               </FieldPanel>
@@ -1118,7 +1464,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           title="Contexte support"
           subtitle="Client, service et horodatages utiles."
         >
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <InlineFact
               label="Client"
               value={ticket.clientName || ticket.clientCompanyName || "-"}
@@ -1126,6 +1472,12 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             <InlineFact label="Entreprise" value={ticket.clientCompanyName || "-"} />
             <InlineFact label="Service" value={ticket.serviceName || "-"} />
             <InlineFact label="Créé par" value={ticket.createdByName || "-"} />
+            <InlineFact
+              label="Assignation"
+              value={ticket.assignedToName || "Non assigné"}
+              tone={ticket.assignedToId ? "success" : "default"}
+            />
+            <InlineFact label="Statut actuel" value={sCfg.label} />
             <InlineFact label="Créé le" value={formatDateTimeValue(ticket.createdAt)} />
             {ticket.resolvedAt && (
               <InlineFact label="Résolu le" value={formatDateTimeValue(ticket.resolvedAt)} />
@@ -1168,8 +1520,9 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                       ticket.description || undefined,
                     );
                     setSentiment(result);
-                  } catch {
-                    setSentimentError("Microservice IA indisponible");
+                  } catch (error) {
+                    setSentiment(buildSentimentFallback(getErrorMessage(error)));
+                    setSentimentError(null);
                   } finally {
                     setSentimentLoading(false);
                   }
@@ -1299,7 +1652,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
               {(sentiment.recommended_actions?.length || 0) > 0 && (
                 <div className="space-y-1">
                   <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
-                    Actions recommandees
+                    Actions recommandées
                   </p>
                   <ul className="space-y-1">
                     {sentiment.recommended_actions?.slice(0, 3).map((action, index) => (
@@ -1496,7 +1849,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
               {(duplicates.recommended_actions?.length || 0) > 0 && (
                 <div className="space-y-1">
                   <p className="text-[11px] font-semibold text-ds-secondary uppercase tracking-wide">
-                    Actions recommandees
+                    Actions recommandées
                   </p>
                   <ul className="space-y-1">
                     {duplicates.recommended_actions?.slice(0, 3).map((action, index) => (
@@ -1792,7 +2145,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         <form onSubmit={handleAddComment} className="border-t border-ds-border pt-4 space-y-3">
           {isCollaborationLocked && (
             <div className="rounded-lg border border-ds-border bg-ds-elevated px-4 py-3 text-sm text-ds-muted">
-              Les commentaires et notes internes sont verrouilles sur un ticket clos ou annule.
+              Les commentaires et notes internes sont verrouillés sur un ticket clos ou annulé.
             </div>
           )}
           {/* Internal/Reply toggle */}
@@ -1894,7 +2247,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     if (!ticket) return null;
     return (
       <div className="space-y-6">
-        {(entryActionContext === "sla" || entryTab === "sla") && (
+        {isManagerContext && (entryActionContext === "sla" || entryTab === "sla") && (
           <div className="rounded-xl border border-orange-200 bg-orange-50/80 px-4 py-3 text-sm text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-200">
             ALLIE a ouvert directement la vue SLA pour accelerer l'arbitrage manager sur ce dossier.
           </div>
@@ -2000,7 +2353,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         {/* Upload button */}
         {isCollaborationLocked && (
           <div className="rounded-lg border border-ds-border bg-ds-elevated px-4 py-3 text-sm text-ds-muted">
-            Les pieces jointes sont verrouillees sur un ticket clos ou annule.
+            Les pièces jointes sont verrouillées sur un ticket clos ou annulé.
           </div>
         )}
         <div className="flex justify-end">
@@ -2263,7 +2616,12 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 
   return (
     <>
-      <Drawer isOpen={isOpen} onClose={onClose} width="3xl">
+      <Drawer
+        isOpen={isOpen}
+        onClose={onClose}
+        width="3xl"
+        contentClassName="flex-1 min-h-0 overflow-hidden p-0"
+      >
         {/* ==== CUSTOM HEADER (replaces Drawer's title) ==== */}
         {loading ? (
           <div className="flex items-center justify-center py-16">
@@ -2273,7 +2631,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             </div>
           </div>
         ) : ticket ? (
-          <div className="flex flex-col h-full -m-4">
+          <div className="flex h-full flex-col">
             {/* ---- Toast ---- */}
             {toast && (
               <div
@@ -2368,7 +2726,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             </div>
 
             {/* ---- Tab content (scrollable) ---- */}
-            <div className="flex-1 overflow-y-auto px-5 py-4">
+            <div className="flex-1 overflow-y-auto px-5 py-5 pb-8">
               {allieTicketContext && (
                 <ManagerCopilotTicketCard
                   context={allieTicketContext}
@@ -2418,10 +2776,10 @@ const SectionCard: React.FC<{
     className={`overflow-hidden border ${
       tone === "success"
         ? "border-green-200 dark:border-green-800 bg-green-50/70 dark:bg-green-900/15"
-        : "border-ds-border/80 bg-ds-card/80"
+        : "border-ds-border/80 bg-ds-card/92 shadow-card"
     } ${className}`}
   >
-    <div className="flex items-start justify-between gap-4 border-b border-ds-border/70 pb-4">
+    <div className="flex items-start justify-between gap-4 border-b border-ds-border/70 pb-5">
       <div className="flex items-start gap-3 min-w-0">
         {icon && (
           <div className="ds-icon-shell flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl text-primary-600 dark:text-primary-300">
@@ -2439,12 +2797,15 @@ const SectionCard: React.FC<{
   </Card>
 );
 
-const FieldPanel: React.FC<{ label: string; helper?: string; children: React.ReactNode }> = ({
-  label,
-  helper,
-  children,
-}) => (
-  <div className="rounded-2xl border border-ds-border/70 bg-ds-elevated/45 p-3 space-y-2">
+const FieldPanel: React.FC<{
+  label: string;
+  helper?: string;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ label, helper, children, className = "" }) => (
+  <div
+    className={`rounded-2xl border border-ds-border/70 bg-ds-surface/70 p-3.5 space-y-2.5 ${className}`}
+  >
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">{label}</p>
       {helper && <p className="mt-1 text-xs text-ds-secondary">{helper}</p>}
@@ -2495,7 +2856,7 @@ const InlineFact: React.FC<{
     className={`rounded-2xl border px-3.5 py-3 ${
       tone === "success"
         ? "border-green-200/70 bg-white/70 dark:border-green-700/60 dark:bg-green-950/20"
-        : "border-ds-border/70 bg-ds-elevated/50"
+        : "border-ds-border/70 bg-ds-surface/70"
     }`}
   >
     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-ds-muted">{label}</p>

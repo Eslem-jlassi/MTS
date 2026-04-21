@@ -12,12 +12,12 @@
 //
 // FONCTIONNEMENT:
 // 1. installDemoInterceptor(axiosInstance) enregistre un request interceptor
-// 2. Chaque requÃªte est comparÃ©e Ã  une table de routes
-// 3. Si un match est trouvÃ©, on retourne immÃ©diatement une AxiosResponse mock
-// 4. Un dÃ©lai artificiel (DEMO_LATENCY_MS) simule le rÃ©seau
+// 2. Chaque requête est comparée à une table de routes
+// 3. Si un match est trouvé, on retourne immédiatement une AxiosResponse mock
+// 4. Un délai artificiel (DEMO_LATENCY_MS) simule le réseau
 //
 // AVANTAGE:
-// ZÃ©ro modification dans les services API existants.
+// Zéro modification dans les services API existants.
 // Le code de production reste intact.
 //
 // =============================================================================
@@ -42,10 +42,10 @@ import type { PageResponse } from "../types";
 // HELPERS
 // =============================================================================
 
-/** Simule un dÃ©lai rÃ©seau */
+/** Simule un délai réseau */
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Construit une PageResponse<T> Ã  partir d'un array complet */
+/** Construit une PageResponse<T> à partir d'un array complet */
 function toPage<T>(items: T[], pageNum = 0, pageSize = 20): PageResponse<T> {
   const start = pageNum * pageSize;
   const content = items.slice(start, start + pageSize);
@@ -122,7 +122,7 @@ function buildUnmockedRouteError(
   );
 }
 
-/** Extrait l'id numÃ©rique d'un segment de path (ex: "/tickets/42" â†’ 42) */
+/** Extrait l'id numérique d'un segment de path (ex: "/tickets/42" → 42) */
 function extractId(url: string, prefix: string): number | null {
   // Matches: /prefix/123 or /prefix/123/...
   const regex = new RegExp(`${prefix}/(\\d+)`);
@@ -147,16 +147,16 @@ type HttpMethod = "get" | "post" | "put" | "patch" | "delete";
 
 interface DemoRoute {
   method: HttpMethod;
-  /** Regex pattern Ã  tester sur l'URL (sans baseURL) */
+  /** Regex pattern à tester sur l'URL (sans baseURL) */
   pattern: RegExp;
-  /** Handler retournant les donnÃ©es mock */
+  /** Handler retournant les données mock */
   handler: (url: string, config: InternalAxiosRequestConfig) => unknown;
 }
 
 /**
- * Table de routage dÃ©mo.
- * Chaque route intercepte un endpoint spÃ©cifique.
- * L'ordre est important : les patterns plus prÃ©cis viennent en premier.
+ * Table de routage démo.
+ * Chaque route intercepte un endpoint spécifique.
+ * L'ordre est important : les patterns plus précis viennent en premier.
  */
 const DEMO_ROUTES: DemoRoute[] = [
   // ===========================================================================
@@ -1062,8 +1062,8 @@ const DEMO_ROUTES: DemoRoute[] = [
  * - Si une route match -> reponse mock immediate (+ delai artificiel)
  * - Si aucune route ne match -> erreur explicite pour ne pas masquer un trou API
  *
- * @param axiosInstance L'instance Axios (gÃ©nÃ©ralement `api` de client.ts)
- * @returns L'id de l'intercepteur (pour Ã©ventuel eject)
+ * @param axiosInstance L'instance Axios (généralement `api` de client.ts)
+ * @returns L'id de l'intercepteur (pour éventuel eject)
  */
 export function installDemoInterceptor(axiosInstance: AxiosInstance): number {
   console.info(

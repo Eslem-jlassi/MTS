@@ -239,16 +239,44 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
         log.error("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
-        // Don't expose internal DB details to clients
+        String detail = resolveDataIntegrityBusinessMessage(request.getRequestURI());
         return problem(
             ProblemDetail.builder()
                 .title("Conflict")
                 .status(409)
-                .detail("Operation conflicts with existing data. This may be a duplicate entry or a referential constraint.")
+                .detail(detail)
                 .instance(request.getRequestURI())
                 .timestamp(java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC))
                 .build(),
             HttpStatus.CONFLICT);
+    }
+
+    private String resolveDataIntegrityBusinessMessage(String requestUri) {
+        if (requestUri == null) {
+            return "Operation en conflit avec des donnees existantes. Verifiez les dependances metier.";
+        }
+
+        if (requestUri.contains("/tickets/") && requestUri.contains("/hard-delete")) {
+            return "Suppression definitive impossible: ce ticket est encore lie a des donnees metier. "
+                    + "Alternative recommandee : conservez le ticket et annulez-le.";
+        }
+
+        if (requestUri.contains("/incidents/") && requestUri.contains("/hard-delete")) {
+            return "Suppression definitive impossible: cet incident reste lie a des donnees metier. "
+                    + "Alternative recommandee : conservez la tracabilite et cloturez l'incident.";
+        }
+
+        if (requestUri.contains("/clients/") && requestUri.contains("/hard-delete")) {
+            return "Suppression definitive impossible: ce client reste lie a des dependances metier. "
+                    + "Alternative recommandee : archivez le client.";
+        }
+
+        if (requestUri.contains("/users/") && requestUri.contains("/hard-delete")) {
+            return "Suppression definitive impossible: cet utilisateur reste lie a des dependances metier. "
+                    + "Alternative recommandee : desactivez le compte.";
+        }
+
+        return "Operation en conflit avec des donnees existantes. Verifiez les dependances metier.";
     }
 
     // ==================== Catch-all ====================

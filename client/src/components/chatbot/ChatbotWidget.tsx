@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MessageSquare, Minimize2, Trash2, X } from "lucide-react";
+import { AlertTriangle, MessageSquare, Minimize2, RefreshCw, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
@@ -46,6 +46,8 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
     messages,
     isLoading,
     errorMessage,
+    errorTone,
+    canRetryLastMessage,
     isWelcomeState,
     currentLanguage,
     loadingMessage,
@@ -420,18 +422,27 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
               )}
 
               {errorMessage && (
-                <div className="chatbot-error-banner" role="alert">
-                  <span>
-                    {copy.connectionIssueLabel}: {errorMessage}
-                  </span>
-                  <button
-                    type="button"
-                    className="chatbot-retry-button"
-                    onClick={retryLastMessage}
-                    disabled={isLoading}
-                  >
-                    {copy.retryLabel}
-                  </button>
+                <div
+                  className={`chatbot-error-banner ${errorTone === "warning" ? "chatbot-warning-banner" : ""}`}
+                  role="alert"
+                >
+                  <div className="chatbot-error-banner-content">
+                    <AlertTriangle size={14} className="chatbot-error-icon" />
+                    <span className="chatbot-error-text">
+                      {errorMessage}
+                    </span>
+                  </div>
+                  {canRetryLastMessage && (
+                    <button
+                      type="button"
+                      className="chatbot-retry-button"
+                      onClick={retryLastMessage}
+                      disabled={isLoading}
+                    >
+                      <RefreshCw size={13} />
+                      Reessayer
+                    </button>
+                  )}
                 </div>
               )}
               <ChatInput onSend={sendMessage} disabled={isLoading} language={currentLanguage} />

@@ -39,6 +39,7 @@ import CreateTicketModal from "../components/tickets/CreateTicketModal";
 import PageHeader from "../components/layout/PageHeader";
 import { Button, Card, Badge, EmptyState, SkeletonTable, ConfirmModal } from "../components/ui";
 import { formatDurationMinutes, formatPercent } from "../utils/formatters";
+import { getAdminHardDeleteErrorMessage } from "../utils/hardDeleteFeedback";
 import TicketDrawer from "../components/tickets/TicketDrawer";
 
 // Priority/Status: use design system Badge variants (mapped from priority/status)
@@ -153,7 +154,6 @@ const TicketList: React.FC = () => {
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isHardDeleting, setIsHardDeleting] = useState(false);
-  const [hardDeleteTargetIdInput, setHardDeleteTargetIdInput] = useState("");
   const [hardDeletePassword, setHardDeletePassword] = useState("");
   const [hardDeleteVerificationCode, setHardDeleteVerificationCode] = useState("");
   const [isSendingHardDeleteCode, setIsSendingHardDeleteCode] = useState(false);
@@ -239,9 +239,13 @@ const TicketList: React.FC = () => {
   const canDeleteTicket = (status: TicketStatus, assignedToId?: number) => {
     return isClient && status === TicketStatus.NEW && !assignedToId;
   };
-  const canHardDeleteTicket = (status: TicketStatus, assignedToId?: number) => {
-    return isAdmin && status === TicketStatus.NEW && !assignedToId;
-  };
+  const canHardDeleteTicket = () => isAdmin;
+  const getTicketHardDeleteIdentifier = (ticket: { ticketNumber?: string; id: number }) =>
+    ticket.ticketNumber?.trim() || "";
+  const isTicketHardDeleteReauthValid = isOauthAdmin
+    ? hardDeleteVerificationCode.trim().length > 0
+    : hardDeletePassword.trim().length > 0;
+  const isTicketHardDeleteFormInvalid = !ticketToHardDelete || !isTicketHardDeleteReauthValid;
 
   const handleConfirmDelete = async () => {
     if (!ticketToDelete) return;
@@ -263,10 +267,8 @@ const TicketList: React.FC = () => {
   const handleConfirmHardDelete = async () => {
     if (!ticketToHardDelete) return;
 
-    if (hardDeleteTargetIdInput.trim() !== String(ticketToHardDelete.id)) {
-      toast.error("L'identifiant exact du ticket est requis pour confirmer la suppression.");
-      return;
-    }
+    const providedTicketIdentifier =
+      getTicketHardDeleteIdentifier(ticketToHardDelete) || String(ticketToHardDelete.id);
 
     if (!isOauthAdmin && !hardDeletePassword.trim()) {
       toast.error("Saisissez votre mot de passe administrateur pour confirmer cette action.");
@@ -282,7 +284,7 @@ const TicketList: React.FC = () => {
     try {
       await ticketService.hardDeleteTicket(ticketToHardDelete.id, {
         confirmationKeyword: "SUPPRIMER",
-        confirmationTargetId: String(ticketToHardDelete.id),
+        confirmationTargetId: providedTicketIdentifier,
         currentPassword: isOauthAdmin ? undefined : hardDeletePassword,
         verificationCode: isOauthAdmin ? hardDeleteVerificationCode : undefined,
       });
@@ -293,8 +295,13 @@ const TicketList: React.FC = () => {
       setTicketToHardDelete(null);
       dispatch(fetchTickets({ filters, page: { page: currentPage, size: pageSize } }));
     } catch (error: any) {
-      const backendMessage = error?.response?.data?.detail || error?.response?.data?.message;
-      toast.error(backendMessage || "Suppression definitive impossible");
+      toast.error(
+        getAdminHardDeleteErrorMessage(
+          "ticket",
+          error,
+          "Suppression definitive impossible pour ce ticket.",
+        ),
+      );
     } finally {
       setIsHardDeleting(false);
     }
@@ -317,13 +324,11 @@ const TicketList: React.FC = () => {
 
   useEffect(() => {
     if (ticketToHardDelete) {
-      setHardDeleteTargetIdInput("");
       setHardDeletePassword("");
       setHardDeleteVerificationCode("");
       return;
     }
 
-    setHardDeleteTargetIdInput("");
     setHardDeletePassword("");
     setHardDeleteVerificationCode("");
   }, [ticketToHardDelete]);
@@ -430,7 +435,7 @@ const TicketList: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <PageHeader
         title="Tickets"
         description={
@@ -440,7 +445,7 @@ const TicketList: React.FC = () => {
         }
         icon={<Ticket size={24} />}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             {canExport && (
               <>
                 <Button
@@ -449,6 +454,7 @@ const TicketList: React.FC = () => {
                   icon={<Download size={16} />}
                   onClick={() => handleExport("csv")}
                   disabled={!!exporting}
+                  loading={exporting === "csv"}
                 >
                   CSV
                 </Button>
@@ -458,6 +464,7 @@ const TicketList: React.FC = () => {
                   icon={<FileSpreadsheet size={16} />}
                   onClick={() => handleExport("excel")}
                   disabled={!!exporting}
+                  loading={exporting === "excel"}
                 >
                   Excel
                 </Button>
@@ -467,6 +474,7 @@ const TicketList: React.FC = () => {
                   icon={<FileText size={16} />}
                   onClick={() => handleExport("pdf")}
                   disabled={!!exporting}
+                  loading={exporting === "pdf"}
                 >
                   PDF
                 </Button>
@@ -520,27 +528,24 @@ const TicketList: React.FC = () => {
         message={
           ticketToHardDelete ? (
             <>
-              <p>
-                Cette action retirera definitivement le ticket {ticketToHardDelete.ticketNumber} de
-                la base.
+              <p className="text-sm leading-6">
+                Cette action retirera definitivement le ticket{" "}
+                <span className="font-semibold text-ds-primary">
+                  {ticketToHardDelete.ticketNumber}
+                </span>{" "}
+                de la base et nettoiera ses relations techniques cote backend.
               </p>
-              <p className="mt-2">
+              <p className="mt-2 text-sm text-ds-secondary">
                 <span className="font-semibold">Titre :</span> {ticketToHardDelete.title}
               </p>
-              <div className="mt-3 space-y-3 rounded-xl border border-ds-border bg-ds-surface/70 p-3 text-left">
-                <div>
-                  <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
-                    Identifiant exact du ticket
-                  </label>
-                  <input
-                    type="text"
-                    value={hardDeleteTargetIdInput}
-                    onChange={(event) => setHardDeleteTargetIdInput(event.target.value)}
-                    className="w-full rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-sm text-ds-primary"
-                    placeholder={`Tapez ${ticketToHardDelete.id}`}
-                    autoComplete="off"
-                  />
-                </div>
+              <div className="mt-3 space-y-3 rounded-2xl border border-ds-border bg-ds-surface/70 p-4 text-left">
+                <p className="rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-xs text-ds-secondary">
+                  Reference affichee pour controle :{" "}
+                  <span className="font-semibold text-ds-primary">
+                    {getTicketHardDeleteIdentifier(ticketToHardDelete) ||
+                      `ID ${ticketToHardDelete.id}`}
+                  </span>
+                </p>
 
                 {isOauthAdmin ? (
                   <div>
@@ -583,9 +588,9 @@ const TicketList: React.FC = () => {
                   </div>
                 )}
               </div>
-              <p className="mt-2">
-                Cette suppression est irreversible et reservee aux tickets neufs, non assignes et
-                sans dependances critiques.
+              <p className="mt-3 rounded-xl border border-error-200/60 bg-error-50/70 px-3 py-2 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300">
+                Suppression irreversible avec nettoyage backend des relations et traces techniques
+                associees.
               </p>
             </>
           ) : (
@@ -596,14 +601,16 @@ const TicketList: React.FC = () => {
         cancelLabel="Conserver"
         variant="danger"
         loading={isHardDeleting}
+        confirmDisabled={isTicketHardDeleteFormInvalid}
         confirmationKeyword="SUPPRIMER"
-        confirmationHint="Tapez SUPPRIMER, puis confirmez l'ID exact et la re-authentification admin."
+        confirmationHint="Tapez SUPPRIMER, puis confirmez votre re-authentification administrateur."
+        size="lg"
       />
 
       {/* Search & Filters Bar */}
-      <Card padding="md">
-        <div className="flex flex-col md:flex-row gap-4">
-          <form onSubmit={handleSearch} className="flex-1">
+      <Card padding="md" className="border border-ds-border/80">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <form onSubmit={handleSearch} className="min-w-0 flex-1">
             <div className="relative">
               <Search
                 size={18}
@@ -614,11 +621,12 @@ const TicketList: React.FC = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Rechercher par numéro, titre, client..."
-                className="w-full pl-10 pr-4 py-2 border border-ds-border rounded-xl bg-ds-surface text-ds-primary placeholder:text-ds-muted focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                className="w-full rounded-xl border border-ds-border bg-ds-surface py-2.5 pl-10 pr-4 text-sm text-ds-primary placeholder:text-ds-muted focus:border-primary focus:ring-2 focus:ring-primary/30 transition-colors"
               />
             </div>
           </form>
           <Button
+            size="sm"
             variant={showFilters ? "primary" : "outline"}
             icon={<Filter size={18} />}
             onClick={() => setShowFilters(!showFilters)}
@@ -630,7 +638,7 @@ const TicketList: React.FC = () => {
         </div>
 
         {!showFilters && activeFiltersSummary.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-ds-border pt-4">
+          <div className="mt-3 flex flex-wrap gap-2 border-t border-ds-border pt-3">
             {activeFiltersSummary.map((item) => (
               <span
                 key={item}
@@ -643,14 +651,16 @@ const TicketList: React.FC = () => {
         )}
 
         {showFilters && (
-          <div className="mt-4 pt-4 border-t border-ds-border">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="mt-3 border-t border-ds-border pt-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
               <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Statut</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  Statut
+                </label>
                 <select
                   value={localFilters.status || ""}
                   onChange={(e) => handleFilterChange("status", e.target.value)}
-                  className="w-full px-3 py-2 border border-ds-border rounded-xl bg-ds-surface text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
+                  className="w-full rounded-xl border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
                 >
                   <option value="">Tous</option>
                   {Object.values(TicketStatus).map((status) => (
@@ -661,11 +671,13 @@ const TicketList: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Priorité</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  Priorité
+                </label>
                 <select
                   value={localFilters.priority || ""}
                   onChange={(e) => handleFilterChange("priority", e.target.value)}
-                  className="w-full px-3 py-2 border border-ds-border rounded-xl bg-ds-surface text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
+                  className="w-full rounded-xl border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
                 >
                   <option value="">Toutes</option>
                   {Object.values(TicketPriority).map((priority) => (
@@ -676,11 +688,13 @@ const TicketList: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">Catégorie</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  Catégorie
+                </label>
                 <select
                   value={localFilters.category || ""}
                   onChange={(e) => handleFilterChange("category", e.target.value)}
-                  className="w-full px-3 py-2 border border-ds-border rounded-xl bg-ds-surface text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
+                  className="w-full rounded-xl border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
                 >
                   <option value="">Toutes</option>
                   {Object.values(TicketCategory).map((category) => (
@@ -691,11 +705,13 @@ const TicketList: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">SLA</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  SLA
+                </label>
                 <select
                   value={(localFilters.slaStatus as string) ?? ""}
                   onChange={(e) => handleFilterChange("slaStatus", e.target.value || undefined)}
-                  className="w-full px-3 py-2 border border-ds-border rounded-xl bg-ds-surface text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
+                  className="w-full rounded-xl border border-ds-border bg-ds-surface px-3 py-2 text-sm text-ds-primary focus:ring-2 focus:ring-primary/30 transition-colors"
                 >
                   <option value="">Tous</option>
                   <option value="OK">Dans les délais</option>
@@ -704,11 +720,11 @@ const TicketList: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="flex justify-end gap-2 mt-4">
-              <Button variant="ghost" onClick={resetFilters}>
+            <div className="mt-3 flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={resetFilters}>
                 Réinitialiser
               </Button>
-              <Button variant="primary" onClick={applyFilters}>
+              <Button variant="primary" size="sm" onClick={applyFilters}>
                 Appliquer
               </Button>
             </div>
@@ -717,7 +733,7 @@ const TicketList: React.FC = () => {
       </Card>
 
       {/* Tickets Table */}
-      <Card padding="none">
+      <Card padding="none" className="overflow-hidden border border-ds-border/80">
         {isLoading ? (
           <SkeletonTable rows={Math.min(pageSize, 10)} />
         ) : tickets.length === 0 ? (
@@ -750,34 +766,34 @@ const TicketList: React.FC = () => {
         ) : (
           <>
             <div className="overflow-x-auto">
-              <table className="ds-table-raw w-full">
+              <table className="ds-table-raw w-full min-w-[1140px]">
                 <thead className="bg-ds-elevated/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Numéro
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Titre
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Client
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Service
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Priorité
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Statut
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       SLA
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Assigné à
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-semibold text-ds-muted uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-ds-muted uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -786,38 +802,40 @@ const TicketList: React.FC = () => {
                   {tickets.map((ticket) => (
                     <tr
                       key={ticket.id}
-                      className="hover:bg-ds-elevated/50 transition-colors cursor-pointer"
+                      className="group cursor-pointer transition-colors hover:bg-ds-elevated/50"
                       onClick={() => openDrawer(ticket.id)}
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-3 align-top">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             openDrawer(ticket.id);
                           }}
-                          className="text-primary hover:text-primary-hover font-medium"
+                          className="text-sm font-semibold text-primary transition-colors hover:text-primary-hover"
                         >
                           {ticket.ticketNumber}
                         </button>
                       </td>
-                      <td className="px-6 py-4 text-sm text-ds-primary max-w-xs truncate">
+                      <td className="max-w-[18rem] truncate px-4 py-3 text-sm text-ds-primary align-top">
                         {ticket.title}
                       </td>
-                      <td className="px-6 py-4 text-sm text-ds-secondary">
+                      <td className="px-4 py-3 text-sm text-ds-secondary align-top">
                         {ticket.clientCompanyName || ticket.clientCode}
                       </td>
-                      <td className="px-6 py-4 text-sm text-ds-secondary">{ticket.serviceName}</td>
-                      <td className="px-6 py-4">
-                        <Badge variant={priorityVariant[ticket.priority]}>
+                      <td className="px-4 py-3 text-sm text-ds-secondary align-top">
+                        {ticket.serviceName}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <Badge variant={priorityVariant[ticket.priority]} size="sm">
                           {PriorityLabels[ticket.priority]}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4">
-                        <Badge variant={statusVariant[ticket.status]}>
+                      <td className="px-4 py-3 align-top">
+                        <Badge variant={statusVariant[ticket.status]} size="sm">
                           {StatusLabels[ticket.status]}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm">
+                      <td className="px-4 py-3 text-sm align-top">
                         <SlaIndicator
                           breached={ticket.breachedSla}
                           percentage={ticket.slaPercentage}
@@ -825,51 +843,56 @@ const TicketList: React.FC = () => {
                           remainingMinutes={ticket.slaRemainingMinutes}
                         />
                       </td>
-                      <td className="px-6 py-4 text-sm text-ds-secondary">
+                      <td className="px-4 py-3 text-sm text-ds-secondary align-top">
                         {ticket.assignedToName || <span className="text-warning">Non assigné</span>}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDrawer(ticket.id);
-                          }}
-                          className="text-primary hover:text-primary-hover p-2 inline-block rounded-xl hover:bg-ds-elevated transition-colors"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        {canDeleteTicket(ticket.status, ticket.assignedToId) && (
+                      <td className="px-4 py-3 text-right align-top">
+                        <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setTicketToDelete({
-                                id: ticket.id,
-                                ticketNumber: ticket.ticketNumber,
-                              });
+                              openDrawer(ticket.id);
                             }}
-                            className="text-error-600 hover:text-error-700 p-2 inline-block rounded-xl hover:bg-ds-elevated transition-colors"
-                            aria-label={`Supprimer le ticket ${ticket.ticketNumber}`}
+                            className="inline-flex rounded-xl p-2 text-primary transition-colors hover:bg-ds-elevated hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                           >
-                            <Trash2 size={18} />
+                            <Eye size={18} />
                           </button>
-                        )}
-                        {canHardDeleteTicket(ticket.status, ticket.assignedToId) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setTicketToHardDelete({
-                                id: ticket.id,
-                                ticketNumber: ticket.ticketNumber,
-                                title: ticket.title,
-                              });
-                            }}
-                            className="text-error-700 hover:text-error-800 p-2 inline-block rounded-xl hover:bg-ds-elevated transition-colors"
-                            aria-label={`Supprimer definitivement le ticket ${ticket.ticketNumber}`}
-                            title={`Supprimer definitivement le ticket ${ticket.ticketNumber}`}
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        )}
+                          {canDeleteTicket(ticket.status, ticket.assignedToId) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTicketToDelete({
+                                  id: ticket.id,
+                                  ticketNumber: ticket.ticketNumber,
+                                });
+                              }}
+                              className="inline-flex rounded-xl p-2 text-error-600 transition-colors hover:bg-error-50 hover:text-error-700 dark:hover:bg-error-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-400/40"
+                              aria-label={`Supprimer le ticket ${ticket.ticketNumber}`}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                          {canHardDeleteTicket() && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setTicketToHardDelete({
+                                  id: ticket.id,
+                                  ticketNumber: ticket.ticketNumber,
+                                  title: ticket.title,
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl border border-error-200 px-2 py-1.5 text-error-700 transition-colors hover:bg-error-50 hover:text-error-800 dark:border-error-900/50 dark:hover:bg-error-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-400/40"
+                              aria-label={`Supprimer definitivement le ticket ${ticket.ticketNumber}`}
+                              title={`Suppression definitive admin du ticket ${ticket.ticketNumber}`}
+                            >
+                              <Trash2 size={15} />
+                              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.08em] xl:inline">
+                                Définitif
+                              </span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -877,9 +900,9 @@ const TicketList: React.FC = () => {
               </table>
             </div>
 
-            <div className="px-4 sm:px-6 py-4 border-t border-ds-border flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ds-border px-4 py-3 sm:px-5">
               <div className="flex items-center gap-4">
-                <span className="text-sm text-ds-muted">
+                <span className="text-xs text-ds-muted sm:text-sm">
                   {totalElements} ticket(s) · {currentPage * pageSize + 1}–
                   {Math.min((currentPage + 1) * pageSize, totalElements)}
                 </span>
@@ -906,7 +929,7 @@ const TicketList: React.FC = () => {
                   disabled={currentPage === 0}
                   aria-label="Page précédente"
                 />
-                <span className="px-4 py-2 text-sm text-ds-primary">
+                <span className="rounded-lg border border-ds-border px-3 py-1.5 text-sm text-ds-primary">
                   Page {currentPage + 1} sur {totalPages || 1}
                 </span>
                 <Button
@@ -931,6 +954,7 @@ const TicketList: React.FC = () => {
         actionContext={routeDrawerFocus}
         onClose={closeDrawer}
         onTicketUpdated={handleTicketUpdated}
+        onRequestHardDelete={(ticket) => setTicketToHardDelete(ticket)}
       />
     </div>
   );

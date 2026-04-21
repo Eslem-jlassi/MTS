@@ -8,6 +8,8 @@ import com.billcom.mts.dto.chatbot.MassiveIncidentDetectionRequestDto;
 import com.billcom.mts.dto.chatbot.MassiveIncidentDetectionResponseDto;
 import com.billcom.mts.service.ai.AiGatewaySupport;
 import com.billcom.mts.service.ai.LocalAiServiceManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -18,6 +20,7 @@ import java.util.List;
 public class ChatbotService extends AiGatewaySupport {
 
     private static final String SERVICE_NAME = "ai-chatbot";
+    private static final Logger log = LoggerFactory.getLogger(ChatbotService.class);
 
     private final String chatbotBaseUrl;
 
@@ -37,9 +40,7 @@ public class ChatbotService extends AiGatewaySupport {
     public ChatbotResponseDto askChatbot(String question, Integer topK, String preferredLanguage) {
         long startedAt = System.nanoTime();
         ChatbotRequestDto request = new ChatbotRequestDto(question, topK != null ? topK : 5, preferredLanguage);
-        String unavailableMessage = "Le chatbot IA est indisponible pour le moment. Verifiez que `ai-chatbot` tourne sur "
-                + chatbotBaseUrl
-                + ".";
+        String unavailableMessage = "Assistant temporairement indisponible. Reessayez dans quelques instants.";
 
         ChatbotResponseDto chatbotResponse = post(
                 SERVICE_NAME,
@@ -72,11 +73,22 @@ public class ChatbotService extends AiGatewaySupport {
                         body.setSources(List.of());
                     }
                 },
-                this::unavailableResponse,
+                reason -> unavailableResponse(reason, preferredLanguage),
                 "Le chatbot IA a repondu avec un corps vide.",
                 unavailableMessage,
-                "Le chatbot IA a rencontre une erreur temporaire. Reessayez apres avoir relance le microservice."
+                unavailableMessage
         );
+
+        if (!chatbotResponse.isAvailable()) {
+            log.warn(
+                    "Chatbot fallback active. mode={}, confidence={}, serviceDetected={}, riskFlags={}, source={}.",
+                    chatbotResponse.getFallbackMode(),
+                    chatbotResponse.getConfidence(),
+                    chatbotResponse.getServiceDetected(),
+                    chatbotResponse.getRiskFlags(),
+                    chatbotResponse.getSources()
+            );
+        }
 
         double elapsedMs = (System.nanoTime() - startedAt) / 1_000_000.0;
         if (chatbotResponse.getLatencyMs() == null || chatbotResponse.getLatencyMs() <= 0.0) {
@@ -149,8 +161,8 @@ public class ChatbotService extends AiGatewaySupport {
         return healthCheck(SERVICE_NAME, chatbotBaseUrl, "/health", "Le chatbot ne repond pas sur " + chatbotBaseUrl + ".");
     }
 
-    private ChatbotResponseDto unavailableResponse(String message) {
-        return ChatbotResponseDto.unavailable(message);
+    private ChatbotResponseDto unavailableResponse(String message, String preferredLanguage) {
+        return ChatbotResponseDto.unavailable(message, preferredLanguage);
     }
 
     private void enrichWithMassiveIncidentCandidate(String question, ChatbotResponseDto chatbotResponse) {

@@ -12,6 +12,9 @@ import java.util.List;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ChatbotResponseDto {
 
+    private static final String UNAVAILABLE_MESSAGE_FR = "Assistant temporairement indisponible. Reessayez dans quelques instants.";
+    private static final String UNAVAILABLE_MESSAGE_EN = "Assistant temporarily unavailable. Please try again in a moment.";
+
     private boolean available = true;
     private String message;
     private String answer;
@@ -60,20 +63,35 @@ public class ChatbotResponseDto {
     private Double latencyMs;
 
     public static ChatbotResponseDto unavailable(String message) {
+        return unavailable(message, "fr");
+        }
+
+        public static ChatbotResponseDto unavailable(String message, String preferredLanguage) {
         ChatbotResponseDto response = new ChatbotResponseDto();
+        String normalizedLanguage = "en".equalsIgnoreCase(preferredLanguage) ? "en" : "fr";
+        String unavailableMessage = "en".equals(normalizedLanguage) ? UNAVAILABLE_MESSAGE_EN : UNAVAILABLE_MESSAGE_FR;
+
         response.setAvailable(false);
-        response.setMessage(message);
-        response.setAnswer("Le chatbot IA est indisponible pour le moment.");
+        response.setMessage(unavailableMessage);
+        response.setAnswer(unavailableMessage);
         response.setConfidence("low");
         response.setServiceDetected("N/A");
         response.setServiceDetectionConfidence("low");
-        response.setResponseLanguage("fr");
+        response.setResponseLanguage(normalizedLanguage);
         response.setResults(List.of());
         response.setMassiveIncidentCandidate(null);
         response.setModelVersion("rag-chatbot-1.2.0");
         response.setFallbackMode("service_unavailable");
-        response.setReasoningSteps(List.of("Chatbot indisponible, fallback backend active."));
-        response.setRecommendedActions(List.of("Relancer le microservice ai-chatbot puis reessayer."));
+        response.setReasoningSteps(List.of(
+            "en".equals(normalizedLanguage)
+                ? "Chatbot unavailable, backend fallback active."
+                : "Chatbot indisponible, fallback backend active."
+        ));
+        response.setRecommendedActions(List.of(
+            "en".equals(normalizedLanguage)
+                ? "Retry in a moment or restart the ai-chatbot service."
+                : "Reessayez dans quelques instants ou relancez le microservice ai-chatbot."
+        ));
         response.setRiskFlags(List.of("SERVICE_UNAVAILABLE"));
         response.setMissingInformation(List.of());
         response.setSources(List.of("gateway-fallback"));

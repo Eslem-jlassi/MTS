@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import chatbotService from "../../api/chatbotService";
-import { getErrorMessage } from "../../api/client";
+import { getErrorMessage, isNetworkError } from "../../api/client";
 import { ChatAttachment, ChatMessageModel } from "../../types/chatbot";
 import { chatbotHistoryStore } from "./chatbotHistoryStore";
 import { localOnlyImageAnalysisGateway } from "./chatbotImageAnalysisGateway";
@@ -8,11 +8,12 @@ import { resolveLocalAssistantReplyForLanguage } from "./chatbotConversation";
 import { ChatLanguage, detectPreferredChatLanguage, resolveChatLanguage } from "./chatbotLanguage";
 import {
   createAssistantAttachmentContextMessageForLanguage,
-  createAssistantErrorMessage,
   createAssistantMessage,
   createAssistantMessageFromResponse,
   createAttachmentOnlyUserMessage,
   createLoadingMessage,
+  hasExploitableBusinessPayload,
+  resolveAssistantUnavailableMessage,
   createUserMessage,
   createWelcomeMessage,
 } from "./chatbotMessageFactory";
@@ -22,8 +23,26 @@ interface SendMessageOptions {
   attachments?: ChatAttachment[];
 }
 
+type ChatbotUiAlertTone = "warning" | "error";
+
 const RETRY_OPTIONS: SendMessageOptions = { appendUserMessage: false };
 const DEFAULT_SEND_OPTIONS: SendMessageOptions = { appendUserMessage: true };
+
+const PARTIAL_RESPONSE_WARNING_MESSAGE =
+  "Analyse partielle disponible. Certains composants IA sont temporairement indisponibles.";
+
+const GENERIC_PROCESSING_ERROR_MESSAGE =
+  "L'analyse IA a rencontre un probleme de format. Reformulez votre demande puis reessayez.";
+
+const isRetryableFailure = (error: unknown, normalizedMessage: string): boolean => {
+  if (isNetworkError(error)) {
+    return true;
+  }
+
+  return /indisponible|reseau|connexion|serveur|expir|timeout|temporair/i.test(
+    normalizedMessage,
+  );
+};
 
 const buildMassiveCandidateFingerprint = (message: ChatMessageModel | undefined): string | null => {
   const candidate = message?.massiveIncidentCandidate;
@@ -66,6 +85,9 @@ export interface UseChatbotConversationResult {
   messages: ChatMessageModel[];
   isLoading: boolean;
   errorMessage: string | null;
+  errorTone: ChatbotUiAlertTone | null;
+  canRetryLastMessage: boolean;
+  technicalMessage: string | null;
   isWelcomeState: boolean;
   currentLanguage: ChatLanguage;
   loadingMessage: ChatMessageModel;
@@ -101,6 +123,9 @@ export const useChatbotConversation = (
   const [historyReady, setHistoryReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorTone, setErrorTone] = useState<ChatbotUiAlertTone | null>(null);
+  const [canRetryLastMessage, setCanRetryLastMessage] = useState(false);
+  const [technicalMessage, setTechnicalMessage] = useState<string | null>(null);
   const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const [currentLanguage, setCurrentLanguage] = useState<ChatLanguage>(initialLanguage);
   const [messages, setMessages] = useState<ChatMessageModel[]>([
@@ -141,6 +166,9 @@ export const useChatbotConversation = (
     setMessages([createWelcomeMessage(currentLanguage)]);
     setIsLoading(false);
     setErrorMessage(null);
+    setErrorTone(null);
+    setCanRetryLastMessage(false);
+    setTechnicalMessage(null);
     setLastQuestion(null);
 
     if (userId) {
@@ -157,6 +185,9 @@ export const useChatbotConversation = (
       : currentLanguage;
 
     setErrorMessage(null);
+    setErrorTone(null);
+    setCanRetryLastMessage(false);
+    setTechnicalMessage(null);
     setLastQuestion(normalizedQuestion || null);
     setCurrentLanguage(responseLanguage);
 
@@ -220,24 +251,49 @@ export const useChatbotConversation = (
       );
       setCurrentLanguage(resolvedResponseLanguage);
 
-      setMessages((previousMessages) => [
-        ...previousMessages,
-        removeConsecutiveMassiveIncidentDuplicate(
-          previousMessages,
-          createAssistantMessageFromResponse(response, resolvedResponseLanguage),
-        ),
-      ]);
+      const hasUsefulPayload = hasExploitableBusinessPayload(response);
+
+      if (response.available === false) {
+        setCanRetryLastMessage(true);
+        setTechnicalMessage((response.message || response.answer || "").trim() || null);
+
+        if (hasUsefulPayload) {
+          setErrorMessage(PARTIAL_RESPONSE_WARNING_MESSAGE);
+          setErrorTone("warning");
+        } else {
+          setErrorMessage(resolveAssistantUnavailableMessage("fr"));
+          setErrorTone("error");
+        }
+      }
+
+      const shouldAppendAssistantMessage = !(
+        response.available === false && !hasUsefulPayload
+      );
+
+      if (shouldAppendAssistantMessage) {
+        setMessages((previousMessages) => [
+          ...previousMessages,
+          removeConsecutiveMassiveIncidentDuplicate(
+            previousMessages,
+            createAssistantMessageFromResponse(response, resolvedResponseLanguage),
+          ),
+        ]);
+      }
     } catch (error) {
       if (requestVersion !== requestVersionRef.current) {
         return;
       }
 
       const handledError = getErrorMessage(error);
-      setErrorMessage(handledError);
-      setMessages((previousMessages) => [
-        ...previousMessages,
-        createAssistantErrorMessage(handledError, responseLanguage),
-      ]);
+      const retryableFailure = isRetryableFailure(error, handledError);
+      const userFacingMessage = retryableFailure
+        ? resolveAssistantUnavailableMessage("fr")
+        : GENERIC_PROCESSING_ERROR_MESSAGE;
+
+      setErrorMessage(userFacingMessage);
+      setErrorTone("error");
+      setCanRetryLastMessage(retryableFailure);
+      setTechnicalMessage(handledError);
     } finally {
       if (requestVersion === requestVersionRef.current) {
         setIsLoading(false);
@@ -249,6 +305,9 @@ export const useChatbotConversation = (
     messages,
     isLoading,
     errorMessage,
+    errorTone,
+    canRetryLastMessage,
+    technicalMessage,
     isWelcomeState,
     currentLanguage,
     loadingMessage,

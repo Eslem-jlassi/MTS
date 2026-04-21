@@ -73,6 +73,38 @@ interface BuildLowConfidenceMessageOptions {
   language?: ChatLanguage;
 }
 
+const isTechnicalUnavailableBackendAnswer = (answer?: string): boolean => {
+  const normalizedAnswer = (answer || "").trim().toLowerCase();
+  if (!normalizedAnswer) {
+    return false;
+  }
+
+  return [
+    "chatbot ia est indisponible",
+    "assistant temporairement indisponible",
+    "assistant ia est temporairement indisponible",
+    "the ai assistant is temporarily unavailable",
+    "i could not reach the ai assistant",
+    "service d'assistance ia est temporairement indisponible",
+  ].some((pattern) => normalizedAnswer.includes(pattern));
+};
+
+const isGenericPartialBackendAnswer = (answer?: string): boolean => {
+  const normalizedAnswer = (answer || "").trim().toLowerCase();
+  if (!normalizedAnswer) {
+    return false;
+  }
+
+  return [
+    "analyse partielle disponible",
+    "partial analysis is available",
+    "consultez les blocs detailes",
+    "check the detailed blocks",
+    "aucune reponse disponible",
+    "no response available",
+  ].some((pattern) => normalizedAnswer.includes(pattern));
+};
+
 const buildRelatedCasesHint = (
   results: ChatbotResult[] = [],
   language: ChatLanguage = "fr",
@@ -113,10 +145,14 @@ export function buildLowConfidenceMessage({
         : "";
   const backendHint =
     language === "en"
-      ? backendAnswer
+      ? backendAnswer &&
+        !isTechnicalUnavailableBackendAnswer(backendAnswer) &&
+        !isGenericPartialBackendAnswer(backendAnswer)
         ? `AI feedback: ${backendAnswer} `
         : ""
-      : backendAnswer
+      : backendAnswer &&
+          !isTechnicalUnavailableBackendAnswer(backendAnswer) &&
+          !isGenericPartialBackendAnswer(backendAnswer)
         ? `Retour IA : ${backendAnswer} `
         : "";
   const relatedCasesHint = buildRelatedCasesHint(results, language);

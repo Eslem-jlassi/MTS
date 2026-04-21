@@ -1,3 +1,4 @@
+import { UserRole } from "../../types";
 import type {
   ManagerCopilotAssignmentSignal,
   ManagerCopilotConfidence,
@@ -18,6 +19,10 @@ export const MANAGER_COPILOT_FULL_LABEL = `${MANAGER_COPILOT_NAME}, ${MANAGER_CO
 export const MANAGER_COPILOT_WIDGET_SUBTITLE = MANAGER_COPILOT_SUBTITLE;
 
 export const MANAGER_COPILOT_DASHBOARD_SUBTITLE = MANAGER_COPILOT_SUBTITLE;
+
+export function isManagerCopilotAllowedRole(role?: UserRole | null): role is UserRole.MANAGER {
+  return role === UserRole.MANAGER;
+}
 
 export interface ManagerCopilotMoment {
   title: string;

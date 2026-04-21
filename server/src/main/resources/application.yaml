@@ -1,12 +1,21 @@
 server:
   port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+      force-request: true
+      force-response: true
   error:
     include-message: always
     include-stacktrace: never
 
 spring:
+  config:
+    import: optional:file:../.env[.properties],optional:file:.env[.properties]
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/mts_telecom_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=utf8}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/mts_telecom_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:mts2026}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -40,6 +49,9 @@ spring:
   sql:
     init:
       mode: never
+
+  messages:
+    encoding: UTF-8
 
   servlet:
     multipart:
@@ -183,7 +195,7 @@ ai:
     connect-timeout-ms: ${AI_CONNECT_TIMEOUT_MS:2000}
     read-timeout-ms: ${AI_READ_TIMEOUT_MS:10000}
   autostart:
-    enabled: ${AI_AUTOSTART_ENABLED:false}
+    enabled: ${AI_AUTOSTART_ENABLED:true}
     wait-timeout-ms: ${AI_AUTOSTART_WAIT_TIMEOUT_MS:180000}
     poll-interval-ms: ${AI_AUTOSTART_POLL_INTERVAL_MS:1000}
   sentiment:
