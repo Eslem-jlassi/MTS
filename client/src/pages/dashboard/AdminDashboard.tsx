@@ -16,7 +16,7 @@ import {
   Tag,
   Clock,
 } from "lucide-react";
-import { Card, Button, Skeleton } from "../../components/ui";
+import { Card, Button, Skeleton, Badge } from "../../components/ui";
 import type { DashboardStats, AuditLog } from "../../types";
 import type { TelecomService } from "../../types";
 import { slaService } from "../../api/slaService";
@@ -26,6 +26,7 @@ import {
   formatDateTime,
   formatRelativeTime as formatRelativeTimeValue,
 } from "../../utils/formatters";
+import { auditEntityTone, toneBadgeVariant, toneIconClass } from "../../utils/uiSemantics";
 
 interface AdminDashboardProps {
   stats: DashboardStats;
@@ -81,18 +82,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
    * Retourne le badge pour le type d'entité
    */
   const getEntityBadge = (entityType: string) => {
-    const colors: Record<string, string> = {
-      USER: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-      TICKET: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-      SERVICE: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-      SLA: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
-      INCIDENT: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-      CLIENT: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
-      CATEGORY: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-    };
-    const color =
-      colors[entityType] || "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300";
-    return <span className={`px-2 py-0.5 rounded text-xs font-medium ${color}`}>{entityType}</span>;
+    return (
+      <Badge
+        size="sm"
+        variant={toneBadgeVariant(auditEntityTone[entityType] || "neutral")}
+        className="shadow-none"
+      >
+        {entityType}
+      </Badge>
+    );
   };
 
   return (
@@ -124,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <Card padding="md" className="border-ds-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                <div className={`rounded-xl p-3 ${toneIconClass("info")}`}>
                   <Users size={24} />
                 </div>
                 <div>
@@ -143,7 +141,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <Card padding="md" className="border-ds-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                <div className={`rounded-xl p-3 ${toneIconClass("neutral")}`}>
                   <Server size={24} />
                 </div>
                 <div>
@@ -158,7 +156,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <Card padding="md" className="border-ds-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400">
+                <div className={`rounded-xl p-3 ${toneIconClass("warning")}`}>
                   <FileCheck size={24} />
                 </div>
                 <div>
@@ -177,7 +175,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           <Card padding="md" className="border-ds-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
+                <div className={`rounded-xl p-3 ${toneIconClass("danger")}`}>
                   <AlertTriangle size={24} />
                 </div>
                 <div>

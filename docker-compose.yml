@@ -10,10 +10,10 @@ services:
     ports:
       - "${COMPOSE_DB_PORT:-3306}:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-mts2026}
+      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-change_me_demo_root_password}
       MYSQL_DATABASE: ${COMPOSE_DB_NAME:-mts_telecom_db}
-      MYSQL_USER: ${COMPOSE_DB_USERNAME:-mts_user}
-      MYSQL_PASSWORD: ${COMPOSE_DB_PASSWORD:-mts_password}
+      MYSQL_USER: ${COMPOSE_DB_USERNAME:-demo_mts_user}
+      MYSQL_PASSWORD: ${COMPOSE_DB_PASSWORD:-change_me_demo_db_password}
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -30,7 +30,7 @@ services:
           "localhost",
           "-u",
           "root",
-          "-p${COMPOSE_DB_ROOT_PASSWORD:-mts2026}"
+          "-p${COMPOSE_DB_ROOT_PASSWORD:-change_me_demo_root_password}"
         ]
       interval: 10s
       timeout: 5s
@@ -50,7 +50,7 @@ services:
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-mts2026}
+      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-change_me_demo_root_password}
     depends_on:
       mysql:
         condition: service_healthy
@@ -139,9 +139,9 @@ services:
         condition: service_healthy
     environment:
       DB_URL: jdbc:mysql://mysql:3306/${COMPOSE_DB_NAME:-mts_telecom_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=utf8
-      DB_USERNAME: ${COMPOSE_DB_USERNAME:-mts_user}
-      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-mts_password}
-      JWT_SECRET: ${COMPOSE_JWT_SECRET:-MTS_BILLCOM_2026_Hx7pL9mNqR3sT6vW8yZ2aB5cD0eF4gHjKlMnPqRsTuVwXyZ1a2B3c4D5e6F7g8H9i0JkLmNoPqRs}
+      DB_USERNAME: ${COMPOSE_DB_USERNAME:-demo_mts_user}
+      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-change_me_demo_db_password}
+      JWT_SECRET: ${COMPOSE_JWT_SECRET:-CHANGE_ME_DEMO_JWT_SECRET_MIN_64_CHARS_1234567890_ABCDEFGHIJKLMNOPQRSTUVWXYZ}
       GOOGLE_CLIENT_ID: ${COMPOSE_GOOGLE_CLIENT_ID:-}
       COOKIE_SECURE: "false"
       ALLOW_INTERNAL_SIGNUP: "false"
@@ -190,7 +190,7 @@ services:
       args:
         REACT_APP_API_URL: ${COMPOSE_REACT_APP_API_URL:-http://localhost:8080/api}
         REACT_APP_GOOGLE_OAUTH_CLIENT_ID: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_CLIENT_ID:-}
-        REACT_APP_GOOGLE_OAUTH_ENABLED: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ENABLED:-true}
+        REACT_APP_GOOGLE_OAUTH_ENABLED: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ENABLED:-false}
         REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001}
         REACT_APP_DEMO_MODE: "false"
     restart: unless-stopped

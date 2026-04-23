@@ -23,17 +23,17 @@ const ChatbotSuggestedActionsView: React.FC<ChatbotSuggestedActionsProps> = ({
     <section className="chatbot-response-section chatbot-actions-suggested">
       <div className="chatbot-actions-header">
         <p className="chatbot-results-title">
-          {language === "en" ? "Suggested actions" : "Actions suggerees"}
+          {language === "en" ? "Suggested actions" : "Actions sugg\u00E9r\u00E9es"}
         </p>
         <p className="chatbot-actions-subtitle">
           {language === "en"
             ? "Quick execution of the next recommended steps"
-            : "Execution rapide des prochaines etapes"}
+            : "Ex\u00E9cution rapide des prochaines \u00E9tapes"}
         </p>
       </div>
       <ul
         className="chatbot-actions-chips"
-        aria-label={language === "en" ? "Suggested actions" : "Actions suggerees"}
+        aria-label={language === "en" ? "Suggested actions" : "Actions sugg\u00E9r\u00E9es"}
       >
         {actions.map((action) => (
           <li key={action.id} className="chatbot-action-item">

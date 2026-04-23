@@ -27,6 +27,19 @@ import { resolveChatLanguage } from "./chatbotLanguage";
 import ChatbotMascot from "./ChatbotMascot";
 import "./ChatbotStyles.css";
 
+const confidenceNarrativeLabels = {
+  fr: {
+    high: "élevée",
+    medium: "moyenne",
+    low: "à confirmer",
+  },
+  en: {
+    high: "high",
+    medium: "medium",
+    low: "needs confirmation",
+  },
+} as const;
+
 const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draftTicket, setDraftTicket] = useState<ChatbotTicketDraft | null>(null);
@@ -182,10 +195,15 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
           : lastKnownService
             ? `Service : ${lastKnownService}. `
             : "";
+      const normalizedConfidence = (latestAssistantMessage?.confidence || "").toLowerCase();
+      const localizedConfidence =
+        confidenceNarrativeLabels[currentLanguage][
+          normalizedConfidence as keyof (typeof confidenceNarrativeLabels)[typeof currentLanguage]
+        ] || latestAssistantMessage?.confidence;
       const confidence = latestAssistantMessage?.confidence
         ? currentLanguage === "en"
-          ? `Current confidence: ${latestAssistantMessage.confidence}. `
-          : `Confiance actuelle : ${latestAssistantMessage.confidence}. `
+          ? `Current confidence: ${localizedConfidence}. `
+          : `Confiance actuelle : ${localizedConfidence}. `
         : "";
       sendMessage(`${service}${confidence}${copy.checkSlaPrompt}`);
       return;
@@ -260,7 +278,7 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
           : `Impact estime (IA) : ${draftTicket.impact.trim()}`
         : currentLanguage === "en"
           ? "Estimated impact (AI): To be confirmed"
-          : "Impact estime (IA) : A confirmer",
+          : "Impact estimé (IA) : À confirmer",
       draftTicket.probableCause.trim()
         ? currentLanguage === "en"
           ? `Probable cause (AI): ${draftTicket.probableCause.trim()}`

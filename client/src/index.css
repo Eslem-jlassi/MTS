@@ -31,9 +31,12 @@
 
   --color-primary: 37 99 235;
   --color-primary-hover: 29 78 216;
+  --color-info: 14 165 233;
   --color-error: 239 68 68;
   --color-warning: 245 158 11;
   --color-success: 16 185 129;
+  --color-ai: 124 58 237;
+  --color-ai-hover: 109 40 217;
   --color-accent: 79 70 229;
   --color-accent-600: 67 56 202;
   --color-warm: 249 115 22;
@@ -83,9 +86,12 @@
 
   --color-primary: 96 165 250;
   --color-primary-hover: 125 211 252;
+  --color-info: 56 189 248;
   --color-error: 248 113 113;
   --color-warning: 251 191 36;
   --color-success: 52 211 153;
+  --color-ai: 167 139 250;
+  --color-ai-hover: 196 181 253;
   --color-accent: 129 140 248;
   --color-accent-600: 99 102 241;
   --color-warm: 251 146 60;

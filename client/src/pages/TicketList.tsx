@@ -19,6 +19,7 @@ import {
   FileSpreadsheet,
   FileText,
   Ticket,
+  UserPlus,
 } from "lucide-react";
 import { useToast } from "../context/ToastContext";
 import { ticketService } from "../api/ticketService";
@@ -51,11 +52,11 @@ const priorityVariant: Record<TicketPriority, "danger" | "warning" | "info" | "s
 };
 const statusVariant: Record<
   TicketStatus,
-  "default" | "success" | "warning" | "danger" | "info" | "neutral"
+  "default" | "success" | "warning" | "danger" | "info" | "neutral" | "ai"
 > = {
   [TicketStatus.NEW]: "info",
-  [TicketStatus.ASSIGNED]: "default",
-  [TicketStatus.IN_PROGRESS]: "default",
+  [TicketStatus.ASSIGNED]: "ai",
+  [TicketStatus.IN_PROGRESS]: "info",
   [TicketStatus.PENDING]: "warning",
   [TicketStatus.PENDING_THIRD_PARTY]: "warning",
   [TicketStatus.ESCALATED]: "danger",
@@ -98,13 +99,13 @@ const SlaIndicator: React.FC<{
       slaWarning || percentage > 75
         ? "text-warning-600 dark:text-warning-400"
         : percentage > 50
-          ? "text-accent-600 dark:text-accent-400"
+          ? "text-info-600 dark:text-info-400"
           : "text-success-600 dark:text-success-400";
     const barColor =
       slaWarning || percentage > 75
         ? "bg-warning-500"
         : percentage > 50
-          ? "bg-accent-500"
+          ? "bg-info-500"
           : "bg-success-500";
     return (
       <div className="flex flex-col items-start">
@@ -233,6 +234,7 @@ const TicketList: React.FC = () => {
 
   const user = useSelector((state: RootState) => state.auth.user);
   const isClient = user?.role === ("CLIENT" as UserRole);
+  const isAgent = user?.role === ("AGENT" as UserRole);
   const isAdmin = user?.role === ("ADMIN" as UserRole);
   const isOauthAdmin = Boolean(isAdmin && user?.oauthProvider);
   const canExport = !isClient;
@@ -261,6 +263,23 @@ const TicketList: React.FC = () => {
       toast.error(backendMessage || "Impossible d'annuler ce ticket");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleTakeTicket = async (ticket: {
+    id: number;
+    ticketNumber: string;
+    canTakeOwnership?: boolean;
+  }) => {
+    if (!isAgent || !ticket.canTakeOwnership) return;
+
+    try {
+      await ticketService.takeTicket(ticket.id);
+      toast.success(`Ticket ${ticket.ticketNumber} pris en charge`);
+      dispatch(fetchTickets({ filters, page: { page: currentPage, size: pageSize } }));
+    } catch (error: any) {
+      const backendMessage = error?.response?.data?.detail || error?.response?.data?.message;
+      toast.error(backendMessage || "Impossible de prendre ce ticket");
     }
   };
 
@@ -848,6 +867,22 @@ const TicketList: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 text-right align-top">
                         <div className="flex items-center justify-end gap-1">
+                          {isAgent && ticket.canTakeOwnership && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleTakeTicket(ticket);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl border border-primary/30 px-2 py-1.5 text-primary transition-colors hover:bg-primary-50 hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                              aria-label={`Prendre le ticket ${ticket.ticketNumber}`}
+                              title={`Prendre le ticket ${ticket.ticketNumber}`}
+                            >
+                              <UserPlus size={15} />
+                              <span className="hidden text-[11px] font-semibold uppercase tracking-[0.08em] xl:inline">
+                                Prendre
+                              </span>
+                            </button>
+                          )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

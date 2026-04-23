@@ -4,7 +4,14 @@
 
 import React from "react";
 
-export type BadgeVariant = "default" | "neutral" | "success" | "warning" | "danger" | "info";
+export type BadgeVariant =
+  | "default"
+  | "neutral"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info"
+  | "ai";
 
 interface BadgeProps {
   variant?: BadgeVariant;
@@ -25,7 +32,8 @@ const variantClasses: Record<BadgeVariant, string> = {
     "border border-warning-200/80 bg-warning-50/95 text-warning-700 dark:border-warning-500/20 dark:bg-warning-500/12 dark:text-warning-200",
   danger:
     "border border-error-200/80 bg-error-50/95 text-error-700 dark:border-error-500/20 dark:bg-error-500/12 dark:text-error-200",
-  info: "border border-primary-200/80 bg-primary-50/95 text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/12 dark:text-primary-200",
+  info: "border border-info-200/80 bg-info-50/95 text-info-700 dark:border-info-500/20 dark:bg-info-500/12 dark:text-info-200",
+  ai: "border border-ai-200/80 bg-ai-50/95 text-ai-700 dark:border-ai-500/20 dark:bg-ai-500/12 dark:text-ai-200",
 };
 
 const sizeClasses = {

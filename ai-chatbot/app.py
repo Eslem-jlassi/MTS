@@ -22,6 +22,12 @@ from massive_incident_detector import (
     detect_massive_incident_candidates,
     load_ticket_records,
 )
+from manager_copilot_knn import (
+    DEFAULT_K,
+    MODEL_VERSION as MANAGER_COPILOT_MODEL_VERSION,
+    load_or_train_artifact,
+    score_cases_payload,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_DIR = BASE_DIR / "index"
@@ -41,16 +47,22 @@ model = None
 ticket_records = []
 runtime_loading = False
 runtime_loaded = False
+manager_copilot_artifact = None
+manager_copilot_error: Optional[str] = None
 
 
 def initialize_runtime() -> None:
     global startup_error, index, metadata, model, ticket_records, runtime_loading, runtime_loaded
+    global manager_copilot_artifact, manager_copilot_error
 
     runtime_loading = True
     runtime_loaded = False
     startup_error = None
+    manager_copilot_error = None
 
     try:
+        manager_copilot_artifact = load_or_train_artifact()
+
         print("Chargement de l'index FAISS...")
         loaded_index = faiss.read_index(str(INDEX_FILE))
 
@@ -69,12 +81,30 @@ def initialize_runtime() -> None:
         runtime_loaded = True
     except Exception as error:  # pragma: no cover - startup fallback
         startup_error = f"{type(error).__name__}: {error}"
+        if manager_copilot_artifact is None:
+            manager_copilot_error = startup_error
         index = None
         metadata = []
         model = None
         ticket_records = []
     finally:
         runtime_loading = False
+
+
+def _get_manager_copilot_artifact():
+    global manager_copilot_artifact, manager_copilot_error
+
+    if manager_copilot_artifact is not None:
+        return manager_copilot_artifact
+
+    try:
+        manager_copilot_artifact = load_or_train_artifact()
+        manager_copilot_error = None
+    except Exception as error:  # pragma: no cover - runtime fallback
+        manager_copilot_error = f"{type(error).__name__}: {error}"
+        manager_copilot_artifact = None
+
+    return manager_copilot_artifact
 
 
 @app.on_event("startup")
@@ -170,6 +200,72 @@ class MassiveIncidentDetectionResponse(BaseModel):
     missing_information: List[str] = Field(default_factory=list)
     sources: List[str] = Field(default_factory=list)
     latency_ms: Optional[float] = None
+
+
+class ManagerCopilotFeatureSet(BaseModel):
+    priority: str
+    status: str
+    age_hours: float = 0.0
+    sla_remaining_minutes: float = 0.0
+    sla_breached: bool = False
+    service_degraded: bool = False
+    similar_ticket_count: float = 0.0
+    probable_mass_incident: bool = False
+    duplicate_confidence: float = 0.0
+    frustration_score: float = 0.0
+    backlog_open_tickets: float = 0.0
+    agent_open_ticket_count: float = 0.0
+    incident_linked: bool = False
+    business_impact: str = "MEDIUM"
+    service_criticality: str = "MEDIUM"
+    assigned: bool = False
+
+
+class ManagerCopilotScoreCaseRequest(BaseModel):
+    case_id: str
+    title: str
+    service_name: Optional[str] = None
+    ticket_number: Optional[str] = None
+    features: ManagerCopilotFeatureSet
+
+
+class ManagerCopilotScoreRequest(BaseModel):
+    k: int = DEFAULT_K
+    cases: List[ManagerCopilotScoreCaseRequest]
+
+
+class ManagerCopilotNearestExampleResponse(BaseModel):
+    example_id: str
+    label: str
+    title: str
+    summary: str
+    recommendation: str
+    distance: float
+    feature_summary: List[str] = Field(default_factory=list)
+
+
+class ManagerCopilotScoreCaseResponse(BaseModel):
+    case_id: str
+    predicted_action: str
+    confidence_score: float
+    confidence_level: str
+    nearest_examples: List[ManagerCopilotNearestExampleResponse] = Field(default_factory=list)
+    feature_summary: List[str] = Field(default_factory=list)
+    reasoning: str
+    inference_mode: str = "knn"
+    model_version: str = MANAGER_COPILOT_MODEL_VERSION
+    fallback_mode: str = "knn_primary"
+
+
+class ManagerCopilotScoreResponse(BaseModel):
+    available: bool = True
+    model_version: str = MANAGER_COPILOT_MODEL_VERSION
+    inference_mode: str = "knn"
+    fallback_mode: str = "knn_primary"
+    confidence_score: float = 0.0
+    confidence_level: str = "low"
+    results: List[ManagerCopilotScoreCaseResponse] = Field(default_factory=list)
+    reasoning_steps: List[str] = Field(default_factory=list)
 
 
 def _normalize_text(value: Optional[str]) -> str:
@@ -767,6 +863,16 @@ def chat(request: ChatRequest):
         sources=sources,
         latency_ms=latency_ms,
     )
+
+
+@app.post("/manager-copilot/score", response_model=ManagerCopilotScoreResponse)
+def score_manager_copilot_cases(request: ManagerCopilotScoreRequest):
+    payload = score_cases_payload(
+        cases=[case.model_dump() for case in request.cases],
+        artifact=_get_manager_copilot_artifact(),
+        k=request.k,
+    )
+    return ManagerCopilotScoreResponse(**payload)
 
 
 @app.post("/massive-incidents/detect", response_model=MassiveIncidentDetectionResponse)

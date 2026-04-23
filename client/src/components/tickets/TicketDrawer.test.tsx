@@ -75,6 +75,7 @@ jest.mock("../../api/ticketService", () => ({
     getComments: jest.fn(),
     getHistory: jest.fn(),
     assignTicket: jest.fn(),
+    takeTicket: jest.fn(),
     unassignTicket: jest.fn(),
   },
 }));
@@ -138,6 +139,7 @@ const baseTicket = {
   overdue: false,
   assignedToId: null,
   assignedToName: null,
+  canTakeOwnership: false,
 };
 
 const agents = [
@@ -198,6 +200,7 @@ const renderDrawer = (
   });
   (ticketService.getTickets as jest.Mock).mockResolvedValue({ content: [] });
   (ticketService.assignTicket as jest.Mock).mockResolvedValue(undefined);
+  (ticketService.takeTicket as jest.Mock).mockResolvedValue(undefined);
   (ticketService.unassignTicket as jest.Mock).mockResolvedValue(undefined);
   (userService.getAgents as jest.Mock).mockResolvedValue(agents);
   (sentimentService.analyze as jest.Mock).mockResolvedValue({
@@ -307,6 +310,23 @@ describe("TicketDrawer assignment dropdown", () => {
 
     expect(screen.queryByTestId("ticket-assignment-trigger")).not.toBeInTheDocument();
     expect(screen.getByText("Lecture seule")).toBeInTheDocument();
+  });
+
+  it("lets an AGENT take an unassigned ticket only when the API allows it", async () => {
+    renderDrawer(
+      { canTakeOwnership: true, assignedToId: null, assignedToName: null },
+      { authOverrides: { role: "AGENT", email: "agent@mts-telecom.ma" } },
+    );
+
+    expect(
+      await screen.findByText("Perte de connectivite fibre site principal"),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId("ticket-take-ownership-trigger"));
+
+    await waitFor(() => {
+      expect(ticketService.takeTicket).toHaveBeenCalledWith(42);
+    });
   });
 
   it("shows lock message only when assignment is locked by status", async () => {

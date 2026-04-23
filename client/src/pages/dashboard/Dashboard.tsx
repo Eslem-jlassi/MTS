@@ -146,8 +146,8 @@ const Dashboard: React.FC = () => {
         <AgentDashboard
           stats={stats}
           recentTickets={recentTickets}
-          assignedToMeCount={recentTickets.length}
-          slaAtRiskCount={stats.slaBreachedCount ?? 0}
+          assignedToMeCount={stats.activeTickets ?? recentTickets.length}
+          slaBreachedCount={stats.slaBreachedCount ?? 0}
           lastUpdated={lastUpdated}
           onRefresh={handleRefresh}
           isLoadingRefresh={refreshing}

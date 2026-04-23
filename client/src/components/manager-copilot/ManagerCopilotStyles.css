@@ -3167,3 +3167,87 @@
     flex: 1 1 100%;
   }
 }
+
+/* Semantic polish: quieter AI accent and clearer state hierarchy */
+
+.manager-copilot-launcher,
+.manager-copilot-fab {
+  border-color: rgb(var(--ds-border) / 0.92);
+  background:
+    radial-gradient(circle at top left, rgb(255 255 255 / 0.36), transparent 30%),
+    linear-gradient(135deg, rgb(var(--ds-card)), rgb(var(--ds-surface)));
+  box-shadow: var(--ds-shadow-card);
+}
+
+.manager-copilot-launcher:hover,
+.manager-copilot-fab:hover {
+  border-color: rgb(var(--color-ai) / 0.24);
+  box-shadow: var(--ds-shadow-card-hover);
+}
+
+.manager-copilot-launcher-icon,
+.manager-copilot-fab-core {
+  border-color: rgb(var(--color-ai) / 0.22);
+  background:
+    radial-gradient(circle at 30% 24%, rgb(255 255 255 / 0.58), transparent 35%),
+    linear-gradient(145deg, rgb(var(--color-info) / 0.18), rgb(var(--color-ai) / 0.16));
+  color: rgb(var(--color-ai-hover));
+}
+
+.manager-copilot-launcher-badge,
+.manager-copilot-fab-badge {
+  background: linear-gradient(180deg, rgb(var(--color-error)), rgb(220 38 38));
+}
+
+.manager-copilot-status-chip {
+  border-color: rgb(var(--color-ai) / 0.24);
+  background: rgb(var(--color-ai) / 0.1);
+  color: rgb(var(--color-ai-hover));
+}
+
+.manager-copilot-presence-pill-critical,
+.manager-copilot-header-status-card-critical,
+.manager-copilot-cockpit-focus-card-critical,
+.manager-copilot-cockpit-signal-critical {
+  border-color: rgb(var(--color-error) / 0.22);
+  background:
+    linear-gradient(180deg, rgb(var(--color-error) / 0.08), rgb(var(--ds-surface)));
+  color: rgb(var(--color-error));
+}
+
+.manager-copilot-presence-pill-warning,
+.manager-copilot-header-status-card-warning,
+.manager-copilot-cockpit-focus-card-warning,
+.manager-copilot-cockpit-signal-warning {
+  border-color: rgb(var(--color-warning) / 0.22);
+  background:
+    linear-gradient(180deg, rgb(var(--color-warning) / 0.08), rgb(var(--ds-surface)));
+  color: rgb(var(--color-warning));
+}
+
+.manager-copilot-presence-pill-info,
+.manager-copilot-header-status-card-info,
+.manager-copilot-cockpit-focus-card-info,
+.manager-copilot-cockpit-signal-info {
+  border-color: rgb(var(--color-info) / 0.22);
+  background:
+    linear-gradient(180deg, rgb(var(--color-info) / 0.08), rgb(var(--ds-surface)));
+  color: rgb(var(--color-info));
+}
+
+.manager-copilot-presence-pill-success,
+.manager-copilot-header-status-card-success,
+.manager-copilot-cockpit-focus-card-success,
+.manager-copilot-cockpit-signal-success {
+  border-color: rgb(var(--color-success) / 0.22);
+  background:
+    linear-gradient(180deg, rgb(var(--color-success) / 0.08), rgb(var(--ds-surface)));
+  color: rgb(var(--color-success));
+}
+
+.manager-copilot-panel-footer {
+  border-color: rgb(var(--ds-border) / 0.92);
+  background:
+    linear-gradient(180deg, rgb(var(--ds-card)), rgb(var(--ds-surface)));
+  box-shadow: var(--ds-shadow-card);
+}

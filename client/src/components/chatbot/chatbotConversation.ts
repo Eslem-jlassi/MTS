@@ -109,9 +109,10 @@ const buildRelatedCasesHint = (
   results: ChatbotResult[] = [],
   language: ChatLanguage = "fr",
 ): string => {
+  const unknownServiceLabel = language === "en" ? "unknown service" : "service inconnu";
   const topCases = results.slice(0, 3).map(
     (item) =>
-      `${item.title} (${item.serviceName || "N/A"}, score ${formatNumberValue(Number(item.score), {
+      `${item.title} (${item.serviceName || unknownServiceLabel}, score ${formatNumberValue(Number(item.score), {
         maximumFractionDigits: 2,
       })})`,
   );

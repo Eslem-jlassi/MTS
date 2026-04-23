@@ -30,6 +30,7 @@
  */
 
 import { Dispatch, SetStateAction } from "react";
+import { designTokens } from "../theme";
 
 // =============================================================================
 // ENUMS - Valeurs prédéfinies constantes
@@ -443,6 +444,7 @@ export interface Ticket {
   attachments?: TicketAttachmentInfo[];
   commentCount: number;
   allowedTransitions?: TicketStatus[];
+  canTakeOwnership?: boolean;
 }
 
 export interface TicketAttachmentInfo {
@@ -723,10 +725,10 @@ export const IncidentStatusLabels: Record<IncidentStatus, string> = {
 };
 
 export const IncidentStatusColors: Record<IncidentStatus, string> = {
-  [IncidentStatus.OPEN]: "#ef4444",
-  [IncidentStatus.IN_PROGRESS]: "#f97316",
-  [IncidentStatus.RESOLVED]: "#22c55e",
-  [IncidentStatus.CLOSED]: "#6b7280",
+  [IncidentStatus.OPEN]: designTokens.colors.danger,
+  [IncidentStatus.IN_PROGRESS]: designTokens.colors.warning,
+  [IncidentStatus.RESOLVED]: designTokens.colors.success,
+  [IncidentStatus.CLOSED]: designTokens.colors.textMuted,
 };
 
 export const SeverityLabels: Record<Severity, string> = {
@@ -737,10 +739,10 @@ export const SeverityLabels: Record<Severity, string> = {
 };
 
 export const SeverityColors: Record<Severity, string> = {
-  [Severity.CRITICAL]: "#dc2626",
-  [Severity.MAJOR]: "#ea580c",
-  [Severity.MINOR]: "#ca8a04",
-  [Severity.LOW]: "#16a34a",
+  [Severity.CRITICAL]: designTokens.colors.danger,
+  [Severity.MAJOR]: designTokens.colors.warning,
+  [Severity.MINOR]: designTokens.colors.info,
+  [Severity.LOW]: designTokens.colors.success,
 };
 
 export const ImpactLabels: Record<IncidentImpact, string> = {
@@ -1119,22 +1121,22 @@ export interface BusinessHoursRequest {
 // =============================================================================
 
 export const StatusColors: Record<TicketStatus, string> = {
-  [TicketStatus.NEW]: "#2C8DB6",
-  [TicketStatus.ASSIGNED]: "#3FA7D6",
-  [TicketStatus.IN_PROGRESS]: "#3b82f6",
-  [TicketStatus.PENDING]: "#f59e0b",
-  [TicketStatus.PENDING_THIRD_PARTY]: "#f97316",
-  [TicketStatus.ESCALATED]: "#ef4444",
-  [TicketStatus.RESOLVED]: "#10b981",
-  [TicketStatus.CLOSED]: "#6b7280",
-  [TicketStatus.CANCELLED]: "#9ca3af",
+  [TicketStatus.NEW]: designTokens.colors.info,
+  [TicketStatus.ASSIGNED]: designTokens.colors.ai,
+  [TicketStatus.IN_PROGRESS]: designTokens.colors.info,
+  [TicketStatus.PENDING]: designTokens.colors.warning,
+  [TicketStatus.PENDING_THIRD_PARTY]: designTokens.colors.warning,
+  [TicketStatus.ESCALATED]: designTokens.colors.danger,
+  [TicketStatus.RESOLVED]: designTokens.colors.success,
+  [TicketStatus.CLOSED]: designTokens.colors.textMuted,
+  [TicketStatus.CANCELLED]: designTokens.colors.textMuted,
 };
 
 export const PriorityColors: Record<TicketPriority, string> = {
-  [TicketPriority.CRITICAL]: "#dc2626",
-  [TicketPriority.HIGH]: "#f97316",
-  [TicketPriority.MEDIUM]: "#eab308",
-  [TicketPriority.LOW]: "#22c55e",
+  [TicketPriority.CRITICAL]: designTokens.colors.danger,
+  [TicketPriority.HIGH]: designTokens.colors.warning,
+  [TicketPriority.MEDIUM]: designTokens.colors.info,
+  [TicketPriority.LOW]: designTokens.colors.success,
 };
 
 export const StatusLabels: Record<TicketStatus, string> = {
@@ -1178,15 +1180,15 @@ export const ServiceStatusLabels: Record<ServiceStatus, string> = {
 };
 
 export const ServiceStatusColors: Record<ServiceStatus, string> = {
-  [ServiceStatus.UP]: "text-green-700 dark:text-green-400",
-  [ServiceStatus.DEGRADED]: "text-amber-700 dark:text-amber-400",
-  [ServiceStatus.DOWN]: "text-red-700 dark:text-red-400",
-  [ServiceStatus.MAINTENANCE]: "text-slate-600 dark:text-slate-400",
+  [ServiceStatus.UP]: "text-success-700 dark:text-success-400",
+  [ServiceStatus.DEGRADED]: "text-warning-700 dark:text-warning-400",
+  [ServiceStatus.DOWN]: "text-error-700 dark:text-error-400",
+  [ServiceStatus.MAINTENANCE]: "text-ds-muted dark:text-ds-muted",
 };
 
 export const ServiceStatusBgColors: Record<ServiceStatus, string> = {
-  [ServiceStatus.UP]: "bg-green-100 dark:bg-green-900/40",
-  [ServiceStatus.DEGRADED]: "bg-amber-100 dark:bg-amber-900/40",
-  [ServiceStatus.DOWN]: "bg-red-100 dark:bg-red-900/40",
-  [ServiceStatus.MAINTENANCE]: "bg-slate-100 dark:bg-slate-700",
+  [ServiceStatus.UP]: "bg-success-50 dark:bg-success-900/30",
+  [ServiceStatus.DEGRADED]: "bg-warning-50 dark:bg-warning-900/30",
+  [ServiceStatus.DOWN]: "bg-error-50 dark:bg-error-900/30",
+  [ServiceStatus.MAINTENANCE]: "bg-ds-elevated dark:bg-ds-elevated/70",
 };

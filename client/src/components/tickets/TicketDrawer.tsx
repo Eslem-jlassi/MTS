@@ -83,6 +83,18 @@ import {
   formatPercent,
   formatSlaRemaining as formatSlaRemainingValue,
 } from "../../utils/formatters";
+import {
+  getSlaTone,
+  roleVisuals,
+  ticketPriorityTone,
+  ticketPriorityVisuals,
+  ticketStatusVisuals,
+  toneBadgeVariant,
+  toneDotClass,
+  type SemanticTone,
+  toneSoftPanelClass,
+  toneTextClass,
+} from "../../utils/uiSemantics";
 import ManagerCopilotTicketCard from "../manager-copilot/ManagerCopilotTicketCard";
 import {
   buildManagerCopilotTicketContext,
@@ -109,7 +121,7 @@ interface TicketDrawerProps {
 // CONFIG BADGES
 // =============================================================================
 
-const priorityConfig: Record<string, { bg: string; text: string; label: string }> = {
+const legacyPriorityConfig: Record<string, { bg: string; text: string; label: string }> = {
   CRITICAL: {
     bg: "bg-red-100 dark:bg-red-900/30",
     text: "text-red-800 dark:text-red-200",
@@ -132,7 +144,7 @@ const priorityConfig: Record<string, { bg: string; text: string; label: string }
   },
 };
 
-const statusConfig: Record<string, { bg: string; text: string; label: string; dot: string }> = {
+const legacyStatusConfig: Record<string, { bg: string; text: string; label: string; dot: string }> = {
   NEW: {
     bg: "bg-blue-100 dark:bg-blue-900/30",
     text: "text-blue-800 dark:text-blue-200",
@@ -189,7 +201,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string; do
   },
 };
 
-const roleConfig: Record<string, { label: string; color: string }> = {
+const legacyRoleConfig: Record<string, { label: string; color: string }> = {
   CLIENT: {
     label: "Client",
     color: "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300",
@@ -203,6 +215,81 @@ const roleConfig: Record<string, { label: string; color: string }> = {
     color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
   },
   ADMIN: { label: "Admin", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" },
+};
+
+const priorityConfig = (ticketPriorityVisuals || legacyPriorityConfig) as Record<
+  string,
+  (typeof ticketPriorityVisuals)[keyof typeof ticketPriorityVisuals]
+>;
+const statusConfig = (ticketStatusVisuals || legacyStatusConfig) as Record<
+  string,
+  (typeof ticketStatusVisuals)[TicketStatus]
+>;
+const roleConfig = (roleVisuals || legacyRoleConfig) as Record<
+  string,
+  (typeof roleVisuals)[UserRole]
+>;
+
+const normalizeInsightValue = (value?: string | null) => (value || "").trim().toUpperCase();
+
+const getConfidenceTone = (score?: number | null): SemanticTone => {
+  if (typeof score !== "number" || !Number.isFinite(score)) {
+    return "neutral";
+  }
+
+  if (score >= 0.85) {
+    return "success";
+  }
+
+  if (score >= 0.6) {
+    return "warning";
+  }
+
+  return "neutral";
+};
+
+const getSentimentTone = (sentiment?: string | null): SemanticTone => {
+  const normalized = normalizeInsightValue(sentiment);
+
+  if (normalized === "NEGATIF" || normalized === "NEGATIVE") {
+    return "danger";
+  }
+
+  if (normalized === "POSITIF" || normalized === "POSITIVE") {
+    return "success";
+  }
+
+  return "warning";
+};
+
+const getDuplicateTone = (result?: DuplicateResponse | null): SemanticTone => {
+  if (!result) {
+    return "neutral";
+  }
+
+  if (result.is_duplicate) {
+    return "danger";
+  }
+
+  if (result.possible_mass_incident || result.matched_tickets.length > 0) {
+    return "warning";
+  }
+
+  return "success";
+};
+
+const getDuplicateLevelTone = (level?: string | null): SemanticTone => {
+  const normalized = normalizeInsightValue(level);
+
+  if (normalized === "HIGH") {
+    return "danger";
+  }
+
+  if (normalized === "MEDIUM") {
+    return "warning";
+  }
+
+  return "neutral";
 };
 
 // =============================================================================
@@ -377,6 +464,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 
   // --- Core state ---
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const canTakeOwnership = Boolean(userRole === UserRole.AGENT && ticket?.canTakeOwnership);
   const [activeTab, setActiveTab] = useState("details");
   const [entryTab, setEntryTab] = useState<string | undefined>(undefined);
   const [entryActionContext, setEntryActionContext] = useState<string | undefined>(undefined);
@@ -918,6 +1006,21 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
     }
   };
 
+  const handleTakeOwnership = async () => {
+    if (!ticket) return;
+    setSubmittingAssign(true);
+    try {
+      await ticketService.takeTicket(ticket.id);
+      setToast({ message: "Ticket pris en charge", type: "success" });
+      await loadTicket();
+      onTicketUpdated?.();
+    } catch (err: any) {
+      setToast({ message: err.response?.data?.message || "Erreur prise en charge", type: "error" });
+    } finally {
+      setSubmittingAssign(false);
+    }
+  };
+
   const renderAssignDropdownPortal = () => {
     if (!showAssignDropdown || !ticket) {
       return null;
@@ -1046,17 +1149,11 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
   // ==========================================================================
 
   const getSlaColor = useCallback(() => {
-    if (!ticket) return "text-ds-muted";
-    if (ticket.overdue || ticket.breachedSla) return "text-red-600 dark:text-red-400";
-    if (ticket.slaWarning) return "text-orange-500 dark:text-orange-400";
-    return "text-green-600 dark:text-green-400";
+    return toneTextClass(getSlaTone(ticket));
   }, [ticket]);
 
   const getSlaBarColor = useCallback(() => {
-    if (!ticket) return "bg-gray-300";
-    if (ticket.breachedSla || ticket.overdue) return "bg-red-500";
-    if (ticket.slaWarning) return "bg-orange-500";
-    return "bg-green-500";
+    return toneDotClass(getSlaTone(ticket));
   }, [ticket]);
 
   // Merge comments + history for Activity timeline
@@ -1264,10 +1361,10 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         ? "Ticket assigné"
         : "Ticket non assigné";
     const assignmentStateTone = isAssignmentLocked
-      ? "border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-300"
+      ? toneSoftPanelClass("neutral")
       : ticket.assignedToId
-        ? "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-300"
-        : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-300";
+        ? toneSoftPanelClass("success")
+        : toneSoftPanelClass("warning");
     return (
       <div className="space-y-6">
         {isManagerContext && entryActionContext === "assign" && (
@@ -1441,6 +1538,36 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                       </p>
                     )}
                   </div>
+                ) : canTakeOwnership ? (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleTakeOwnership();
+                      }}
+                      disabled={submittingAssign || isAssignmentLocked}
+                      data-testid="ticket-take-ownership-trigger"
+                      className={`w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm transition-colors ${assignmentStateTone} ${
+                        !isAssignmentLocked ? "hover:border-primary-400" : ""
+                      }`}
+                    >
+                      <span className="flex min-w-0 items-center gap-2">
+                        <UserPlus size={14} className="flex-shrink-0" />
+                        <span className="min-w-0 text-left">
+                          <span className="block truncate text-xs uppercase tracking-[0.14em] opacity-80">
+                            Ticket disponible
+                          </span>
+                          <span className="block truncate font-semibold text-ds-primary">
+                            Prendre le ticket
+                          </span>
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-1 text-ds-muted">
+                        {isAssignmentLocked && <Lock size={13} />}
+                        <UserCheck size={14} className="flex-shrink-0" />
+                      </span>
+                    </button>
+                  </div>
                 ) : (
                   <div
                     className={`flex min-h-[40px] items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm ${assignmentStateTone}`}
@@ -1528,7 +1655,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   }
                 }}
                 disabled={sentimentLoading}
-                className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-semibold text-purple-700 transition-colors hover:bg-purple-100 disabled:opacity-50 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30"
+                className="inline-flex items-center gap-2 rounded-xl border border-ai-200 bg-ai-50 px-3 py-2 text-xs font-semibold text-ai-700 transition-colors hover:bg-ai-100 disabled:opacity-50 dark:border-ai-500/20 dark:bg-ai-500/10 dark:text-ai-200 dark:hover:bg-ai-500/16"
               >
                 {sentimentLoading ? (
                   <Loader2 size={12} className="animate-spin" />
@@ -1542,17 +1669,17 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         >
           {/* Loading state */}
           {sentimentLoading && !sentiment && (
-            <div className="bg-purple-50 dark:bg-purple-900/10 rounded-xl p-4 border border-purple-200 dark:border-purple-800 flex items-center gap-3">
-              <Loader2 size={16} className="animate-spin text-purple-500" />
-              <span className="text-sm text-purple-600 dark:text-purple-400">
+            <div className={`flex items-center gap-3 rounded-xl border p-4 ${toneSoftPanelClass("ai")}`}>
+              <Loader2 size={16} className={`animate-spin ${toneTextClass("ai")}`} />
+              <span className={`text-sm ${toneTextClass("ai")}`}>
                 Analyse IA en cours...
               </span>
             </div>
           )}
 
           {sentimentError && !sentiment && (
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-200 dark:border-red-800">
-              <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+            <div className={`rounded-xl border p-3 ${toneSoftPanelClass("danger")}`}>
+              <p className={`flex items-center gap-1 text-xs ${toneTextClass("danger")}`}>
                 <AlertTriangle size={12} /> {sentimentError}
               </p>
             </div>
@@ -1560,75 +1687,55 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 
           {sentiment && (
             <div
-              className={`rounded-xl p-4 border space-y-3 ${
-                sentiment.sentiment === "NEGATIF" || sentiment.sentiment === "NEGATIVE"
-                  ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                  : sentiment.sentiment === "POSITIF" || sentiment.sentiment === "POSITIVE"
-                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                    : "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
-              }`}
+              className={`space-y-3 rounded-xl border p-4 ${toneSoftPanelClass(getSentimentTone(sentiment.sentiment))}`}
             >
               {/* Alerte criticité */}
               {sentiment.criticality === "HIGH" && (
-                <div className="flex items-center gap-2 px-2 py-1 bg-red-100 dark:bg-red-900/40 rounded-lg w-fit">
-                  <AlertTriangle size={14} className="text-red-600" />
-                  <span className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
-                    Criticité HAUTE — Action immédiate recommandée
-                  </span>
-                </div>
+                <Badge variant={toneBadgeVariant("danger")} size="sm" icon={<AlertTriangle size={12} />}>
+                  Criticité haute
+                </Badge>
               )}
 
               {/* Ligne 1 : Sentiment + Confiance */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {sentiment.sentiment === "NEGATIF" || sentiment.sentiment === "NEGATIVE" ? (
-                    <ThumbsDown size={18} className="text-red-500" />
+                    <ThumbsDown size={18} className={toneTextClass("danger")} />
                   ) : sentiment.sentiment === "POSITIF" || sentiment.sentiment === "POSITIVE" ? (
-                    <ThumbsUp size={18} className="text-green-500" />
+                    <ThumbsUp size={18} className={toneTextClass("success")} />
                   ) : (
-                    <Meh size={18} className="text-yellow-500" />
+                    <Meh size={18} className={toneTextClass("warning")} />
                   )}
-                  <span
-                    className={`text-sm font-bold ${
-                      sentiment.sentiment === "NEGATIF" || sentiment.sentiment === "NEGATIVE"
-                        ? "text-red-700 dark:text-red-300"
-                        : sentiment.sentiment === "POSITIF" || sentiment.sentiment === "POSITIVE"
-                          ? "text-green-700 dark:text-green-300"
-                          : "text-yellow-700 dark:text-yellow-300"
-                    }`}
-                  >
+                  <span className={`text-sm font-bold ${toneTextClass(getSentimentTone(sentiment.sentiment))}`}>
                     Sentiment : {sentiment.sentiment}
                   </span>
                 </div>
-                <span className="text-xs font-mono bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded-full">
+                <Badge
+                  variant={toneBadgeVariant(getConfidenceTone(sentiment.confidence))}
+                  size="sm"
+                  className="font-mono"
+                >
                   Confiance : {formatPercent(sentiment.confidence * 100)}
-                </span>
+                </Badge>
               </div>
 
               {/* Ligne 2 : Badges Catégorie / Service / Priorité / Urgence */}
               <div className="flex flex-wrap gap-1.5">
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                <Badge variant={toneBadgeVariant("info")} size="sm">
                   Catégorie : {sentiment.category}
-                </span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                </Badge>
+                <Badge variant={toneBadgeVariant("ai")} size="sm">
                   Service : {sentiment.service}
-                </span>
-                <span
-                  className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    sentiment.priority === "CRITICAL"
-                      ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
-                      : sentiment.priority === "HIGH"
-                        ? "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300"
-                        : sentiment.priority === "MEDIUM"
-                          ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300"
-                          : "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
-                  }`}
+                </Badge>
+                <Badge
+                  variant={toneBadgeVariant(ticketPriorityTone[sentiment.priority as keyof typeof ticketPriorityTone] || "neutral")}
+                  size="sm"
                 >
                   Priorité : {sentiment.priority}
-                </span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                </Badge>
+                <Badge variant={toneBadgeVariant("neutral")} size="sm">
                   Urgence : {sentiment.urgency}
-                </span>
+                </Badge>
               </div>
 
               {/* Ligne 3 : Raisonnement */}
@@ -1722,9 +1829,9 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         >
           {/* Loading */}
           {duplicatesLoading && (
-            <div className="bg-indigo-50 dark:bg-indigo-900/10 rounded-xl p-4 border border-indigo-200 dark:border-indigo-800 flex items-center gap-3">
-              <Loader2 size={16} className="animate-spin text-indigo-500" />
-              <span className="text-sm text-indigo-600 dark:text-indigo-400">
+            <div className={`flex items-center gap-3 rounded-xl border p-4 ${toneSoftPanelClass("ai")}`}>
+              <Loader2 size={16} className={`animate-spin ${toneTextClass("ai")}`} />
+              <span className={`text-sm ${toneTextClass("ai")}`}>
                 Recherche de doublons...
               </span>
             </div>
@@ -1732,8 +1839,8 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
 
           {/* Erreur */}
           {duplicatesError && !duplicates && (
-            <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 border border-red-200 dark:border-red-800">
-              <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+            <div className={`rounded-xl border p-3 ${toneSoftPanelClass("danger")}`}>
+              <p className={`flex items-center gap-1 text-xs ${toneTextClass("danger")}`}>
                 <AlertTriangle size={12} /> {duplicatesError}
               </p>
             </div>
@@ -1742,57 +1849,44 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
           {/* Résultat */}
           {duplicates && !duplicatesLoading && (
             <div
-              className={`rounded-xl p-4 border space-y-3 ${
-                duplicates.is_duplicate
-                  ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-                  : duplicates.possible_mass_incident
-                    ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
-                    : duplicates.matched_tickets.length > 0
-                      ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
-                      : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-              }`}
+              className={`space-y-3 rounded-xl border p-4 ${toneSoftPanelClass(getDuplicateTone(duplicates))}`}
             >
               {/* Alerte incident de masse */}
               {duplicates.possible_mass_incident && (
-                <div className="flex items-center gap-2 px-2 py-1 bg-orange-100 dark:bg-orange-900/40 rounded-lg w-fit">
-                  <AlertTriangle size={14} className="text-orange-600" />
-                  <span className="text-xs font-bold text-orange-700 dark:text-orange-300 uppercase">
-                    Incident de masse probable
-                  </span>
-                </div>
+                <Badge variant={toneBadgeVariant("warning")} size="sm" icon={<AlertTriangle size={12} />}>
+                  Incident de masse probable
+                </Badge>
               )}
 
               {/* Alerte doublon */}
               {duplicates.is_duplicate && !duplicates.possible_mass_incident && (
-                <div className="flex items-center gap-2 px-2 py-1 bg-red-100 dark:bg-red-900/40 rounded-lg w-fit">
-                  <Copy size={14} className="text-red-600" />
-                  <span className="text-xs font-bold text-red-700 dark:text-red-300 uppercase">
-                    Doublon probable détecté
-                  </span>
-                </div>
+                <Badge variant={toneBadgeVariant("danger")} size="sm" icon={<Copy size={12} />}>
+                  Doublon probable détecté
+                </Badge>
               )}
 
               {/* Badge résumé */}
               <div className="flex items-center gap-2">
                 {duplicates.matched_tickets.length === 0 ? (
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 flex items-center gap-1">
-                    <CheckCircle size={10} /> Aucun doublon
-                  </span>
+                  <Badge variant={toneBadgeVariant("success")} size="sm" icon={<CheckCircle size={10} />}>
+                    Aucun doublon
+                  </Badge>
                 ) : (
-                  <span
-                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      duplicates.is_duplicate
-                        ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
-                        : "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300"
-                    }`}
+                  <Badge
+                    variant={toneBadgeVariant(duplicates.is_duplicate ? "danger" : "warning")}
+                    size="sm"
                   >
                     {duplicates.matched_tickets.length} ticket(s) similaire(s)
-                  </span>
+                  </Badge>
                 )}
                 {duplicates.duplicate_confidence > 0 && (
-                  <span className="text-xs font-mono bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded-full">
+                  <Badge
+                    variant={toneBadgeVariant(getConfidenceTone(duplicates.duplicate_confidence))}
+                    size="sm"
+                    className="font-mono"
+                  >
                     Score max : {formatPercent(duplicates.duplicate_confidence * 100)}
-                  </span>
+                  </Badge>
                 )}
               </div>
 
@@ -1810,17 +1904,13 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                           #{match.ticket_id} — {match.title}
                         </span>
                       </div>
-                      <span
-                        className={`text-xs font-bold flex-shrink-0 ml-2 px-1.5 py-0.5 rounded ${
-                          match.duplicate_level === "HIGH"
-                            ? "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300"
-                            : match.duplicate_level === "MEDIUM"
-                              ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300"
-                              : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
-                        }`}
+                      <Badge
+                        variant={toneBadgeVariant(getDuplicateLevelTone(match.duplicate_level))}
+                        size="sm"
+                        className="ml-2 flex-shrink-0 font-bold"
                       >
                         {formatPercent(match.similarity_score * 100)}
-                      </span>
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -1919,19 +2009,21 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         {/* ---- Resolution ---- */}
         {ticket.resolution &&
           [TicketStatus.RESOLVED, TicketStatus.CLOSED].includes(ticket.status) && (
-            <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+            <div className={`rounded-xl border p-4 ${toneSoftPanelClass("success")}`}>
               <div className="flex items-center gap-2 mb-2">
-                <CheckCircle size={16} className="text-green-600" />
+                <CheckCircle size={16} className={toneTextClass("success")} />
                 <h4 className="text-sm font-semibold text-green-800 dark:text-green-300">
                   Résolution
                 </h4>
               </div>
-              <p className="text-sm text-green-700 dark:text-green-400">{ticket.resolution}</p>
+              <p className={`text-sm ${toneTextClass("success")}`}>{ticket.resolution}</p>
               {(ticket.rootCause ||
                 ticket.finalCategory ||
                 ticket.timeSpentMinutes !== undefined ||
                 ticket.impact) && (
-                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-green-700 dark:text-green-300">
+                <div
+                  className={`mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 ${toneTextClass("success")}`}
+                >
                   {ticket.rootCause && (
                     <span>
                       <strong>Cause racine :</strong> {ticket.rootCause}
@@ -2029,7 +2121,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                     <span className="text-sm font-medium text-ds-primary">{item.author}</span>
                     {item.type === "comment" && item.authorRole && roleConfig[item.authorRole] && (
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${roleConfig[item.authorRole].color}`}
+                        className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${roleConfig[item.authorRole].bg} ${roleConfig[item.authorRole].text} ${roleConfig[item.authorRole].border}`}
                       >
                         {roleConfig[item.authorRole].label}
                       </span>
@@ -2054,7 +2146,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                       <p className="text-xs mt-0.5 text-ds-muted">
                         <span className="line-through text-red-400">{item.oldValue}</span>
                         {" → "}
-                        <span className="text-green-600 dark:text-green-400 font-medium">
+                        <span className="font-medium text-success-600 dark:text-success-400">
                           {item.newValue}
                         </span>
                       </p>
@@ -2114,7 +2206,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                       <span className="font-medium text-sm text-ds-primary">{c.authorName}</span>
                       {c.authorRole && roleConfig[c.authorRole] && (
                         <span
-                          className={`ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold ${roleConfig[c.authorRole].color}`}
+                          className={`ml-1.5 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${roleConfig[c.authorRole].bg} ${roleConfig[c.authorRole].text} ${roleConfig[c.authorRole].border}`}
                         >
                           {roleConfig[c.authorRole].label}
                         </span>
@@ -2448,7 +2540,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   <p className="text-xs mt-0.5 text-ds-muted">
                     <span className="line-through text-red-400">{h.oldValue}</span>
                     {" → "}
-                    <span className="text-green-600 dark:text-green-400 font-medium">
+                    <span className="font-medium text-success-600 dark:text-success-400">
                       {h.newValue}
                     </span>
                   </p>

@@ -209,11 +209,24 @@ public class DashboardServiceImpl implements DashboardService {
         long assignedActive = ticketRepository.countActiveByAssignedTo(agentId);
         long resolvedToday = ticketRepository.countResolvedTodayByAgent(agentId, startOfDay, endOfDay);
         long slaBreached = ticketRepository.countSlaBreachedByAgent(agentId);
+        long unassignedCount = ticketRepository.countUnassigned();
+        Map<String, Long> ticketsByStatus = new LinkedHashMap<>();
+        for (TicketStatus status : List.of(
+                TicketStatus.ASSIGNED,
+                TicketStatus.IN_PROGRESS,
+                TicketStatus.PENDING,
+                TicketStatus.PENDING_THIRD_PARTY,
+                TicketStatus.ESCALATED,
+                TicketStatus.RESOLVED)) {
+            ticketsByStatus.put(status.name(), ticketRepository.countByAssignedToIdAndStatus(agentId, status));
+        }
 
         return DashboardStats.builder()
             .activeTickets(assignedActive)
             .resolvedToday(resolvedToday)
             .slaBreachedCount(slaBreached)
+            .unassignedCount(unassignedCount)
+            .ticketsByStatus(ticketsByStatus)
             .build();
     }
 

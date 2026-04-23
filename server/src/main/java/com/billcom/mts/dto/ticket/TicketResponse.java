@@ -90,6 +90,7 @@ public class TicketResponse {
     // ========== Transitions ==========
     
     private List<TicketStatus> allowedTransitions;
+    private Boolean canTakeOwnership;
 
     // ========== Nested Classes ==========
 

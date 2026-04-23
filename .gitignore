@@ -8,6 +8,8 @@ __pycache__/
 .env.*
 !.env.example
 !.env.defense.example
+!.env.production.example
+!.env.prod.example
 client/.env
 client/.env.local
 client/.env.development.local
@@ -20,6 +22,9 @@ client/.env.test.local
 node_modules/
 dist/
 build/
+coverage/
+.coverage
+.cache/
 
 # Java / Maven
 target/
@@ -31,6 +36,9 @@ server/.m2/
 logs/
 *.log
 *.status
+startup-check*.log
+chatbot-startup.log
+startup_ai_chatbot.log
 
 # Uploads / generated files
 server/uploads/reports/*
@@ -41,6 +49,8 @@ qa_*
 *.cookies
 sprint4_p0_*
 docker_info_check.txt
+manual_*.json
+manual_*.txt
 
 # IDE / OS
 .vscode/
@@ -49,7 +59,13 @@ docker_info_check.txt
 Thumbs.db
 # Python env
 **/venv/
+**/.venv/
 sentiment-service/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.pyc
+**/*.pyo
 
 # Maven cache / nested server
 server/server/

@@ -65,6 +65,7 @@ import {
   type ServiceAtRisk,
 } from "../../api/managerDashboardAdapter";
 import { formatDateDayMonth, formatHours, formatPercent, formatTime } from "../../utils/formatters";
+import { designTokens } from "../../theme";
 
 // =============================================================================
 // TYPES
@@ -106,7 +107,7 @@ const SectionLead: React.FC<{
     </div>
     <div className="flex items-center gap-3">
       {supporting}
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/15 bg-gradient-to-br from-primary-500/12 to-accent-500/10 text-primary-500 shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-info-500/15 bg-gradient-to-br from-info-500/12 to-ai-500/10 text-info-500 shadow-sm">
         {icon}
       </div>
     </div>
@@ -332,7 +333,7 @@ const ChartTooltipStyle = {
   border: "1px solid var(--ds-border, #e2e8f0)",
   borderRadius: "10px",
   fontSize: "12px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  boxShadow: designTokens.shadows.md,
 };
 
 /** Chart statut — clic → /tickets?status=KEY */
@@ -457,8 +458,18 @@ const TeamPerformanceChart: React.FC<{ data: ManagerDashboardData["agentPerforma
           <YAxis tick={{ fontSize: 11, fill: "var(--ds-muted, #64748b)" }} allowDecimals={false} />
           <RTooltip contentStyle={ChartTooltipStyle} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Bar dataKey="resolved" name="Résolus" fill="#10b981" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="assigned" name="Assignés" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="resolved"
+            name="Résolus"
+            fill={designTokens.colors.success}
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="assigned"
+            name="Assignés"
+            fill={designTokens.colors.info}
+            radius={[4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -478,12 +489,12 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
           <defs>
             <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f97316" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
+              <stop offset="0%" stopColor={designTokens.colors.warning} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={designTokens.colors.warning} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradResolved" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="0%" stopColor={designTokens.colors.success} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={designTokens.colors.success} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-border, #e2e8f0)" />
@@ -505,7 +516,7 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
             type="monotone"
             dataKey="created"
             name="Créés"
-            stroke="#f97316"
+            stroke={designTokens.colors.warning}
             strokeWidth={2}
             fill="url(#gradCreated)"
           />
@@ -513,7 +524,7 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
             type="monotone"
             dataKey="resolved"
             name="Résolus"
-            stroke="#10b981"
+            stroke={designTokens.colors.success}
             strokeWidth={2}
             fill="url(#gradResolved)"
           />

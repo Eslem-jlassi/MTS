@@ -23,6 +23,7 @@ Cette documentation est organisee autour de quatre usages :
 
 - [README racine](../README.md)
 - [Guide de lancement/deploiement](DEPLOYMENT.md)
+- [Deploy production](DEPLOY_PROD.md)
 - [Checklist smoke defense](DEFENSE_SMOKE_CHECKLIST.md)
 - [Contrats API](API_CONTRACTS.md)
 - [Matrice RBAC](RBAC_MATRIX.md)
@@ -32,6 +33,7 @@ Cette documentation est organisee autour de quatre usages :
 
 - [Guide de demonstration jury](DEMO_JURY.md)
 - [Checklist soutenance finale](DEMO_JURY_FINAL_CHECKLIST.md)
+- [Last mile soutenance](SOUTENANCE_LAST_MILE.md)
 
 ## Historique et archive
 
@@ -44,5 +46,5 @@ Cette documentation est organisee autour de quatre usages :
 
 - La source de verite fonctionnelle est le code du depot.
 - La source de verite securite et RBAC est le backend Spring Boot.
-- La source de verite de deploiement est `docker-compose.yml` et les scripts `scripts/`.
+- La source de verite de deploiement est `docker-compose.yml` pour le local et `docker-compose.prod.yml` pour la variante production Docker.
 - Les documents archives restent consultables, mais ne doivent plus etre utilises comme runbook actif.

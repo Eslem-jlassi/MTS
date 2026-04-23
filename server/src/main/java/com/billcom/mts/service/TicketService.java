@@ -220,6 +220,11 @@ public interface TicketService {
     TicketResponse assignTicket(Long ticketId, TicketAssignRequest request, User currentUser, String ipAddress);
 
     /**
+     * Permet a un agent de prendre un ticket non assigne si le workflow le permet.
+     */
+    TicketResponse takeTicket(Long ticketId, User currentUser, String ipAddress);
+
+    /**
      * D?sassigne un ticket.
      * 
      * Retire l'agent du ticket. Le ticket revient dans le pool non assign?.

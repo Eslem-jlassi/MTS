@@ -8,11 +8,13 @@ import com.billcom.mts.entity.Ticket;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.TicketPriority;
 import com.billcom.mts.enums.TicketStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -128,6 +130,10 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
      */
     @EntityGraph(attributePaths = {"client", "service", "assignedTo"})
     Page<Ticket> findByAssignedToId(Long agentId, Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Ticket t WHERE t.id = :ticketId")
+    Optional<Ticket> findByIdForUpdate(@Param("ticketId") Long ticketId);
 
     @EntityGraph(attributePaths = {"client", "service", "assignedTo"})
     List<Ticket> findByCreatedById(Long userId);
@@ -385,6 +391,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
     /** Compte les tickets avec SLA dépassé par agent */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.assignedTo.id = :agentId AND t.breachedSla = true")
     long countSlaBreachedByAgent(@Param("agentId") Long agentId);
+
+    long countByAssignedToIdAndStatus(Long agentId, TicketStatus status);
 
     /** Compte les tickets d'un client */
     long countByClientId(Long clientId);

@@ -8,12 +8,18 @@ import type {
   ManagerCopilotTone,
 } from "./types";
 
-export type ManagerCopilotBadgeVariant = "danger" | "warning" | "success" | "info" | "neutral";
+export type ManagerCopilotBadgeVariant =
+  | "danger"
+  | "warning"
+  | "success"
+  | "info"
+  | "neutral"
+  | "ai";
 
 export const MANAGER_COPILOT_NAME = "ALLIE";
 export const MANAGER_COPILOT_PRODUCT_LABEL = "Assistant IA Manager";
 export const MANAGER_COPILOT_TITLE = MANAGER_COPILOT_NAME;
-export const MANAGER_COPILOT_SUBTITLE = "Copilote decisionnel de supervision";
+export const MANAGER_COPILOT_SUBTITLE = "Copilote de supervision assistée";
 export const MANAGER_COPILOT_FULL_LABEL = `${MANAGER_COPILOT_NAME}, ${MANAGER_COPILOT_PRODUCT_LABEL}`;
 
 export const MANAGER_COPILOT_WIDGET_SUBTITLE = MANAGER_COPILOT_SUBTITLE;
@@ -39,14 +45,14 @@ export const toneLabels: Record<ManagerCopilotTone, string> = {
 };
 
 export const confidenceLabels: Record<ManagerCopilotConfidence, string> = {
-  high: "Confiance elevee",
+  high: "Confiance élevée",
   medium: "Confiance moyenne",
-  low: "A confirmer",
+  low: "À confirmer",
 };
 
 export const modeLabels: Record<ManagerCopilotMode, string> = {
-  live: "Sources consolidees",
-  degraded: "Mode degrade",
+  live: "Sources consolidées",
+  degraded: "Mode dégradé",
 };
 
 export function toneToBadgeVariant(tone: ManagerCopilotTone): ManagerCopilotBadgeVariant {
@@ -58,7 +64,7 @@ export function toneToBadgeVariant(tone: ManagerCopilotTone): ManagerCopilotBadg
     case "success":
       return "success";
     case "info":
-      return "info";
+      return "ai";
     default:
       return "neutral";
   }
@@ -79,7 +85,7 @@ export function confidenceToBadgeVariant(
 
 export function formatManagerCopilotUpdatedAt(value?: string): string {
   if (!value) {
-    return "Mise a jour recente";
+    return "Mise à jour récente";
   }
 
   try {
@@ -88,16 +94,16 @@ export function formatManagerCopilotUpdatedAt(value?: string): string {
       minute: "2-digit",
     }).format(new Date(value));
   } catch {
-    return "Mise a jour recente";
+    return "Mise à jour récente";
   }
 }
 
 export function formatManagerCopilotUpdatedLabel(value?: string): string {
   if (!value) {
-    return "Mise a jour recente";
+    return "Mise à jour récente";
   }
 
-  return `Actualise a ${formatManagerCopilotUpdatedAt(value)}`;
+  return `Actualisé à ${formatManagerCopilotUpdatedAt(value)}`;
 }
 
 export function getManagerCopilotTelemetryLabel(snapshot?: ManagerCopilotSnapshot | null): string {
@@ -105,7 +111,7 @@ export function getManagerCopilotTelemetryLabel(snapshot?: ManagerCopilotSnapsho
     return "Consolidation des signaux manager";
   }
 
-  return snapshot.mode === "degraded" ? "Vue assistee partielle" : "Sources manager consolidees";
+  return snapshot.mode === "degraded" ? "Vue assistée partielle" : "Sources manager consolidées";
 }
 
 export function getManagerCopilotMoment(
@@ -121,11 +127,11 @@ export function getManagerCopilotMoment(
 
   if (snapshot.priorityTickets.length > 0) {
     return {
-      title: `${snapshot.priorityTickets.length} arbitrage(s) a traiter`,
+      title: `${snapshot.priorityTickets.length} arbitrage(s) à traiter`,
       detail:
         snapshot.urgentCount > 0
           ? `${snapshot.urgentCount} signal(s) critique(s) appellent une validation rapide.`
-          : "Les tickets les plus structurants ont ete isoles pour decision.",
+          : "Les tickets les plus structurants ont été isolés pour décision.",
       tone: snapshot.priorityTickets.some((signal) => signal.tone === "critical")
         ? "critical"
         : "info",
@@ -134,8 +140,8 @@ export function getManagerCopilotMoment(
 
   if (snapshot.slaAlerts.length > 0) {
     return {
-      title: `${snapshot.slaAlerts.length} dossier(s) SLA a securiser`,
-      detail: "Le copilote met en avant les tickets proches de rupture ou deja sous tension.",
+      title: `${snapshot.slaAlerts.length} dossier(s) SLA à sécuriser`,
+      detail: "Le copilote met en avant les tickets proches de rupture ou déjà sous tension.",
       tone: snapshot.slaAlerts.some((signal) => signal.tone === "critical")
         ? "critical"
         : "warning",
@@ -144,8 +150,8 @@ export function getManagerCopilotMoment(
 
   if (snapshot.probableIncidents.length > 0) {
     return {
-      title: `${snapshot.probableIncidents.length} signal(s) d'incident a confirmer`,
-      detail: "Les correlations tickets, services et supervision restent a arbitrer.",
+      title: `${snapshot.probableIncidents.length} signal(s) d'incident à confirmer`,
+      detail: "Les corrélations tickets, services et supervision restent à arbitrer.",
       tone: snapshot.probableIncidents.some((signal) => signal.tone === "critical")
         ? "critical"
         : "warning",
@@ -154,7 +160,7 @@ export function getManagerCopilotMoment(
 
   return {
     title: "Portefeuille sous controle",
-    detail: "Aucune urgence critique detectee dans les signaux consolides.",
+    detail: "Aucune urgence critique détectée dans les signaux consolidés.",
     tone: "success",
   };
 }

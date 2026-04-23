@@ -52,7 +52,12 @@ class TicketServiceImplTest {
     @Mock private NotificationRepository notificationRepository;
     @Mock private IncidentRepository incidentRepository;
     @Mock private SlaTimelineRepository slaTimelineRepository;
-        @Mock private com.billcom.mts.service.SensitiveActionVerificationService sensitiveActionVerificationService;
+    @Mock private MacroRepository macroRepository;
+    @Mock private SlaConfigRepository slaConfigRepository;
+    @Mock private com.billcom.mts.service.NotificationService notificationService;
+    @Mock private com.billcom.mts.service.AuditService auditService;
+    @Mock private com.billcom.mts.service.SlaCalculationService slaCalculationService;
+    @Mock private com.billcom.mts.service.SensitiveActionVerificationService sensitiveActionVerificationService;
 
     @InjectMocks
     private TicketServiceImpl ticketService;
@@ -312,6 +317,23 @@ class TicketServiceImplTest {
         }
 
         @Test
+        @DisplayName("AGENT recoit uniquement les transitions autorisees par le workflow RBAC")
+        void agentAllowedTransitions_excludes_escalation_and_closure() {
+            testTicket.setStatus(TicketStatus.IN_PROGRESS);
+            testTicket.setAssignedTo(agentUser);
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+
+            TicketResponse response = ticketService.getTicketByIdSecured(100L, agentUser);
+
+            assertThat(response.getAllowedTransitions())
+                    .containsExactlyInAnyOrder(
+                            TicketStatus.PENDING,
+                            TicketStatus.PENDING_THIRD_PARTY,
+                            TicketStatus.RESOLVED)
+                    .doesNotContain(TicketStatus.ESCALATED, TicketStatus.CLOSED, TicketStatus.CANCELLED);
+        }
+
+        @Test
         @DisplayName("CLIENT ne voit pas les notes internes ni l'historique interne")
         void clientCannotSeeInternalNotesOrHistory() {
             TicketComment publicComment = TicketComment.builder()
@@ -410,6 +432,30 @@ class TicketServiceImplTest {
         }
 
         @Test
+        @DisplayName("Devrait permettre ASSIGNED -> RESOLVED pour l'agent assigne")
+        void changeStatus_assigned_to_resolved() {
+            testTicket.setStatus(TicketStatus.ASSIGNED);
+            testTicket.setAssignedTo(agentUser);
+
+            TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
+                    .newStatus(TicketStatus.RESOLVED)
+                    .resolution("Action corrective appliquee")
+                    .comment("Resolution confirmee")
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+
+            TicketResponse response = ticketService.changeStatus(100L, request, agentUser, "127.0.0.1");
+
+            assertThat(response).isNotNull();
+            verify(ticketRepository).save(argThat(ticket ->
+                    ticket.getStatus() == TicketStatus.RESOLVED
+                            && "Action corrective appliquee".equals(ticket.getResolution())
+                            && ticket.getResolvedAt() != null));
+        }
+
+        @Test
         @DisplayName("Devrait exiger une résolution pour RESOLVED")
         void changeStatus_resolved_requires_resolution() {
             testTicket.setStatus(TicketStatus.IN_PROGRESS);
@@ -500,6 +546,27 @@ class TicketServiceImplTest {
         }
 
         @Test
+        @DisplayName("Devrait figer la pause SLA avant un passage PENDING -> RESOLVED")
+        void changeStatus_pending_to_resolved_resumes_paused_sla() {
+            testTicket.setStatus(TicketStatus.PENDING);
+            testTicket.setAssignedTo(agentUser);
+            testTicket.setSlaPausedAt(LocalDateTime.now().minusMinutes(30));
+
+            TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
+                    .newStatus(TicketStatus.RESOLVED)
+                    .resolution("Retour client recu, incident resolu")
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+
+            ticketService.changeStatus(100L, request, agentUser, "127.0.0.1");
+
+            verify(slaCalculationService).resumeSla(testTicket);
+            verify(ticketRepository).save(argThat(ticket -> ticket.getStatus() == TicketStatus.RESOLVED));
+        }
+
+        @Test
         @DisplayName("Devrait échouer si le ticket n'existe pas")
         void changeStatus_ticket_not_found() {
             TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
@@ -520,6 +587,23 @@ class TicketServiceImplTest {
 
             TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
                     .newStatus(TicketStatus.IN_PROGRESS)
+                    .build();
+
+            when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.changeStatus(100L, request, agentUser, "127.0.0.1"))
+                    .isInstanceOf(ForbiddenException.class);
+        }
+
+        @Test
+        @DisplayName("AGENT ne peut pas escalader un ticket via le changement de statut")
+        void changeStatus_agent_cannot_escalate() {
+            testTicket.setStatus(TicketStatus.IN_PROGRESS);
+            testTicket.setAssignedTo(agentUser);
+
+            TicketStatusChangeRequest request = TicketStatusChangeRequest.builder()
+                    .newStatus(TicketStatus.ESCALATED)
+                    .comment("Besoin d'une escalation manager")
                     .build();
 
             when(ticketRepository.findById(100L)).thenReturn(Optional.of(testTicket));
@@ -590,6 +674,40 @@ class TicketServiceImplTest {
             assertThatThrownBy(() -> ticketService.assignTicket(100L, request, agentUser, "127.0.0.1"))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("resolu");
+        }
+    }
+
+    @Nested
+    @DisplayName("takeTicket()")
+    class TakeTicketTests {
+
+        @Test
+        @DisplayName("Devrait permettre a un agent de prendre un ticket non assigne")
+        void takeTicket_success() {
+            testTicket.setStatus(TicketStatus.NEW);
+            testTicket.setAssignedTo(null);
+
+            when(ticketRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(testTicket));
+            when(ticketRepository.save(any(Ticket.class))).thenReturn(testTicket);
+
+            TicketResponse response = ticketService.takeTicket(100L, agentUser, "127.0.0.1");
+
+            assertThat(response).isNotNull();
+            verify(ticketRepository).save(argThat(ticket ->
+                    ticket.getAssignedTo() == agentUser && ticket.getStatus() == TicketStatus.ASSIGNED));
+            verify(historyRepository, atLeast(2)).save(any(TicketHistory.class));
+        }
+
+        @Test
+        @DisplayName("Devrait refuser la prise en charge si un autre agent a deja le ticket")
+        void takeTicket_rejects_already_assigned_ticket() {
+            testTicket.setAssignedTo(otherAgentUser);
+
+            when(ticketRepository.findByIdForUpdate(100L)).thenReturn(Optional.of(testTicket));
+
+            assertThatThrownBy(() -> ticketService.takeTicket(100L, agentUser, "127.0.0.1"))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("deja pris");
         }
     }
 

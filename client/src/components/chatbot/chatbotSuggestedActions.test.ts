@@ -18,9 +18,9 @@ describe("chatbotSuggestedActions", () => {
       buildAssistantMessage({ confidence: "low", serviceDetected: "CRM" }),
     );
 
-    expect(actions.map((action) => action.label)).toContain("Completer le contexte");
-    expect(actions.map((action) => action.label)).toContain("Preparer un brouillon de ticket");
-    expect(actions.map((action) => action.label)).not.toContain("Verifier le SLA");
+    expect(actions.map((action) => action.label)).toContain("Compléter le contexte");
+    expect(actions.map((action) => action.label)).toContain("Préparer un brouillon de ticket");
+    expect(actions.map((action) => action.label)).not.toContain("Vérifier le SLA");
   });
 
   it("returns operational actions when confidence is medium/high", () => {
@@ -28,9 +28,9 @@ describe("chatbotSuggestedActions", () => {
       buildAssistantMessage({ confidence: "medium", serviceDetected: "BSCS Billing System" }),
     );
 
-    expect(actions.map((action) => action.label)).toContain("Verifier les incidents similaires");
-    expect(actions.map((action) => action.label)).toContain("Consulter le service detecte");
-    expect(actions.map((action) => action.label)).toContain("Verifier le SLA");
+    expect(actions.map((action) => action.label)).toContain("Vérifier les incidents similaires");
+    expect(actions.map((action) => action.label)).toContain("Consulter le service détecté");
+    expect(actions.map((action) => action.label)).toContain("Vérifier le SLA");
   });
 
   it("returns no actions for non-relevant assistant messages", () => {
@@ -61,13 +61,13 @@ describe("chatbotSuggestedActions", () => {
           clusterEnd: "2026-03-18T10:00:00",
           ticketIds: ["1", "2", "3", "4", "5", "6"],
           detectionReason: "6 tickets similaires detectes.",
-          recommendation: "Preparer un ticket global.",
+          recommendation: "Préparer un ticket global.",
         },
       }),
     );
 
     expect(actions[0]?.id).toBe("prepare-global-ticket");
-    expect(actions[0]?.label).toBe("Preparer un ticket global");
+    expect(actions[0]?.label).toBe("Préparer un ticket global");
   });
 
   it("returns English actions when the response language is English", () => {

@@ -179,12 +179,21 @@ class DashboardServiceImplTest {
             when(ticketRepository.countActiveByAssignedTo(3L)).thenReturn(7L);
             when(ticketRepository.countResolvedTodayByAgent(eq(3L), any(), any())).thenReturn(2L);
             when(ticketRepository.countSlaBreachedByAgent(3L)).thenReturn(1L);
+            when(ticketRepository.countUnassigned()).thenReturn(4L);
+            when(ticketRepository.countByAssignedToIdAndStatus(3L, TicketStatus.ASSIGNED)).thenReturn(1L);
+            when(ticketRepository.countByAssignedToIdAndStatus(3L, TicketStatus.IN_PROGRESS)).thenReturn(3L);
+            when(ticketRepository.countByAssignedToIdAndStatus(3L, TicketStatus.PENDING)).thenReturn(2L);
+            when(ticketRepository.countByAssignedToIdAndStatus(3L, TicketStatus.PENDING_THIRD_PARTY)).thenReturn(0L);
+            when(ticketRepository.countByAssignedToIdAndStatus(3L, TicketStatus.ESCALATED)).thenReturn(1L);
+            when(ticketRepository.countByAssignedToIdAndStatus(3L, TicketStatus.RESOLVED)).thenReturn(0L);
 
             DashboardStats stats = dashboardService.getAgentDashboardStats(3L);
 
             assertThat(stats.getActiveTickets()).isEqualTo(7L);
             assertThat(stats.getResolvedToday()).isEqualTo(2L);
             assertThat(stats.getSlaBreachedCount()).isEqualTo(1L);
+            assertThat(stats.getUnassignedCount()).isEqualTo(4L);
+            assertThat(stats.getTicketsByStatus()).containsEntry(TicketStatus.PENDING.name(), 2L);
         }
     }
 

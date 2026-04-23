@@ -15,6 +15,11 @@ export interface ChatbotTicketDraft {
 }
 
 const normalize = (value?: string): string => (value || "").trim();
+const normalizeSearch = (value?: string): string =>
+  normalize(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 const extractValue = (messageContent: string, label: RegExp): string => {
   const match = normalize(messageContent).match(label);
@@ -41,7 +46,7 @@ const extractSummary = (messageContent: string): string => {
 };
 
 export const isCreateTicketIntent = (message: string): boolean => {
-  const normalized = normalize(message).toLowerCase();
+  const normalized = normalizeSearch(message);
   return /(creer|cree|preparer|prepare)\s+(un\s+)?(brouillon\s+de\s+)?ticket/.test(normalized);
 };
 

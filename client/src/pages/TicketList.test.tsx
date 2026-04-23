@@ -32,6 +32,7 @@ jest.mock("../api/ticketService", () => {
     exportPdf: jest.fn(),
     deleteTicket: jest.fn(),
     hardDeleteTicket: jest.fn(),
+    takeTicket: jest.fn(),
     getTickets: jest.fn().mockResolvedValue({
       content: [],
       totalElements: 0,
@@ -56,6 +57,7 @@ jest.mock("../api", () => {
 import { ticketService as mockedService } from "../api/ticketService";
 const mockGetTickets = mockedService.getTickets as jest.Mock;
 const mockHardDeleteTicket = mockedService.hardDeleteTicket as jest.Mock;
+const mockTakeTicket = mockedService.takeTicket as jest.Mock;
 
 // ----- Helpers ---------------------------------------------------------------
 
@@ -86,6 +88,7 @@ function buildTicket(overrides: Record<string, unknown> = {}) {
     slaRemainingMinutes: 120,
     createdAt: new Date().toISOString(),
     commentCount: 2,
+    canTakeOwnership: false,
     ...overrides,
   };
 }
@@ -172,6 +175,7 @@ describe("TicketList", () => {
   beforeEach(() => {
     mockGetTickets.mockReset();
     mockHardDeleteTicket.mockReset();
+    mockTakeTicket.mockReset();
     mockGetTickets.mockResolvedValue({
       content: [],
       totalElements: 0,
@@ -180,6 +184,7 @@ describe("TicketList", () => {
       size: 10,
     });
     mockHardDeleteTicket.mockResolvedValue(undefined);
+    mockTakeTicket.mockResolvedValue(undefined);
   });
 
   it("shows loading skeleton when isLoading is true", () => {
@@ -365,6 +370,37 @@ describe("TicketList", () => {
       expect(screen.getByTestId("ticket-drawer")).toHaveAttribute("data-open", "true");
     });
     expect(screen.getByTestId("ticket-drawer")).toHaveAttribute("data-ticket-id", "42");
+  });
+
+  it("lets an AGENT take a ticket only when the backend marks it as takeable", async () => {
+    const tickets = [
+      buildTicket({
+        id: 9,
+        ticketNumber: "TK-20240009",
+        title: "Ticket disponible",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+        canTakeOwnership: true,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+    mockTakeTicket.mockResolvedValue({ id: 9 });
+
+    renderTicketList();
+
+    fireEvent.click(await screen.findByLabelText("Prendre le ticket TK-20240009"));
+
+    await waitFor(() => {
+      expect(mockTakeTicket).toHaveBeenCalledWith(9);
+    });
   });
 
   it("shows the hard delete action only for ADMIN on a new unassigned ticket", async () => {

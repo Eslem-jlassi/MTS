@@ -19,17 +19,17 @@ describe("ChatMessage", () => {
     expect(
       screen.getByText("Assistant temporairement indisponible. Reessayez dans quelques instants."),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Resume")).not.toBeInTheDocument();
+    expect(screen.queryByText("Résumé")).not.toBeInTheDocument();
   });
 
   it("renders structured sections for non-error assistant messages", () => {
     const message = buildAssistantMessage({
-      content: "Resume : Diagnostic en cours.\nAction suivante : Verifier les incidents similaires.",
+      content: "Résumé : Diagnostic en cours.\nAction suivante : Vérifier les incidents similaires.",
       isError: false,
     });
     render(<ChatMessage message={message} />);
 
-    expect(screen.getByText("Resume")).toBeInTheDocument();
+    expect(screen.getByText("Résumé")).toBeInTheDocument();
     expect(screen.getByText("Action suivante")).toBeInTheDocument();
   });
 });

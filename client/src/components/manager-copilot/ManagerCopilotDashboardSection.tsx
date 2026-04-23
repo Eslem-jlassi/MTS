@@ -57,7 +57,7 @@ function getRecommendedAction(snapshot: ManagerCopilotSnapshot): RecommendedActi
 
   if (primarySignal) {
     return {
-      label: primarySignal.ctaLabel || "Ouvrir le dossier recommande",
+      label: primarySignal.ctaLabel || "Ouvrir le dossier recommandé",
       description: primarySignal.recommendation || primarySignal.description,
       href: primarySignal.href,
       tone: primarySignal.tone,
@@ -208,7 +208,7 @@ const CompactCopilotOverview: React.FC<{
           {recommendedAction && (
             <div className="manager-copilot-compact-recommendation rounded-2xl p-4">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">
-                Action recommandee
+                Action recommandée
               </span>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge

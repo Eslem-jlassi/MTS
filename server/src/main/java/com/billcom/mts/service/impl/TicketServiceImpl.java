@@ -578,6 +578,7 @@ public class TicketServiceImpl implements TicketService {
             throw new BadRequestException(String.format(
                     "Invalid status transition: %s -> %s", oldStatus, newStatus));
         }
+        assertCanTransitionStatus(ticket, currentUser, newStatus);
 
         // Require resolution for RESOLVED status
         if (newStatus == TicketStatus.RESOLVED &&
@@ -605,11 +606,13 @@ public class TicketServiceImpl implements TicketService {
             }
         }
         // Si le ticket quitte PENDING → reprise du compteur SLA
-        if (oldStatus == TicketStatus.PENDING && newStatus.isSlaRunning()) {
+        if (oldStatus == TicketStatus.PENDING && (newStatus.isSlaRunning() || newStatus == TicketStatus.RESOLVED)) {
             try {
                 slaCalculationService.resumeSla(ticket);
-                createHistoryEntry(ticket, currentUser, TicketAction.SLA_RESUMED,
-                        null, null, "SLA repris apres la sortie de l'attente client", ipAddress);
+                if (newStatus.isSlaRunning()) {
+                    createHistoryEntry(ticket, currentUser, TicketAction.SLA_RESUMED,
+                            null, null, "SLA repris apres la sortie de l'attente client", ipAddress);
+                }
                 log.info("SLA resumed for ticket {} (status: {} -> {})", ticket.getTicketNumber(), oldStatus,
                         newStatus);
             } catch (Exception e) {
@@ -720,7 +723,74 @@ public class TicketServiceImpl implements TicketService {
             log.warn("Failed to send assignment notification: {}", e.getMessage());
         }
 
+        try {
+            String previousAssignee = oldValue != null ? oldValue : "non assigne";
+            auditService.log("Ticket", ticket.getId().toString(), "ASSIGNMENT", currentUser,
+                    previousAssignee + " -> " + agent.getFullName(), ipAddress);
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
+        }
+
         log.info("Ticket {} assigned to {}", ticket.getTicketNumber(), agent.getEmail());
+        return mapToResponse(ticket, currentUser);
+    }
+
+    @Override
+    @Transactional
+    public TicketResponse takeTicket(Long ticketId, User currentUser, String ipAddress) {
+        if (currentUser.getRole() != UserRole.AGENT) {
+            throw new ForbiddenException("Seuls les agents peuvent prendre un ticket");
+        }
+
+        if (Boolean.FALSE.equals(currentUser.getIsActive())) {
+            throw new BadRequestException("Impossible de prendre un ticket avec un compte agent inactif");
+        }
+
+        Optional<Ticket> lockedTicket = ticketRepository.findByIdForUpdate(ticketId);
+        if (lockedTicket == null || lockedTicket.isEmpty()) {
+            lockedTicket = ticketRepository.findById(ticketId);
+        }
+
+        Ticket ticket = lockedTicket
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket", "id", ticketId));
+        assertTicketAllowsAssignment(ticket);
+
+        if (ticket.getAssignedTo() != null) {
+            if (ticket.getAssignedTo().getId().equals(currentUser.getId())) {
+                return mapToResponse(ticket, currentUser);
+            }
+            throw new BadRequestException("Ce ticket est deja pris en charge par un autre agent");
+        }
+
+        TicketStatus previousStatus = ticket.getStatus();
+        ticket.setAssignedTo(currentUser);
+        if (ticket.getStatus() == TicketStatus.NEW) {
+            ticket.setStatus(TicketStatus.ASSIGNED);
+        }
+        ticket = ticketRepository.save(ticket);
+
+        createHistoryEntry(ticket, currentUser, TicketAction.ASSIGNMENT,
+                null, currentUser.getFullName(), "Prise en charge par l'agent", ipAddress);
+        if (previousStatus == TicketStatus.NEW && ticket.getStatus() == TicketStatus.ASSIGNED) {
+            createHistoryEntry(ticket, currentUser, TicketAction.STATUS_CHANGE,
+                    TicketStatus.NEW.name(), TicketStatus.ASSIGNED.name(),
+                    "Ticket pris en charge par l'agent", ipAddress);
+        }
+
+        try {
+            auditService.log("Ticket", ticket.getId().toString(), "ASSIGNMENT", currentUser,
+                    "Prise en charge agent -> " + currentUser.getFullName(), ipAddress);
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
+        }
+
+        try {
+            notificationService.notifyTicketAssigned(ticket, currentUser);
+        } catch (Exception e) {
+            log.warn("Failed to send take-ownership notification: {}", e.getMessage());
+        }
+
+        log.info("Ticket {} taken by agent {}", ticket.getTicketNumber(), currentUser.getEmail());
         return mapToResponse(ticket, currentUser);
     }
 
@@ -752,6 +822,13 @@ public class TicketServiceImpl implements TicketService {
             createHistoryEntry(ticket, currentUser, TicketAction.STATUS_CHANGE,
                     TicketStatus.ASSIGNED.name(), TicketStatus.NEW.name(),
                     "Retour au pool non assigne", ipAddress);
+        }
+
+        try {
+            auditService.log("Ticket", ticket.getId().toString(), "UNASSIGNMENT", currentUser,
+                    (oldValue != null ? oldValue : "non assigne") + " -> non assigne", ipAddress);
+        } catch (Exception e) {
+            log.warn("Audit log failed: {}", e.getMessage());
         }
 
         log.info("Ticket {} unassigned", ticket.getTicketNumber());
@@ -1444,6 +1521,36 @@ public class TicketServiceImpl implements TicketService {
         return from.canTransitionTo(to);
     }
 
+    private void assertCanTransitionStatus(Ticket ticket, User currentUser, TicketStatus newStatus) {
+        if (!isRoleAllowedStatusTransition(ticket, currentUser, newStatus)) {
+            throw new ForbiddenException("Transition de statut non autorisee pour votre role");
+        }
+    }
+
+    private boolean isRoleAllowedStatusTransition(Ticket ticket, User currentUser, TicketStatus newStatus) {
+        if (currentUser == null || currentUser.getRole() == null) {
+            return false;
+        }
+
+        return switch (currentUser.getRole()) {
+            case CLIENT -> false;
+            case MANAGER, ADMIN -> true;
+            case AGENT -> {
+                boolean worksOwnTicket = ticket.getAssignedTo() != null
+                        && ticket.getAssignedTo().getId().equals(currentUser.getId());
+                if (!worksOwnTicket) {
+                    yield false;
+                }
+                yield EnumSet.of(
+                        TicketStatus.IN_PROGRESS,
+                        TicketStatus.PENDING,
+                        TicketStatus.PENDING_THIRD_PARTY,
+                        TicketStatus.RESOLVED)
+                        .contains(newStatus);
+            }
+        };
+    }
+
     private void createHistoryEntry(Ticket ticket, User user, TicketAction action,
             String oldValue, String newValue, String details, String ipAddress) {
         TicketHistory history = TicketHistory.builder()
@@ -1681,7 +1788,17 @@ public class TicketServiceImpl implements TicketService {
 
         return Arrays.stream(ticket.getStatus().getAllowedTransitions())
                 .filter(status -> status != TicketStatus.ASSIGNED)
+                .filter(status -> viewer == null || isRoleAllowedStatusTransition(ticket, viewer, status))
                 .collect(Collectors.toList());
+    }
+
+    private boolean canTakeOwnership(Ticket ticket, User viewer) {
+        return viewer != null
+                && viewer.getRole() == UserRole.AGENT
+                && ticket.getAssignedTo() == null
+                && ticket.getStatus() != TicketStatus.RESOLVED
+                && ticket.getStatus() != TicketStatus.CLOSED
+                && ticket.getStatus() != TicketStatus.CANCELLED;
     }
 
     private TicketResponse mapToResponse(Ticket ticket) {
@@ -1761,6 +1878,7 @@ public class TicketServiceImpl implements TicketService {
                 .attachments(attachmentInfos)
                 .commentCount(commentInfos.size())
                 .allowedTransitions(resolveAllowedTransitions(ticket, viewer))
+                .canTakeOwnership(canTakeOwnership(ticket, viewer))
                 .build();
     }
 

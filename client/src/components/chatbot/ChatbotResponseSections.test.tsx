@@ -5,7 +5,7 @@ import ChatbotResponseSections from "./ChatbotResponseSections";
 const buildAssistantMessage = (overrides: Partial<ChatMessageModel> = {}): ChatMessageModel => ({
   id: "assistant-42",
   role: "assistant",
-  content: "Resume : Diagnostic probable sur BSCS.",
+  content: "Résumé : Diagnostic probable sur BSCS.",
   timestamp: new Date().toISOString(),
   confidence: "high",
   serviceDetected: "BSCS Billing System",
@@ -40,27 +40,27 @@ describe("ChatbotResponseSections integration", () => {
       <ChatbotResponseSections message={buildAssistantMessage()} onSelectAction={onSelectAction} />,
     );
 
-    expect(screen.getByText("Actions suggerees")).toBeInTheDocument();
+    expect(screen.getByText("Actions suggérées")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Verifier les incidents similaires" }),
+      screen.getByRole("button", { name: "Vérifier les incidents similaires" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Preparer un brouillon de ticket" }),
+      screen.getByRole("button", { name: "Préparer un brouillon de ticket" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Consulter le service detecte" }),
+      screen.getByRole("button", { name: "Consulter le service détecté" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Verifier le SLA" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Vérifier le SLA" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reformuler le diagnostic" })).toBeInTheDocument();
-    expect(screen.getByText("Fiabilite detection service")).toBeInTheDocument();
+    expect(screen.getByText("Fiabilité de détection du service")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Verifier le SLA" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier le SLA" }));
 
     expect(onSelectAction).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "check-sla",
-        label: "Verifier le SLA",
-        message: "Verifie le risque SLA pour le service BSCS Billing System.",
+        label: "Vérifier le SLA",
+        message: "Vérifie le risque SLA pour le service BSCS Billing System.",
       }),
     );
   });
@@ -76,22 +76,23 @@ describe("ChatbotResponseSections integration", () => {
           analysis: {
             summary: "Le diagnostic reste prudent.",
             impact: "Impact non confirme.",
-            nextAction: "Completer le contexte avant brouillon.",
+            nextAction: "Compléter le contexte avant brouillon.",
             clarificationNeeded: true,
-            missingInformation: ["service impacte", "heure de debut"],
-            caution: "Diagnostic heuristique a confirmer.",
+            missingInformation: ["service impacté", "heure de début"],
+            caution: "Diagnostic heuristique à confirmer.",
           },
         })}
         onSelectAction={onSelectAction}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Completer le contexte" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compléter le contexte" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Preparer un brouillon de ticket" }),
+      screen.getByRole("button", { name: "Préparer un brouillon de ticket" }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Verifier le SLA" })).not.toBeInTheDocument();
-    expect(screen.getByText("Informations a confirmer")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Vérifier le SLA" })).not.toBeInTheDocument();
+    expect(screen.getByText("Informations à confirmer")).toBeInTheDocument();
+    expect(screen.getByText("À confirmer")).toBeInTheDocument();
   });
 
   it("renders massive incident card and global ticket action when candidate exists", () => {
@@ -110,7 +111,7 @@ describe("ChatbotResponseSections integration", () => {
             clusterEnd: "2026-03-18T10:00:00",
             ticketIds: ["101", "102", "103"],
             detectionReason: "6 tickets proches en moins de 3h",
-            recommendation: "Preparer un ticket global avant validation humaine",
+            recommendation: "Préparer un ticket global avant validation humaine",
           },
         })}
         onSelectAction={onSelectAction}
@@ -119,9 +120,9 @@ describe("ChatbotResponseSections integration", () => {
 
     expect(screen.getByText("Candidat incident massif")).toBeInTheDocument();
     expect(screen.getByText(/6 tickets proches en moins de 3h/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Preparer un ticket global" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Préparer un ticket global" })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Preparer un ticket global" }));
+    fireEvent.click(screen.getByRole("button", { name: "Préparer un ticket global" }));
     expect(onSelectAction).toHaveBeenCalledWith(
       expect.objectContaining({
         id: "prepare-global-ticket",
@@ -165,18 +166,18 @@ describe("ChatbotResponseSections integration", () => {
           latencyMs: 154.3,
           reasoningSteps: [
             "Top semantic score=0.920.",
-            "Service detecte=BSCS Billing System, confidence=high.",
+            "Service détecté=BSCS Billing System, confidence=high.",
           ],
           recommendedActions: [
-            "Verifier les incidents similaires sur BSCS Billing System avant changement en production.",
+            "Vérifier les incidents similaires sur BSCS Billing System avant changement en production.",
           ],
           riskFlags: ["MASS_INCIDENT_CANDIDATE"],
-          missingInformation: ["heure de debut"],
+          missingInformation: ["heure de début"],
           sources: ["doc:ticket-001"],
           analysis: {
             summary: "Diagnostic probable sur BSCS.",
             impact: "Impact probable.",
-            nextAction: "Verifier les incidents similaires.",
+            nextAction: "Vérifier les incidents similaires.",
             clarificationNeeded: true,
             missingInformation: [],
           },
@@ -184,12 +185,12 @@ describe("ChatbotResponseSections integration", () => {
       />,
     );
 
-    expect(screen.getByText("Etapes de raisonnement")).toBeInTheDocument();
+    expect(screen.getByText("Étapes de raisonnement")).toBeInTheDocument();
     expect(screen.getByText("Recommandations IA")).toBeInTheDocument();
     expect(screen.getByText("Drapeaux de risque")).toBeInTheDocument();
-    expect(screen.getByText("Version modele")).toBeInTheDocument();
+    expect(screen.getByText("Version du modèle")).toBeInTheDocument();
     expect(screen.getByText("Mode fallback")).toBeInTheDocument();
     expect(screen.getByText("Sources")).toBeInTheDocument();
-    expect(screen.getByText("heure de debut")).toBeInTheDocument();
+    expect(screen.getByText("heure de début")).toBeInTheDocument();
   });
 });

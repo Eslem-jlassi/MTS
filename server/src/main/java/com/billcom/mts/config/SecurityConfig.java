@@ -55,6 +55,7 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/v3/api-docs/**",
             "/actuator/health",
+            "/api/system/health",
             "/ws/**"
     };
 
@@ -95,6 +96,7 @@ public class SecurityConfig {
                         // Manager / Admin
                         .requestMatchers("/api/reports/**").hasAnyRole(ADMIN, MANAGER)
                         .requestMatchers("/api/tickets/*/assign").hasAnyRole(ADMIN, MANAGER)
+                        .requestMatchers("/api/tickets/*/take").hasRole(AGENT)
                         .requestMatchers(HttpMethod.GET, "/api/clients/**").hasAnyRole(ADMIN, MANAGER)
                         .requestMatchers("/api/users/agents/available").hasAnyRole(ADMIN, MANAGER)
                         .requestMatchers("/api/manager-ai/**").hasRole(MANAGER)

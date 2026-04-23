@@ -295,7 +295,7 @@ export const ManagerCopilotFocusCard: React.FC<{
 }> = ({ signal, onNavigate }) => (
   <article className={`manager-copilot-focus-card manager-copilot-focus-card-${signal.tone}`}>
     <div className="manager-copilot-focus-topline">
-      <span className="manager-copilot-focus-kicker">Action recommandee</span>
+      <span className="manager-copilot-focus-kicker">Action recommandée</span>
       <div className="manager-copilot-signal-badges">
         <Badge
           size="sm"
@@ -339,7 +339,7 @@ export const ManagerCopilotStatusBanner: React.FC<{
     <div className="manager-copilot-status-banner">
       <div className="manager-copilot-status-banner-copy">
         <strong className="manager-copilot-status-banner-title">
-          Lecture assistee en mode degrade
+          Lecture assistée en mode dégradé
         </strong>
         <p className="manager-copilot-status-banner-text">
           {error ||
@@ -385,7 +385,7 @@ export const ManagerCopilotSignalCard: React.FC<{
 
       {assignmentSignal && (
         <div className="manager-copilot-signal-highlight">
-          <span className="manager-copilot-signal-highlight-label">Agent recommande</span>
+          <span className="manager-copilot-signal-highlight-label">Agent recommandé</span>
           <strong className="manager-copilot-signal-highlight-value">
             {assignmentSignal.recommendedAgent}
           </strong>

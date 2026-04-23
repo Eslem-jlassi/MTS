@@ -165,7 +165,7 @@ const ManagerCopilotSummaryPrepModal: React.FC<{
 
         <div className="manager-copilot-summary-draft-actions">
           <Button size="sm" icon={<Copy size={14} />} onClick={handleCopy}>
-            {copied ? "Synthese copiee" : "Copier la synthese"}
+            {copied ? "Synthèse copiée" : "Copier la synthèse"}
           </Button>
           <Button
             variant="outline"
@@ -179,7 +179,7 @@ const ManagerCopilotSummaryPrepModal: React.FC<{
         </div>
 
         <p className="manager-copilot-summary-draft-note">
-          Cette synthese est preparee cote front a partir des signaux deja consolides par ALLIE.
+          Cette synthèse assemble les signaux déjà consolidés par ALLIE pour un point manager rapide.
         </p>
       </div>
     </Modal>
@@ -429,7 +429,7 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
         <section className="manager-copilot-cockpit-block manager-copilot-cockpit-block-focus">
           <div className="manager-copilot-cockpit-block-head">
             <div>
-              <span className="manager-copilot-cockpit-kicker">Action recommandee</span>
+              <span className="manager-copilot-cockpit-kicker">Action recommandée</span>
               <h3 className="manager-copilot-cockpit-subtitle">Prochaine decision a fort impact</h3>
             </div>
           </div>
@@ -546,7 +546,7 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
                     <div className="manager-copilot-cockpit-signal-meta-row">
                       {assignmentSignal?.recommendedAgent && (
                         <span className="manager-copilot-cockpit-signal-meta">
-                          Agent recommande : {assignmentSignal.recommendedAgent}
+                          Agent recommandé : {assignmentSignal.recommendedAgent}
                         </span>
                       )}
                       {signal.meta && (
@@ -663,7 +663,7 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
               icon={<FileText size={14} />}
               onClick={() => setIsSummaryPrepOpen(true)}
             >
-              Preparer la synthese
+              Préparer la synthèse
             </Button>
             <Button
               variant="outline"

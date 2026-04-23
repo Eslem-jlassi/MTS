@@ -57,7 +57,7 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
               {showDecisionBadge && (
                 <Badge
                   size="sm"
-                  variant="info"
+                  variant="ai"
                   icon={<Sparkles size={12} />}
                   className="manager-copilot-badge"
                 >
@@ -71,7 +71,7 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
                   icon={<ShieldAlert size={12} />}
                   className="manager-copilot-badge"
                 >
-                  Mode degrade
+                  Mode dégradé
                 </Badge>
               )}
             </div>

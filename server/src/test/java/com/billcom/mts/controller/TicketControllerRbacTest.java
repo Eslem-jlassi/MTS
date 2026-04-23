@@ -221,6 +221,16 @@ class TicketControllerRbacTest {
 
         @Test
         @WithMockUser(roles = "AGENT")
+        @DisplayName("AGENT peut prendre un ticket non assigne")
+        void agentCanTakeTicket() throws Exception {
+            mockMvc.perform(post("/api/tickets/1/take"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "AGENT devrait pouvoir atteindre /take (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "AGENT")
         @DisplayName("AGENT peut exporter en CSV (non bloqué par RBAC)")
         void agentCanExportCsv() throws Exception {
             mockMvc.perform(get("/api/tickets/export/csv"))
@@ -293,6 +303,14 @@ class TicketControllerRbacTest {
                     .andExpect(result ->
                             assertNotEquals(403, result.getResponse().getStatus(),
                                     "MANAGER devrait acceder a /unassigned (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "MANAGER")
+        @DisplayName("MANAGER ne peut pas utiliser la prise en charge agent")
+        void managerCannotTakeTicket() throws Exception {
+            mockMvc.perform(post("/api/tickets/1/take"))
+                    .andExpect(status().isForbidden());
         }
 
         @Test
