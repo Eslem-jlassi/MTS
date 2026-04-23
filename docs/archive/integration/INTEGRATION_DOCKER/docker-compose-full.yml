@@ -10,10 +10,10 @@ services:
     ports:
       - "${COMPOSE_DB_PORT:-3306}:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-mts2026}
+      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-CHANGE_ME_DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${COMPOSE_DB_NAME:-mts_telecom_db}
       MYSQL_USER: ${COMPOSE_DB_USERNAME:-mts_user}
-      MYSQL_PASSWORD: ${COMPOSE_DB_PASSWORD:-mts_password}
+      MYSQL_PASSWORD: ${COMPOSE_DB_PASSWORD:-CHANGE_ME_DB_PASSWORD}
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
@@ -30,7 +30,7 @@ services:
           "localhost",
           "-u",
           "root",
-          "-p${COMPOSE_DB_ROOT_PASSWORD:-mts2026}"
+          "-p${COMPOSE_DB_ROOT_PASSWORD:-CHANGE_ME_DB_ROOT_PASSWORD}"
         ]
       interval: 10s
       timeout: 5s
@@ -50,7 +50,7 @@ services:
     environment:
       PMA_HOST: mysql
       PMA_PORT: 3306
-      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-mts2026}
+      MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD:-CHANGE_ME_DB_ROOT_PASSWORD}
     depends_on:
       mysql:
         condition: service_healthy
@@ -140,8 +140,8 @@ services:
     environment:
       DB_URL: jdbc:mysql://mysql:3306/${COMPOSE_DB_NAME:-mts_telecom_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=utf8
       DB_USERNAME: ${COMPOSE_DB_USERNAME:-mts_user}
-      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-mts_password}
-      JWT_SECRET: ${COMPOSE_JWT_SECRET:-MTS_BILLCOM_2026_Hx7pL9mNqR3sT6vW8yZ2aB5cD0eF4gHjKlMnPqRsTuVwXyZ1a2B3c4D5e6F7g8H9i0JkLmNoPqRs}
+      DB_PASSWORD: ${COMPOSE_DB_PASSWORD:-CHANGE_ME_DB_PASSWORD}
+      JWT_SECRET: ${COMPOSE_JWT_SECRET:-CHANGE_ME_LONG_RANDOM_SECRET_MIN_64_CHARS}
       GOOGLE_CLIENT_ID: ${COMPOSE_GOOGLE_CLIENT_ID:-}
       COOKIE_SECURE: "false"
       ALLOW_INTERNAL_SIGNUP: "false"

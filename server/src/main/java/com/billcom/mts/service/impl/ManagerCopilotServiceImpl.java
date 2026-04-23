@@ -27,9 +27,11 @@ import com.billcom.mts.repository.TicketRepository;
 import com.billcom.mts.repository.UserRepository;
 import com.billcom.mts.service.ChatbotService;
 import com.billcom.mts.service.DuplicateDetectionService;
-import com.billcom.mts.service.ManagerCopilotAiService;
 import com.billcom.mts.service.ManagerCopilotService;
 import com.billcom.mts.service.SentimentAnalysisService;
+import com.billcom.mts.service.managercopilot.AllieKnnFeatureBuilder;
+import com.billcom.mts.service.managercopilot.AllieKnnRecommendationService;
+import com.billcom.mts.service.managercopilot.KnnDecisionResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -85,7 +87,8 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
     private final DuplicateDetectionService duplicateDetectionService;
     private final SentimentAnalysisService sentimentAnalysisService;
     private final ChatbotService chatbotService;
-    private final ManagerCopilotAiService managerCopilotAiService;
+    private final AllieKnnFeatureBuilder allieKnnFeatureBuilder;
+    private final AllieKnnRecommendationService allieKnnRecommendationService;
 
     @Override
     public ManagerCopilotDashboardResponse getDashboardSummary(String period, Long serviceId, Long clientId) {
@@ -572,17 +575,14 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
                     List.of("Aucun ticket actif n'a ete retenu pour le scoring supervise."));
         }
 
-        ManagerCopilotScoreRequestDto request = ManagerCopilotScoreRequestDto.builder()
-                .k(5)
-                .cases(ticketContexts.stream().map(this::toScoreCase).toList())
-                .build();
-
-        ManagerCopilotScoreResponseDto response = managerCopilotAiService.scoreCases(request);
-        Map<String, ManagerCopilotScoreResponseDto.ResultDto> resultsByCaseId = new LinkedHashMap<>();
+        ManagerCopilotScoreResponseDto response = allieKnnRecommendationService.scoreCases(
+                ticketContexts.stream().map(this::toScoreCase).toList()
+        );
+        Map<String, KnnDecisionResult> resultsByCaseId = new LinkedHashMap<>();
 
         if (response.isAvailable()) {
             for (ManagerCopilotScoreResponseDto.ResultDto result : safeList(response.getResults())) {
-                resultsByCaseId.put(result.getCaseId(), result);
+                resultsByCaseId.put(result.getCaseId(), KnnDecisionResult.fromDto(result));
             }
         }
 
@@ -602,7 +602,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
             aggregateConfidence = response.getConfidenceScore();
         } else {
             aggregateConfidence = round(resultsByCaseId.values().stream()
-                    .map(ManagerCopilotScoreResponseDto.ResultDto::getConfidenceScore)
+                    .map(KnnDecisionResult::getConfidenceScore)
                     .filter(Objects::nonNull)
                     .mapToDouble(Double::doubleValue)
                     .average()
@@ -620,33 +620,31 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
     }
 
     private ManagerCopilotScoreRequestDto.CaseDto toScoreCase(TicketAiContext context) {
-        return ManagerCopilotScoreRequestDto.CaseDto.builder()
-                .caseId(caseId(context))
-                .title(context.ticket().getTitle())
-                .serviceName(context.service().getName())
-                .ticketNumber(context.ticket().getTicketNumber())
-                .features(ManagerCopilotScoreRequestDto.FeatureSetDto.builder()
-                        .priority(context.ticket().getPriority().name())
-                        .status(context.ticket().getStatus().name())
-                        .ageHours(context.ageHours())
-                        .slaRemainingMinutes(context.slaRemainingMinutes())
-                        .slaBreached(context.slaBreached())
-                        .serviceDegraded(context.serviceDegraded())
-                        .similarTicketCount(context.similarTicketCount())
-                        .probableMassIncident(context.probableMassIncident())
-                        .duplicateConfidence(context.duplicateConfidence())
-                        .frustrationScore(context.frustrationScore())
-                        .backlogOpenTickets(context.backlogOpenTickets())
-                        .agentOpenTicketCount(context.agentOpenTicketCount())
-                        .incidentLinked(context.incidentLinked())
-                        .businessImpact(context.businessImpact())
-                        .serviceCriticality(context.serviceCriticality())
-                        .assigned(context.assigned())
-                        .build())
-                .build();
+        return allieKnnFeatureBuilder.buildCase(new AllieKnnFeatureBuilder.AllieKnnFeatureInput(
+                caseId(context),
+                context.ticket().getTitle(),
+                context.service().getName(),
+                context.ticket().getTicketNumber(),
+                context.ticket().getPriority().name(),
+                context.ticket().getStatus().name(),
+                context.ageHours(),
+                context.slaRemainingMinutes(),
+                context.slaBreached(),
+                context.serviceDegraded(),
+                context.similarTicketCount(),
+                context.probableMassIncident(),
+                context.duplicateConfidence(),
+                context.frustrationScore(),
+                context.backlogOpenTickets(),
+                context.agentOpenTicketCount(),
+                context.incidentLinked(),
+                context.businessImpact(),
+                context.serviceCriticality(),
+                context.assigned()
+        ));
     }
 
-    private ManagerCopilotScoreResponseDto.ResultDto fallbackScore(TicketAiContext context) {
+    private KnnDecisionResult fallbackScore(TicketAiContext context) {
         String predictedAction = "MONITOR";
         double confidenceScore = 0.55;
 
@@ -665,7 +663,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
             confidenceScore = 0.64;
         }
 
-        return ManagerCopilotScoreResponseDto.ResultDto.builder()
+        return KnnDecisionResult.builder()
                 .caseId(caseId(context))
                 .predictedAction(predictedAction)
                 .confidenceScore(round(confidenceScore))
@@ -734,7 +732,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
                 .collect(Collectors.toCollection(LinkedHashSet::new));
 
         for (TicketAiContext context : ticketContexts) {
-            ManagerCopilotScoreResponseDto.ResultDto result = scoreBundle.resultsByCaseId().get(caseId(context));
+            KnnDecisionResult result = scoreBundle.resultsByCaseId().get(caseId(context));
             if (result == null) {
                 continue;
             }
@@ -801,7 +799,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
     ) {
         return ticketContexts.stream()
                 .map(context -> {
-                    ManagerCopilotScoreResponseDto.ResultDto result = scoreBundle.resultsByCaseId().get(caseId(context));
+                    KnnDecisionResult result = scoreBundle.resultsByCaseId().get(caseId(context));
                     if (result == null
                             || !"REASSIGN".equalsIgnoreCase(result.getPredictedAction())
                             || context.suggestedAgent() == null) {
@@ -858,7 +856,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
                         || context.ticket().isSlaWarning())
                 .sorted(Comparator.comparingDouble(TicketAiContext::slaRemainingMinutes))
                 .map(context -> {
-                    ManagerCopilotScoreResponseDto.ResultDto result = scoreBundle.resultsByCaseId().get(caseId(context));
+                    KnnDecisionResult result = scoreBundle.resultsByCaseId().get(caseId(context));
                     return ManagerCopilotDashboardResponse.SignalDto.builder()
                             .id("sla-" + context.ticket().getId())
                             .eyebrow(context.ticket().getTicketNumber())
@@ -896,7 +894,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
 
     private ManagerCopilotDashboardResponse.SignalDto buildTicketSignal(
             TicketAiContext context,
-            ManagerCopilotScoreResponseDto.ResultDto result
+            KnnDecisionResult result
     ) {
         String predictedAction = result != null ? result.getPredictedAction() : "MONITOR";
         String tone = deriveTicketTone(context, predictedAction);
@@ -1234,7 +1232,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
 
     private String buildSlaRecommendation(
             TicketAiContext context,
-            ManagerCopilotScoreResponseDto.ResultDto result
+            KnnDecisionResult result
     ) {
         String predictedAction = result != null ? result.getPredictedAction() : null;
         if ("ESCALATE".equalsIgnoreCase(predictedAction)) {
@@ -1284,7 +1282,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
     }
 
     private List<ManagerCopilotDashboardResponse.NearestExampleDto> toNearestExamples(
-            ManagerCopilotScoreResponseDto.ResultDto result
+            KnnDecisionResult result
     ) {
         return safeList(result.getNearestExamples()).stream()
                 .map(example -> ManagerCopilotDashboardResponse.NearestExampleDto.builder()
@@ -1390,7 +1388,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
                 .orElse(fallback);
     }
 
-    private String normalizeConfidence(ManagerCopilotScoreResponseDto.ResultDto result) {
+    private String normalizeConfidence(KnnDecisionResult result) {
         if (result == null) {
             return "low";
         }
@@ -1496,7 +1494,7 @@ public class ManagerCopilotServiceImpl implements ManagerCopilotService {
     }
 
     private record ScoreBundle(
-            Map<String, ManagerCopilotScoreResponseDto.ResultDto> resultsByCaseId,
+            Map<String, KnnDecisionResult> resultsByCaseId,
             boolean knnBacked,
             String modelVersion,
             String inferenceMode,

@@ -34,6 +34,7 @@ Cette documentation est organisee autour de quatre usages :
 - [Guide de demonstration jury](DEMO_JURY.md)
 - [Checklist soutenance finale](DEMO_JURY_FINAL_CHECKLIST.md)
 - [Last mile soutenance](SOUTENANCE_LAST_MILE.md)
+- [Note ALLIE KNN](ALLIE_KNN_NOTE.md)
 
 ## Historique et archive
 

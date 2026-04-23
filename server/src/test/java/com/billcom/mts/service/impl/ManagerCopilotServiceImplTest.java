@@ -23,8 +23,9 @@ import com.billcom.mts.repository.TicketRepository;
 import com.billcom.mts.repository.UserRepository;
 import com.billcom.mts.service.ChatbotService;
 import com.billcom.mts.service.DuplicateDetectionService;
-import com.billcom.mts.service.ManagerCopilotAiService;
 import com.billcom.mts.service.SentimentAnalysisService;
+import com.billcom.mts.service.managercopilot.AllieKnnFeatureBuilder;
+import com.billcom.mts.service.managercopilot.AllieKnnRecommendationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -58,7 +59,9 @@ class ManagerCopilotServiceImplTest {
     @Mock
     private ChatbotService chatbotService;
     @Mock
-    private ManagerCopilotAiService managerCopilotAiService;
+    private AllieKnnFeatureBuilder allieKnnFeatureBuilder;
+    @Mock
+    private AllieKnnRecommendationService allieKnnRecommendationService;
 
     @InjectMocks
     private ManagerCopilotServiceImpl managerCopilotService;
@@ -231,7 +234,8 @@ class ManagerCopilotServiceImplTest {
                 .results(List.of(resultDto))
                 .reasoningSteps(List.of("KNN supervise execute sur 1 cas manager."))
                 .build();
-        when(managerCopilotAiService.scoreCases(any())).thenReturn(aiResponse);
+        when(allieKnnFeatureBuilder.buildCase(any())).thenCallRealMethod();
+        when(allieKnnRecommendationService.scoreCases(any())).thenReturn(aiResponse);
 
         ManagerCopilotDashboardResponse response = managerCopilotService.getDashboardSummary("WEEK", 7L, null);
 
@@ -275,7 +279,9 @@ class ManagerCopilotServiceImplTest {
         when(ticketRepository.countActiveByAssignedTo(alternateAgent.getId())).thenReturn(2L);
         when(sentimentAnalysisService.analyze(any())).thenReturn(SentimentAnalysisResponseDto.unavailable("sentiment down"));
         when(chatbotService.detectMassiveIncidents(any())).thenReturn(MassiveIncidentDetectionResponseDto.empty());
-        when(managerCopilotAiService.scoreCases(any())).thenReturn(ManagerCopilotScoreResponseDto.unavailable("ai unavailable"));
+        when(allieKnnFeatureBuilder.buildCase(any())).thenCallRealMethod();
+        when(allieKnnRecommendationService.scoreCases(any()))
+                .thenReturn(ManagerCopilotScoreResponseDto.unavailable("ai unavailable"));
 
         ManagerCopilotDashboardResponse response = managerCopilotService.getDashboardSummary(null, null, null);
 

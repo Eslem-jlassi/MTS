@@ -1,5 +1,5 @@
 /**
- * Admin Dashboard - Vue d'ensemble système, accès rapide, audit
+ * Admin Dashboard - Vue d'ensemble systeme, acces rapide, audit
  */
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -79,7 +79,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const degradedOrDown = services.length - operationalCount;
 
   /**
-   * Retourne le badge pour le type d'entité
+   * Retourne le badge pour le type d'entite
    */
   const getEntityBadge = (entityType: string) => {
     return (
@@ -113,10 +113,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* ============================================ */}
-      {/* RÉSUMÉ - 4 KPI Cards */}
+      {/* RESUME - 4 KPI Cards */}
       {/* ============================================ */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-ds-primary mb-3">Résumé</h3>
+        <h3 className="text-lg font-semibold text-ds-primary mb-3">Resume</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Utilisateurs */}
           <Card padding="md" className="border-ds-border">
@@ -189,10 +189,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* ============================================ */}
-      {/* ACCÈS RAPIDE - 6 Cards */}
+      {/* ACCES RAPIDE - 6 Cards */}
       {/* ============================================ */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-ds-primary mb-3">Accès rapide</h3>
+        <h3 className="text-lg font-semibold text-ds-primary mb-3">Acces rapide</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Utilisateurs */}
           <Link to="/users">
@@ -206,7 +206,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <Users size={22} />
                   </div>
                   <div>
-                    <p className="text-sm text-ds-secondary">Gérer</p>
+                    <p className="text-sm text-ds-secondary">Gerer</p>
                     <p className="text-lg font-bold text-ds-primary">Utilisateurs</p>
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </Card>
           </Link>
 
-          {/* Rôles */}
+          {/* Roles */}
           <Link to="/users?tab=roles">
             <Card
               padding="md"
@@ -230,8 +230,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <UserCog size={22} />
                   </div>
                   <div>
-                    <p className="text-sm text-ds-secondary">Gérer</p>
-                    <p className="text-lg font-bold text-ds-primary">Rôles</p>
+                    <p className="text-sm text-ds-secondary">Gerer</p>
+                    <p className="text-lg font-bold text-ds-primary">Roles</p>
                   </div>
                 </div>
                 <ArrowRight
@@ -254,7 +254,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <Server size={22} />
                   </div>
                   <div>
-                    <p className="text-sm text-ds-secondary">Gérer</p>
+                    <p className="text-sm text-ds-secondary">Gerer</p>
                     <p className="text-lg font-bold text-ds-primary">Services</p>
                   </div>
                 </div>
@@ -278,7 +278,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <FileCheck size={22} />
                   </div>
                   <div>
-                    <p className="text-sm text-ds-secondary">Gérer</p>
+                    <p className="text-sm text-ds-secondary">Gerer</p>
                     <p className="text-lg font-bold text-ds-primary">SLA</p>
                   </div>
                 </div>
@@ -290,7 +290,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </Card>
           </Link>
 
-          {/* Catégories */}
+          {/* Categories */}
           <Link to="/categories">
             <Card
               padding="md"
@@ -302,8 +302,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <Tag size={22} />
                   </div>
                   <div>
-                    <p className="text-sm text-ds-secondary">Gérer</p>
-                    <p className="text-lg font-bold text-ds-primary">Catégories</p>
+                    <p className="text-sm text-ds-secondary">Gerer</p>
+                    <p className="text-lg font-bold text-ds-primary">Categories</p>
                   </div>
                 </div>
                 <ArrowRight
@@ -326,8 +326,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <Settings size={22} />
                   </div>
                   <div>
-                    <p className="text-sm text-ds-secondary">Gérer</p>
-                    <p className="text-lg font-bold text-ds-primary">Paramètres</p>
+                    <p className="text-sm text-ds-secondary">Gerer</p>
+                    <p className="text-lg font-bold text-ds-primary">Parametres</p>
                   </div>
                 </div>
                 <ArrowRight
@@ -341,23 +341,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       </div>
 
       {/* ============================================ */}
-      {/* SANTÉ DES SERVICES */}
+      {/* SANTE DES SERVICES */}
       {/* ============================================ */}
       {services.length > 0 && (
         <Card padding="md" className="mb-6">
           <h3 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
             <Activity size={20} className="text-success" />
-            Santé des services
+            Sante des services
           </h3>
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-success/10 text-success">
               <span className="font-semibold">{operationalCount}</span>
-              <span className="text-sm">Opérationnels</span>
+              <span className="text-sm">Operationnels</span>
             </div>
             {degradedOrDown > 0 && (
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-warning/10 text-warning">
                 <span className="font-semibold">{degradedOrDown}</span>
-                <span className="text-sm">Dégradés / Panne</span>
+                <span className="text-sm">Degrades / Panne</span>
               </div>
             )}
           </div>
@@ -371,7 +371,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       )}
 
       {/* ============================================ */}
-      {/* AUDIT LOG - 10 dernières actions */}
+      {/* AUDIT LOG - 10 dernieres actions */}
       {/* ============================================ */}
       <Card padding="md" className="border-ds-border">
         <h3 className="text-lg font-semibold text-ds-primary mb-4 flex items-center gap-2">
@@ -385,7 +385,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <span className="ml-2 text-ds-muted">Chargement...</span>
           </div>
         ) : recentAudit.length === 0 ? (
-          <p className="text-sm text-ds-muted py-4">Aucune activité récente</p>
+          <p className="text-sm text-ds-muted py-4">Aucune activite recente</p>
         ) : (
           <div className="space-y-3">
             {recentAudit.map((entry) => (
@@ -432,7 +432,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         {lastUpdated && (
           <p className="text-xs text-ds-muted mt-4 pt-4 border-t border-ds-border">
-            Dernière mise à jour : {formatDateTime(lastUpdated)}
+            Derniere mise a jour : {formatDateTime(lastUpdated)}
           </p>
         )}
       </Card>

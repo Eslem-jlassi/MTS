@@ -32,7 +32,10 @@ import { buildManagerSummaryDraft } from "./managerCopilotActions";
 import {
   confidenceLabels,
   confidenceToBadgeVariant,
+  formatManagerCopilotConfidenceScore,
+  formatManagerCopilotDecisionAction,
   formatManagerCopilotUpdatedAt,
+  getManagerCopilotInferenceModeLabel,
   getManagerCopilotPrimarySignal,
   MANAGER_COPILOT_TITLE,
   modeLabels,
@@ -328,6 +331,41 @@ function buildPrioritySignals(snapshot: ManagerCopilotSnapshot) {
     .slice(0, 4);
 }
 
+function renderSnapshotKnnSummary(snapshot: ManagerCopilotSnapshot) {
+  const featureSummary = (snapshot.featureSummary ?? []).slice(0, 4);
+
+  if (
+    !snapshot.inferenceMode &&
+    typeof snapshot.confidenceScore !== "number" &&
+    !snapshot.modelVersion &&
+    featureSummary.length === 0
+  ) {
+    return null;
+  }
+
+  return (
+    <div className="manager-copilot-cockpit-knn-strip">
+      <div className="manager-copilot-cockpit-knn-metric">
+        <span>Recommandation supervisee</span>
+        <strong>{getManagerCopilotInferenceModeLabel(snapshot.inferenceMode)}</strong>
+      </div>
+      <div className="manager-copilot-cockpit-knn-metric">
+        <span>Confiance KNN</span>
+        <strong>{formatManagerCopilotConfidenceScore(snapshot.confidenceScore)}</strong>
+      </div>
+      {snapshot.modelVersion && (
+        <div className="manager-copilot-cockpit-knn-metric">
+          <span>Version modele</span>
+          <strong>{snapshot.modelVersion}</strong>
+        </div>
+      )}
+      {featureSummary.length > 0 && (
+        <p className="manager-copilot-cockpit-knn-summary">{featureSummary.join(" - ")}</p>
+      )}
+    </div>
+  );
+}
+
 export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
   snapshot,
   isLoading,
@@ -408,6 +446,7 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
           </div>
 
           <p className="manager-copilot-cockpit-summary-text">{snapshot.summary}</p>
+          {renderSnapshotKnnSummary(snapshot)}
 
           <div className="manager-copilot-cockpit-metric-row">
             {snapshot.metrics.map((metric) => (
@@ -463,6 +502,47 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
               <p className="manager-copilot-cockpit-focus-description">
                 {focusSignal.recommendation || focusSignal.description}
               </p>
+              {(focusSignal.inferenceMode ||
+                focusSignal.predictedAction ||
+                typeof focusSignal.confidenceScore === "number") && (
+                <div className="manager-copilot-cockpit-focus-knn">
+                  <div className="manager-copilot-cockpit-focus-knn-row">
+                    <span className="manager-copilot-cockpit-focus-knn-label">
+                      Recommandation KNN
+                    </span>
+                    <Badge size="sm" variant="ai" className="manager-copilot-badge">
+                      {getManagerCopilotInferenceModeLabel(focusSignal.inferenceMode)}
+                    </Badge>
+                  </div>
+                  <div className="manager-copilot-cockpit-focus-knn-grid">
+                    <div>
+                      <span className="manager-copilot-cockpit-focus-knn-label">
+                        Action suggeree
+                      </span>
+                      <strong className="manager-copilot-cockpit-focus-knn-value">
+                        {formatManagerCopilotDecisionAction(focusSignal.predictedAction)}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="manager-copilot-cockpit-focus-knn-label">
+                        Confiance KNN
+                      </span>
+                      <strong className="manager-copilot-cockpit-focus-knn-value">
+                        {formatManagerCopilotConfidenceScore(focusSignal.confidenceScore)}
+                      </strong>
+                    </div>
+                  </div>
+                  {focusSignal.nearestExamples && focusSignal.nearestExamples.length > 0 && (
+                    <p className="manager-copilot-cockpit-focus-knn-neighbors">
+                      Voisins similaires :{" "}
+                      {focusSignal.nearestExamples
+                        .slice(0, 2)
+                        .map((example) => example.title)
+                        .join(" - ")}
+                    </p>
+                  )}
+                </div>
+              )}
               {focusSignal.whyMatters && (
                 <p className="manager-copilot-cockpit-focus-impact">
                   <strong>Impact prioritaire :</strong> {focusSignal.whyMatters}

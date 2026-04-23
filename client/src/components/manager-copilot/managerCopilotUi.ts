@@ -19,7 +19,7 @@ export type ManagerCopilotBadgeVariant =
 export const MANAGER_COPILOT_NAME = "ALLIE";
 export const MANAGER_COPILOT_PRODUCT_LABEL = "Assistant IA Manager";
 export const MANAGER_COPILOT_TITLE = MANAGER_COPILOT_NAME;
-export const MANAGER_COPILOT_SUBTITLE = "Copilote de supervision assistée";
+export const MANAGER_COPILOT_SUBTITLE = "Copilote de supervision assistee";
 export const MANAGER_COPILOT_FULL_LABEL = `${MANAGER_COPILOT_NAME}, ${MANAGER_COPILOT_PRODUCT_LABEL}`;
 
 export const MANAGER_COPILOT_WIDGET_SUBTITLE = MANAGER_COPILOT_SUBTITLE;
@@ -45,14 +45,22 @@ export const toneLabels: Record<ManagerCopilotTone, string> = {
 };
 
 export const confidenceLabels: Record<ManagerCopilotConfidence, string> = {
-  high: "Confiance élevée",
+  high: "Confiance elevee",
   medium: "Confiance moyenne",
-  low: "À confirmer",
+  low: "A confirmer",
 };
 
 export const modeLabels: Record<ManagerCopilotMode, string> = {
-  live: "Sources consolidées",
-  degraded: "Mode dégradé",
+  live: "Sources consolidees",
+  degraded: "Mode degrade",
+};
+
+const predictedActionLabels: Record<string, string> = {
+  ESCALATE: "Escalader",
+  REASSIGN: "Reassigner",
+  OPEN_INCIDENT: "Ouvrir un incident",
+  MONITOR: "Surveiller",
+  PREPARE_SUMMARY: "Preparer une synthese",
 };
 
 export function toneToBadgeVariant(tone: ManagerCopilotTone): ManagerCopilotBadgeVariant {
@@ -83,9 +91,38 @@ export function confidenceToBadgeVariant(
   }
 }
 
+export function formatManagerCopilotDecisionAction(value?: string | null): string {
+  const normalized = (value || "").trim().toUpperCase();
+  return predictedActionLabels[normalized] || "Validation manager";
+}
+
+export function formatManagerCopilotConfidenceScore(value?: number | null): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "n/d";
+  }
+
+  return new Intl.NumberFormat("fr-FR", {
+    style: "percent",
+    maximumFractionDigits: value >= 0.1 ? 0 : 1,
+  }).format(value);
+}
+
+export function getManagerCopilotInferenceModeLabel(value?: string | null): string {
+  const normalized = (value || "").trim().toLowerCase();
+
+  if (normalized === "knn") {
+    return "Recommandation supervisee KNN";
+  }
+  if (normalized === "degraded_rules") {
+    return "Fallback deterministe";
+  }
+
+  return "Assistance supervisee";
+}
+
 export function formatManagerCopilotUpdatedAt(value?: string): string {
   if (!value) {
-    return "Mise à jour récente";
+    return "Mise a jour recente";
   }
 
   try {
@@ -94,16 +131,16 @@ export function formatManagerCopilotUpdatedAt(value?: string): string {
       minute: "2-digit",
     }).format(new Date(value));
   } catch {
-    return "Mise à jour récente";
+    return "Mise a jour recente";
   }
 }
 
 export function formatManagerCopilotUpdatedLabel(value?: string): string {
   if (!value) {
-    return "Mise à jour récente";
+    return "Mise a jour recente";
   }
 
-  return `Actualisé à ${formatManagerCopilotUpdatedAt(value)}`;
+  return `Actualise a ${formatManagerCopilotUpdatedAt(value)}`;
 }
 
 export function getManagerCopilotTelemetryLabel(snapshot?: ManagerCopilotSnapshot | null): string {
@@ -111,7 +148,7 @@ export function getManagerCopilotTelemetryLabel(snapshot?: ManagerCopilotSnapsho
     return "Consolidation des signaux manager";
   }
 
-  return snapshot.mode === "degraded" ? "Vue assistée partielle" : "Sources manager consolidées";
+  return snapshot.mode === "degraded" ? "Vue assistee partielle" : "Sources manager consolidees";
 }
 
 export function getManagerCopilotMoment(
@@ -127,11 +164,11 @@ export function getManagerCopilotMoment(
 
   if (snapshot.priorityTickets.length > 0) {
     return {
-      title: `${snapshot.priorityTickets.length} arbitrage(s) à traiter`,
+      title: `${snapshot.priorityTickets.length} arbitrage(s) a traiter`,
       detail:
         snapshot.urgentCount > 0
           ? `${snapshot.urgentCount} signal(s) critique(s) appellent une validation rapide.`
-          : "Les tickets les plus structurants ont été isolés pour décision.",
+          : "Les tickets les plus structurants ont ete isoles pour decision.",
       tone: snapshot.priorityTickets.some((signal) => signal.tone === "critical")
         ? "critical"
         : "info",
@@ -140,8 +177,8 @@ export function getManagerCopilotMoment(
 
   if (snapshot.slaAlerts.length > 0) {
     return {
-      title: `${snapshot.slaAlerts.length} dossier(s) SLA à sécuriser`,
-      detail: "Le copilote met en avant les tickets proches de rupture ou déjà sous tension.",
+      title: `${snapshot.slaAlerts.length} dossier(s) SLA a securiser`,
+      detail: "Le copilote met en avant les tickets proches de rupture ou deja sous tension.",
       tone: snapshot.slaAlerts.some((signal) => signal.tone === "critical")
         ? "critical"
         : "warning",
@@ -150,8 +187,8 @@ export function getManagerCopilotMoment(
 
   if (snapshot.probableIncidents.length > 0) {
     return {
-      title: `${snapshot.probableIncidents.length} signal(s) d'incident à confirmer`,
-      detail: "Les corrélations tickets, services et supervision restent à arbitrer.",
+      title: `${snapshot.probableIncidents.length} signal(s) d'incident a confirmer`,
+      detail: "Les correlations tickets, services et supervision restent a arbitrer.",
       tone: snapshot.probableIncidents.some((signal) => signal.tone === "critical")
         ? "critical"
         : "warning",
@@ -160,7 +197,7 @@ export function getManagerCopilotMoment(
 
   return {
     title: "Portefeuille sous controle",
-    detail: "Aucune urgence critique détectée dans les signaux consolidés.",
+    detail: "Aucune urgence critique detectee dans les signaux consolides.",
     tone: "success",
   };
 }

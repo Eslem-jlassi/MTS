@@ -119,6 +119,21 @@ Pour un profil production / defense :
 - garder `AUTH_EXPOSE_TOKENS_IN_BODY=false`
 - activer `COMPOSE_COOKIE_SECURE=true`
 
+### Verification email
+
+Le projet dispose deja d'une verification email reelle pour les nouvelles inscriptions `CLIENT`.
+
+- backend : generation de token, expiration, activation du compte apres verification
+- frontend : page `/verify-email` avec retours succes/erreur
+- email : envoi SMTP via variables `MAIL_*` ou `COMPOSE_MAIL_*`
+
+Pour l'activer :
+
+1. configurer `MAIL_ENABLED=true` ou `COMPOSE_MAIL_ENABLED=true`
+2. renseigner l'hote SMTP, l'identifiant et le mot de passe
+3. definir `FRONTEND_BASE_URL` ou `COMPOSE_FRONTEND_BASE_URL`
+4. passer `AUTH_REQUIRE_EMAIL_VERIFICATION=true` ou `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true`
+
 ## URLs utiles
 
 - Frontend : `http://localhost:3000`

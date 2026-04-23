@@ -17,7 +17,7 @@ La production utilise des fichiers dedies :
 - MySQL et microservices IA non exposes publiquement
 - `phpMyAdmin` absent de la variante production
 - cookies securises avec `COOKIE_SECURE=true`
-- CORS et WebSocket pilotés par domaine via variables d'environnement
+- CORS et WebSocket pilotes par domaine via variables d'environnement
 
 Pour rester compatible avec l'authentification `cookie-first`, gardez si possible le frontend et le backend sous le meme site logique, par exemple :
 
@@ -79,10 +79,10 @@ Variables importantes :
 
 - `COMPOSE_COOKIE_SECURE=true`
 - `COMPOSE_REACT_APP_DEMO_MODE=false`
-- `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false` par defaut pour un deploiement rapide ; passez a `true` seulement si SMTP est configure
-- `COMPOSE_AI_SENTIMENT_BASE_URL`, `COMPOSE_AI_DUPLICATE_BASE_URL`, `COMPOSE_AI_CHATBOT_BASE_URL` sont deja paramétrables
+- `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true` dans l'exemple prod ; gardez-le si SMTP est configure
+- `COMPOSE_AI_SENTIMENT_BASE_URL`, `COMPOSE_AI_DUPLICATE_BASE_URL`, `COMPOSE_AI_CHATBOT_BASE_URL` sont deja parametrables
 - pour une validation locale sur poste de dev, vous pouvez utiliser `COMPOSE_FRONTEND_PORT=3005` et `COMPOSE_BACKEND_PORT=8085`
-- la validation authentifiée la plus fidèle se fait derriere HTTPS ou un reverse proxy TLS, car `COMPOSE_COOKIE_SECURE=true` reste volontairement impose en production
+- la validation authentifiee la plus fidele se fait derriere HTTPS ou un reverse proxy TLS, car `COMPOSE_COOKIE_SECURE=true` reste volontairement impose en production
 
 Exemple minimal :
 
@@ -99,8 +99,11 @@ COMPOSE_FRONTEND_BASE_URL=https://support.example.com
 COMPOSE_CORS_ALLOWED_ORIGINS=https://support.example.com
 COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=https://support.example.com
 COMPOSE_REACT_APP_API_URL=https://api.example.com/api
-COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false
-COMPOSE_MAIL_ENABLED=false
+COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true
+COMPOSE_MAIL_ENABLED=true
+COMPOSE_MAIL_HOST=smtp.example.com
+COMPOSE_MAIL_USERNAME=no-reply@example.com
+COMPOSE_MAIL_PASSWORD=CHANGE_ME_SMTP_PASSWORD
 ```
 
 ## 4. Demarrer la stack production

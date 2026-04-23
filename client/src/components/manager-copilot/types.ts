@@ -6,6 +6,16 @@ export type ManagerCopilotConfidence = "high" | "medium" | "low";
 
 export type ManagerCopilotSignalKind = "ticket" | "incident" | "assignment" | "sla";
 
+export interface ManagerCopilotNearestExample {
+  exampleId: string;
+  label: string;
+  title: string;
+  summary: string;
+  recommendation: string;
+  distance?: number;
+  featureSummary: string[];
+}
+
 export interface ManagerCopilotMetric {
   label: string;
   value: string;
@@ -49,6 +59,12 @@ export interface ManagerCopilotSignal {
   serviceName?: string;
   priorityValue?: string;
   statusValue?: string;
+  predictedAction?: string;
+  confidenceScore?: number;
+  inferenceMode?: string;
+  modelVersion?: string;
+  featureSummary?: string[];
+  nearestExamples?: ManagerCopilotNearestExample[];
 }
 
 export interface ManagerCopilotAssignmentSignal extends ManagerCopilotSignal {
@@ -69,6 +85,12 @@ export interface ManagerCopilotSnapshot {
   generatedAt: string;
   summary: string;
   urgentCount: number;
+  modelVersion?: string;
+  inferenceMode?: string;
+  confidenceScore?: number;
+  featureSummary?: string[];
+  reasoningSteps?: string[];
+  recommendedActions?: string[];
   metrics: ManagerCopilotMetric[];
   decisionAreas: ManagerCopilotDecisionArea[];
   whyCards: ManagerCopilotWhyCard[];

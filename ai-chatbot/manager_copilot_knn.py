@@ -145,6 +145,8 @@ def load_seed_examples(dataset_path: Path = DATASET_PATH) -> List[TrainingExampl
 
 
 def _build_preprocessor(examples: List[TrainingExample]) -> Dict[str, Any]:
+    # Numeric and boolean features are standardized so Euclidean distance is not
+    # dominated by a single large-scale variable such as age or SLA minutes.
     numeric_stats: Dict[str, Dict[str, float]] = {}
     for feature in NUMERIC_FEATURES + BOOLEAN_FEATURES:
         values = [_to_float(example.raw_features.get(feature)) for example in examples]
@@ -168,6 +170,9 @@ def _build_preprocessor(examples: List[TrainingExample]) -> Dict[str, Any]:
 
 
 def _encode_features(raw_features: Dict[str, Any], preprocessor: Dict[str, Any]) -> List[float]:
+    # The feature vector is intentionally explicit and explainable:
+    # - standardized numeric/boolean telemetry
+    # - one-hot encoded categorical business states
     vector: List[float] = []
 
     numeric_stats = preprocessor["numeric_stats"]
@@ -244,6 +249,8 @@ def load_or_train_artifact(
 
 
 def _euclidean_distance(left: List[float], right: List[float]) -> float:
+    # Lightweight KNN distance for a defense-ready first version:
+    # same preprocessing + Euclidean distance => readable neighbor search.
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(left, right)))
 
 
@@ -397,11 +404,15 @@ def score_case(
 
     weighted_votes: Dict[str, float] = defaultdict(float)
     for neighbor in nearest_neighbors:
+        # Weighted vote: the closer a neighbor is, the more it influences the
+        # decision. This keeps the output interpretable for managers and jury.
         weight = 1.0 / (neighbor["distance"] + 1e-6)
         weighted_votes[neighbor["label"]] += weight
 
     predicted_action = max(weighted_votes.items(), key=lambda item: item[1])[0]
     total_weight = sum(weighted_votes.values()) or 1.0
+    # Confidence is the share of weighted votes captured by the winning class.
+    # It is deterministic and directly explainable from neighbor distances.
     confidence_score = weighted_votes[predicted_action] / total_weight
 
     return {

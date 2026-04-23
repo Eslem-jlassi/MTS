@@ -2,12 +2,12 @@
 // MTS TELECOM - Manager Dashboard (Enterprise-Grade)
 // ---------------------------------------------------------------------------
 // Widgets : KPI row (SLA compliance, MTTR, backlog, escalations, critiques)
-//           Filtres globaux (période, service, équipe, client)
-//           2 charts cliquables → drill-down vers /tickets?...
-//           Section "Top services à risque"
-//           Performance équipe (bar chart)
+//           Filtres globaux (periode, service, equipe, client)
+//           2 charts cliquables -> drill-down vers /tickets?...
+//           Section "Top services a risque"
+//           Performance equipe (bar chart)
 //           Trend 7j (area chart)
-// DS tokens · Skeleton + Empty state · Code commenté (chart config)
+// DS tokens, skeleton + empty state, code commente (chart config)
 // Billcom Consulting - PFE 2026
 // =============================================================================
 
@@ -125,7 +125,7 @@ const StageChip: React.FC<{
 );
 
 // =============================================================================
-// FILTER BAR — période, service, équipe, client
+// FILTER BAR - periode, service, equipe, client
 // =============================================================================
 
 interface FiltersBarProps {
@@ -143,7 +143,7 @@ interface FiltersBarProps {
   embedded?: boolean;
 }
 
-/** Barre de filtres globaux — appliqués à toute la page */
+/** Barre de filtres globaux - appliques a toute la page */
 const FiltersBar: React.FC<FiltersBarProps> = ({
   period,
   setPeriod,
@@ -159,7 +159,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
   embedded = false,
 }) => {
   const periodOptions: SelectOption[] = [
-    { value: "", label: "Toute période" },
+    { value: "", label: "Toute periode" },
     { value: "DAY", label: "Aujourd'hui" },
     { value: "WEEK", label: "Cette semaine" },
     { value: "MONTH", label: "Ce mois" },
@@ -183,7 +183,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
                 options={periodOptions}
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                placeholder="Période"
+                placeholder="Periode"
               />
             </div>
             {serviceOptions.length > 0 && (
@@ -199,7 +199,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
             {teamOptions.length > 0 && (
               <div className="w-40">
                 <Select
-                  options={[{ value: "", label: "Toute l'équipe" }, ...teamOptions]}
+                  options={[{ value: "", label: "Toute l'equipe" }, ...teamOptions]}
                   value={teamId}
                   onChange={(e) => setTeamId(e.target.value)}
                   placeholder="Agent"
@@ -239,7 +239,7 @@ const KpiCard: React.FC<{
 }> = ({ icon, iconBg, label, value, suffix, alert, to }) => {
   const inner = (
     <Card
-      className={`h-full min-h-[6.9rem] overflow-hidden border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
+      className={`h-full min-h-[6.9rem] overflow-hidden border border-ds-border/80 bg-ds-card group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
       ${alert ? "ring-1 ring-error/30" : ""} ${to ? "cursor-pointer" : ""}
     `}
     >
@@ -275,7 +275,7 @@ const KpiRow: React.FC<{ kpis: ManagerKpis }> = ({ kpis }) => (
       <KpiCard
         icon={<ShieldCheck size={22} className="text-success-600 dark:text-success-400" />}
         iconBg="bg-success-50 dark:bg-success-900/30"
-        label="Conformité SLA"
+        label="Conformite SLA"
         value={formatPercent(kpis.slaCompliance)}
         alert={kpis.slaCompliance < 80}
       />
@@ -321,12 +321,12 @@ const KpiRow: React.FC<{ kpis: ManagerKpis }> = ({ kpis }) => (
 );
 
 // =============================================================================
-// CLICKABLE CHARTS — drill-down vers /tickets?status=XXX ou ?priority=XXX
+// CLICKABLE CHARTS - drill-down vers /tickets?status=XXX ou ?priority=XXX
 // =============================================================================
 
 /**
- * Tooltip personnalisé pour Recharts — style DS.
- * Utilisé dans tous les charts du Manager dashboard.
+ * Tooltip personnalise pour Recharts - style DS.
+ * Utilise dans tous les charts du Manager dashboard.
  */
 const ChartTooltipStyle = {
   backgroundColor: "var(--ds-card, #fff)",
@@ -336,19 +336,19 @@ const ChartTooltipStyle = {
   boxShadow: designTokens.shadows.md,
 };
 
-/** Chart statut — clic → /tickets?status=KEY */
+/** Chart statut - clic -> /tickets?status=KEY */
 const StatusChart: React.FC<{
   data: ManagerDashboardData["statusChartData"];
   navigate: ReturnType<typeof useNavigate>;
 }> = ({ data, navigate }) => {
-  if (data.length === 0) return <ChartEmpty label="Aucune donnée statut" />;
+  if (data.length === 0) return <ChartEmpty label="Aucune donnee statut" />;
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
-        {/* ---------- BAR CHART : répartition par statut ----------
-             – Chaque barre = un statut (Nouveau, En cours, Escaladé…)
-             – Couleur = StatusColors du DS
-             – onClick → navigation drill-down vers /tickets?status=KEY
+        {/* ---------- BAR CHART : repartition par statut ----------
+             - Chaque barre = un statut (Nouveau, En cours, Escalade...)
+             - Couleur = StatusColors du DS
+             - onClick -> navigation drill-down vers /tickets?status=KEY
         */}
         <BarChart
           data={data}
@@ -371,7 +371,7 @@ const StatusChart: React.FC<{
             radius={[6, 6, 0, 0]}
             cursor="pointer"
             onClick={(_data: unknown, _index: number, _event: React.MouseEvent) => {
-              // Drill-down : retrouver la clé de statut originale
+              // Drill-down : retrouver la cle de statut originale
               // _data contient { name, value, color, ... }
               const d = _data as { name?: string };
               const key = statusNameToKey(d.name ?? "");
@@ -388,19 +388,19 @@ const StatusChart: React.FC<{
   );
 };
 
-/** Chart priorité — clic → /tickets?priority=KEY */
+/** Chart priorite - clic -> /tickets?priority=KEY */
 const PriorityChart: React.FC<{
   data: ManagerDashboardData["priorityChartData"];
   navigate: ReturnType<typeof useNavigate>;
 }> = ({ data, navigate }) => {
-  if (data.length === 0) return <ChartEmpty label="Aucune donnée priorité" />;
+  if (data.length === 0) return <ChartEmpty label="Aucune donnee priorite" />;
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
-        {/* ---------- PIE CHART : répartition par priorité ----------
-             – 4 slices : Critique / Haute / Moyenne / Basse
-             – Couleur = PriorityColors du DS
-             – onClick → navigation drill-down vers /tickets?priority=KEY
+        {/* ---------- PIE CHART : repartition par priorite ----------
+             - 4 slices : Critique / Haute / Moyenne / Basse
+             - Couleur = PriorityColors du DS
+             - onClick -> navigation drill-down vers /tickets?priority=KEY
         */}
         <PieChart>
           <Pie
@@ -433,18 +433,18 @@ const PriorityChart: React.FC<{
   );
 };
 
-/** Chart performance équipe (bar horizontal) */
+/** Chart performance equipe (bar horizontal) */
 const TeamPerformanceChart: React.FC<{ data: ManagerDashboardData["agentPerformance"] }> = ({
   data,
 }) => {
-  if (data.length === 0) return <ChartEmpty label="Aucune donnée de performance" />;
+  if (data.length === 0) return <ChartEmpty label="Aucune donnee de performance" />;
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         {/* ---------- STACKED BAR : performance agents ----------
-             – Axe X = agent name
-             – Barres empilées : résolus (vert) / assignés total (bleu)
-             – Permet de comparer la charge et la vélocité par agent
+             - Axe X = agent name
+             - Barres empilees : resolus (vert) / assignes total (bleu)
+             - Permet de comparer la charge et la velocite par agent
         */}
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 24 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-border, #e2e8f0)" />
@@ -460,13 +460,13 @@ const TeamPerformanceChart: React.FC<{ data: ManagerDashboardData["agentPerforma
           <Legend wrapperStyle={{ fontSize: "12px" }} />
           <Bar
             dataKey="resolved"
-            name="Résolus"
+            name="Resolus"
             fill={designTokens.colors.success}
             radius={[4, 4, 0, 0]}
           />
           <Bar
             dataKey="assigned"
-            name="Assignés"
+            name="Assignes"
             fill={designTokens.colors.info}
             radius={[4, 4, 0, 0]}
           />
@@ -483,8 +483,8 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         {/* ---------- AREA CHART : tendances 7 jours ----------
-             – 2 courbes : tickets créés (orange) vs résolus (vert)
-             – Permet de voir l'évolution du flux entrant/sortant
+             - 2 courbes : tickets crees (orange) vs resolus (vert)
+             - Permet de voir l'evolution du flux entrant/sortant
         */}
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
           <defs>
@@ -515,7 +515,7 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
           <Area
             type="monotone"
             dataKey="created"
-            name="Créés"
+            name="Crees"
             stroke={designTokens.colors.warning}
             strokeWidth={2}
             fill="url(#gradCreated)"
@@ -523,7 +523,7 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
           <Area
             type="monotone"
             dataKey="resolved"
-            name="Résolus"
+            name="Resolus"
             stroke={designTokens.colors.success}
             strokeWidth={2}
             fill="url(#gradResolved)"
@@ -550,8 +550,8 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
     return (
       <EmptyState
         icon={<Wifi size={40} />}
-        title="Aucun service à risque"
-        description="Tous les services fonctionnent dans les paramètres SLA."
+        title="Aucun service a risque"
+        description="Tous les services fonctionnent dans les parametres SLA."
       />
     );
   }
@@ -565,16 +565,16 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
               Service
             </th>
             <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
-              Catégorie
+              Categorie
             </th>
             <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
-              État
+              Etat
             </th>
             <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
               Tickets
             </th>
             <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
-              SLA dépassé
+              SLA depasse
             </th>
             <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
               Taux SLA
@@ -643,19 +643,19 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
 };
 
 // =============================================================================
-// UTILITY: reverse label → enum key for drill-down
+// UTILITY: reverse label -> enum key for drill-down
 // =============================================================================
 
 const STATUS_LABEL_TO_KEY: Record<string, string> = {
   Nouveau: "NEW",
-  Assigné: "ASSIGNED",
+  Assigne: "ASSIGNED",
   "En cours": "IN_PROGRESS",
   "En attente": "PENDING",
   "Att. tiers": "PENDING_THIRD_PARTY",
-  Escaladé: "ESCALATED",
-  Résolu: "RESOLVED",
-  Fermé: "CLOSED",
-  Annulé: "CANCELLED",
+  Escalade: "ESCALATED",
+  Resolu: "RESOLVED",
+  Ferme: "CLOSED",
+  Annule: "CANCELLED",
 };
 const PRIORITY_LABEL_TO_KEY: Record<string, string> = {
   Critique: "CRITICAL",
@@ -751,9 +751,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
       initial="hidden"
       animate="show"
     >
-      {/* ─── Header + refresh ────────────────────────────────────────── */}
+      {/* --- Header + refresh ------------------------------------------- */}
       <motion.section variants={fadeUp}>
-        <Card className="overflow-hidden rounded-[1.75rem] border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface shadow-card">
+        <Card className="overflow-hidden rounded-[1.75rem] border border-ds-border/80 bg-ds-card shadow-card">
           <div className="space-y-5 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4 xl:items-end">
               <div className="max-w-3xl">
@@ -773,14 +773,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   />
                 </div>
                 <p className="mt-2 text-sm leading-6 text-ds-muted">
-                  Vue consolidée des KPI, des engagements SLA et de la performance équipe.
+                  Vue consolidee des KPI, des engagements SLA et de la performance equipe.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {lastUpdated && (
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-3 py-1.5 text-xs font-medium text-ds-secondary">
                     <CalendarClock size={13} />
-                    Mise à jour {formatTime(lastUpdated)}
+                    Mise a jour {formatTime(lastUpdated)}
                   </span>
                 )}
                 <Button
@@ -803,7 +803,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               </div>
             </div>
 
-            {/* ─── Filtres globaux ─────────────────────────────────────────── */}
+            {/* --- Filtres globaux -------------------------------------- */}
             {(showFilters || selectedFilterCount > 0) && (
               <FiltersBar
                 period={period}
@@ -832,12 +832,12 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </Card>
       </motion.section>
 
-      {/* ─── KPI row (5 cards) ───────────────────────────────────────── */}
+      {/* --- KPI row (5 cards) ----------------------------------------- */}
       <section className="space-y-4">
         <SectionLead
           eyebrow="Etat global"
           title="KPI manager"
-          description="Première lecture de situation : engagement SLA, rythme de résolution, backlog et urgences."
+          description="Premiere lecture de situation : engagement SLA, rythme de resolution, backlog et urgences."
           icon={<ShieldCheck size={20} />}
         />
         <KpiRow kpis={data.kpis} />
@@ -851,13 +851,13 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           icon={<TrendingUp size={20} />}
         />
 
-        {/* ─── Charts row: Statut + Priorité (clickable → drill-down) ── */}
+        {/* --- Charts row: Statut + Priorite (clickable -> drill-down) --- */}
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
               <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                  Répartition par statut
+                  Repartition par statut
                 </h3>
                 <span className="text-[10px] text-ds-muted font-medium uppercase">
                   Cliquer pour drill-down
@@ -872,7 +872,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
             <Card padding="none" className="overflow-hidden">
               <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                  Répartition par priorité
+                  Repartition par priorite
                 </h3>
                 <span className="text-[10px] text-ds-muted font-medium uppercase">
                   Cliquer pour drill-down
@@ -885,13 +885,13 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </motion.div>
         </div>
 
-        {/* ─── Top services à risque ───────────────────────────────────── */}
+        {/* --- Top services a risque ------------------------------------ */}
         <motion.div variants={fadeUp}>
           <Card padding="none" className="overflow-hidden">
             <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
               <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                 <AlertTriangle size={18} className="text-warning-500" />
-                Top services à risque
+                Top services a risque
               </h3>
               <Link
                 to="/services"
@@ -904,14 +904,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </Card>
         </motion.div>
 
-        {/* ─── Charts row: Performance équipe + Tendances 7j ───────────── */}
+        {/* --- Charts row: Performance equipe + Tendances 7j ------------ */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
               <div className="border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                   <Users size={18} className="text-primary-500" />
-                  Performance équipe
+                  Performance equipe
                 </h3>
               </div>
               <div className="p-4">

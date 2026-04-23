@@ -38,14 +38,14 @@ describe("EmailVerificationPage", () => {
   it("shows account-created pending message after signup", () => {
     renderPage("/verify-email?email=client%40test.tn&status=pending&source=signup");
 
-    expect(screen.getByText("Compte créé, vérifiez votre boîte mail")).toBeInTheDocument();
-    expect(screen.getByText(/Votre compte a bien été créé/i)).toBeInTheDocument();
+    expect(screen.getByText("Compte cree, verifiez votre boite mail")).toBeInTheDocument();
+    expect(screen.getByText(/Votre compte a bien ete cree/i)).toBeInTheDocument();
   });
 
   it("shows the pending verification state when an email is provided", () => {
     renderPage("/verify-email?email=client%40test.tn&status=pending");
 
-    expect(screen.getByText("Vérification en attente")).toBeInTheDocument();
+    expect(screen.getByText("Verification en attente")).toBeInTheDocument();
     expect(screen.getByText(/client@test.tn/)).toBeInTheDocument();
     expect(screen.getByText(/Renvoyer l'email de verification/i)).toBeInTheDocument();
   });
@@ -54,7 +54,7 @@ describe("EmailVerificationPage", () => {
     renderPage("/verify-email");
 
     expect(screen.getByText("Lien invalide")).toBeInTheDocument();
-    expect(screen.getByText(/Ce lien de vérification n'est pas valide/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ce lien de verification n'est pas valide/i)).toBeInTheDocument();
   });
 
   it("shows an expired state with resend action when the token has expired", async () => {
@@ -64,7 +64,7 @@ describe("EmailVerificationPage", () => {
 
     renderPage("/verify-email?token=expired-token&email=client%40test.tn");
 
-    expect(await screen.findByText("Lien expiré")).toBeInTheDocument();
+    expect(await screen.findByText("Lien expire")).toBeInTheDocument();
     expect(screen.getByText(/client@test.tn/)).toBeInTheDocument();
     expect(screen.getByText(/Renvoyer l'email de verification/i)).toBeInTheDocument();
   });

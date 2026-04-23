@@ -39,8 +39,18 @@ logs/
 startup-check*.log
 chatbot-startup.log
 startup_ai_chatbot.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.stackdump
 
 # Uploads / generated files
+server/uploads/avatars/*
+!server/uploads/avatars/.gitkeep
+server/uploads/tickets/*
+!server/uploads/tickets/.gitkeep
 server/uploads/reports/*
 !server/uploads/reports/.gitkeep
 
@@ -51,8 +61,11 @@ sprint4_p0_*
 docker_info_check.txt
 manual_*.json
 manual_*.txt
+screenshots/
+artifacts/
 
 # IDE / OS
+.sixth/
 .vscode/
 .idea/
 .DS_Store

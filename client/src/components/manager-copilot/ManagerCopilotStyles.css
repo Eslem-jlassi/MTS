@@ -3251,3 +3251,130 @@
     linear-gradient(180deg, rgb(var(--ds-card)), rgb(var(--ds-surface)));
   box-shadow: var(--ds-shadow-card);
 }
+
+.manager-copilot-knn-trace,
+.manager-copilot-cockpit-knn-strip,
+.manager-copilot-cockpit-focus-knn {
+  border: 1px solid rgb(var(--color-ai) / 0.18);
+  border-radius: 0.95rem;
+  background:
+    linear-gradient(180deg, rgb(var(--color-ai) / 0.08), rgb(var(--ds-surface)));
+  padding: 0.7rem 0.78rem;
+}
+
+.manager-copilot-knn-trace {
+  margin-top: 0.68rem;
+  display: grid;
+  gap: 0.58rem;
+}
+
+.manager-copilot-knn-trace-compact {
+  padding: 0.62rem 0.7rem;
+}
+
+.manager-copilot-knn-topline,
+.manager-copilot-cockpit-focus-knn-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.manager-copilot-knn-metrics,
+.manager-copilot-cockpit-focus-knn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.manager-copilot-knn-metric,
+.manager-copilot-cockpit-knn-metric,
+.manager-copilot-cockpit-focus-knn-grid > div {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.manager-copilot-knn-label,
+.manager-copilot-cockpit-focus-knn-label,
+.manager-copilot-cockpit-knn-metric span {
+  color: rgb(var(--ds-muted));
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.manager-copilot-knn-value,
+.manager-copilot-cockpit-focus-knn-value,
+.manager-copilot-cockpit-knn-metric strong {
+  color: rgb(var(--ds-primary));
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.manager-copilot-knn-model {
+  color: rgb(var(--color-ai-hover));
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.manager-copilot-knn-summary,
+.manager-copilot-cockpit-knn-summary,
+.manager-copilot-cockpit-focus-knn-neighbors {
+  margin: 0;
+  color: rgb(var(--ds-secondary));
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.manager-copilot-knn-neighbors {
+  display: grid;
+  gap: 0.42rem;
+}
+
+.manager-copilot-knn-neighbor-list {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.manager-copilot-knn-neighbor {
+  border: 1px solid rgb(var(--ds-border));
+  border-radius: 0.78rem;
+  background: rgb(var(--ds-card));
+  padding: 0.5rem 0.58rem;
+  display: grid;
+  gap: 0.18rem;
+}
+
+.manager-copilot-knn-neighbor-title {
+  color: rgb(var(--ds-primary));
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.manager-copilot-knn-neighbor-meta {
+  color: rgb(var(--ds-muted));
+  font-size: 0.68rem;
+  line-height: 1.45;
+}
+
+.manager-copilot-cockpit-knn-strip {
+  display: grid;
+  gap: 0.58rem;
+}
+
+.manager-copilot-cockpit-focus-knn {
+  margin-top: 0.5rem;
+  display: grid;
+  gap: 0.52rem;
+}
+
+@media (max-width: 640px) {
+  .manager-copilot-knn-metrics,
+  .manager-copilot-cockpit-focus-knn-grid {
+    grid-template-columns: 1fr;
+  }
+}

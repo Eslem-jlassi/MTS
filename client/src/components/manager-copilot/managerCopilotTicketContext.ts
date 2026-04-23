@@ -16,6 +16,7 @@ import type { ManagerCopilotIncidentPrefillState } from "./managerCopilotActions
 import type {
   ManagerCopilotAssignmentSignal,
   ManagerCopilotConfidence,
+  ManagerCopilotNearestExample,
   ManagerCopilotSignal,
   ManagerCopilotSnapshot,
   ManagerCopilotTone,
@@ -62,6 +63,14 @@ export interface ManagerCopilotTicketFact {
   tone?: ManagerCopilotTone;
 }
 
+export interface ManagerCopilotTicketKnnTrace {
+  predictedAction: string;
+  confidenceScore?: number;
+  inferenceMode?: string;
+  featureSummary: string[];
+  nearestExamples: ManagerCopilotNearestExample[];
+}
+
 export interface ManagerCopilotTicketContext {
   scenario: ManagerCopilotTicketScenario;
   tone: ManagerCopilotTone;
@@ -75,6 +84,7 @@ export interface ManagerCopilotTicketContext {
   facts: ManagerCopilotTicketFact[];
   primaryAction: ManagerCopilotTicketAction;
   secondaryActions: ManagerCopilotTicketAction[];
+  knnTrace?: ManagerCopilotTicketKnnTrace;
   recommendedAgentId?: number;
   recommendedAgentName?: string;
   serviceId?: number;
@@ -106,6 +116,7 @@ export function buildManagerCopilotTicketContext({
   canAssign = false,
   isAssignmentLocked = false,
 }: ManagerCopilotTicketContextInput): ManagerCopilotTicketContext | null {
+  const prioritySignal = findMatchingSignal(snapshot?.priorityTickets ?? [], ticket);
   const incidentSignal = findMatchingSignal(snapshot?.probableIncidents ?? [], ticket);
   const slaSignal = findMatchingSignal(snapshot?.slaAlerts ?? [], ticket);
   const assignmentSignal = findMatchingSignal(snapshot?.assignments ?? [], ticket) as
@@ -167,6 +178,10 @@ export function buildManagerCopilotTicketContext({
     similarCount,
     hasAssignmentRecommendation,
   });
+  const incidentKnnTrace = buildTicketKnnTrace(incidentSignal ?? prioritySignal);
+  const slaKnnTrace = buildTicketKnnTrace(slaSignal ?? prioritySignal);
+  const assignmentKnnTrace = buildTicketKnnTrace(assignmentSignal ?? prioritySignal);
+  const priorityKnnTrace = buildTicketKnnTrace(prioritySignal ?? incidentSignal ?? slaSignal);
 
   if (incidentProbable || serviceDegraded) {
     const tone: ManagerCopilotTone =
@@ -227,6 +242,7 @@ export function buildManagerCopilotTicketContext({
         relatedIncident,
         similarCount,
       }),
+      knnTrace: incidentKnnTrace,
       primaryAction: activeRelatedIncident
         ? buildAction(
             "open-incidents",
@@ -329,6 +345,7 @@ export function buildManagerCopilotTicketContext({
         relatedIncident,
         similarCount,
       }),
+      knnTrace: slaKnnTrace,
       primaryAction: buildAction(
         "open-sla",
         "Ouvrir l'onglet SLA",
@@ -425,6 +442,7 @@ export function buildManagerCopilotTicketContext({
         relatedIncident,
         similarCount,
       }),
+      knnTrace: assignmentKnnTrace,
       primaryAction: canApplyRecommendation
         ? buildAction(
             "assign-recommended",
@@ -516,6 +534,7 @@ export function buildManagerCopilotTicketContext({
       relatedIncident,
       similarCount,
     }),
+    knnTrace: priorityKnnTrace,
     primaryAction: fallbackPrimaryAction,
     secondaryActions: limitActions([
       buildAction(
@@ -570,6 +589,26 @@ function findMatchingSignal<T extends DisplaySignal>(signals: T[], ticket: Ticke
       signal.serviceId === ticket.serviceId
     );
   });
+}
+
+function buildTicketKnnTrace(signal?: DisplaySignal): ManagerCopilotTicketKnnTrace | undefined {
+  if (
+    !signal?.predictedAction &&
+    typeof signal?.confidenceScore !== "number" &&
+    !signal?.inferenceMode &&
+    (!signal?.nearestExamples || signal.nearestExamples.length === 0) &&
+    (!signal?.featureSummary || signal.featureSummary.length === 0)
+  ) {
+    return undefined;
+  }
+
+  return {
+    predictedAction: signal.predictedAction || "MONITOR",
+    confidenceScore: signal.confidenceScore,
+    inferenceMode: signal.inferenceMode,
+    featureSummary: signal.featureSummary ?? [],
+    nearestExamples: signal.nearestExamples ?? [],
+  };
 }
 
 function pickRelatedIncident(incidents: Incident[], ticket: Ticket): Incident | undefined {
