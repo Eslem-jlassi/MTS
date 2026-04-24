@@ -49,4 +49,24 @@ describe("chatbotConversation", () => {
 
     expect(message).toContain("Telecom AI Assistant");
   });
+
+  it("does not inject technical unavailable backend hint inside low-confidence narrative", () => {
+    const message = buildLowConfidenceMessage({
+      backendAnswer: "Le chatbot IA est indisponible pour le moment.",
+      language: "fr",
+    });
+
+    expect(message).not.toContain("Retour IA");
+    expect(message).toContain("confiance");
+  });
+
+  it("does not inject generic partial fallback text in low-confidence narrative", () => {
+    const message = buildLowConfidenceMessage({
+      backendAnswer: "Analyse partielle disponible. Consultez les blocs detailes.",
+      language: "en",
+    });
+
+    expect(message).not.toContain("AI feedback");
+    expect(message).not.toContain("Analyse partielle disponible");
+  });
 });

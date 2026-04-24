@@ -1,6 +1,7 @@
 package com.billcom.mts.controller;
 
 import com.billcom.mts.dto.auth.RegisterRequest;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.dto.user.AdminPasswordSetRequest;
 import com.billcom.mts.dto.user.AdminUserCreateRequest;
 import com.billcom.mts.dto.user.ChangePasswordRequest;
@@ -14,6 +15,7 @@ import com.billcom.mts.exception.BadRequestException;
 import com.billcom.mts.exception.UnauthorizedException;
 import com.billcom.mts.service.AuditLogService;
 import com.billcom.mts.service.AuthService;
+import com.billcom.mts.service.SensitiveActionVerificationService;
 import com.billcom.mts.service.UserService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,6 +62,7 @@ public class UserController {
     private final AuthService authService;
     private final UserService userService;
     private final AuditLogService auditLogService;
+    private final SensitiveActionVerificationService sensitiveActionVerificationService;
     private final ObjectMapper objectMapper;
 
     @GetMapping
@@ -211,6 +214,7 @@ public class UserController {
     public ResponseEntity<Map<String, String>> hardDeleteUser(
             @PathVariable Long id,
             @AuthenticationPrincipal User admin,
+            @Valid @RequestBody AdminHardDeleteRequest deleteRequest,
             HttpServletRequest httpRequest) {
         if (admin != null && admin.getId() != null && admin.getId().equals(id)) {
             throw new BadRequestException("Vous ne pouvez pas supprimer definitivement votre propre compte");
@@ -223,6 +227,19 @@ public class UserController {
             );
         }
 
+        String expectedHardDeleteIdentifier = buildUserHardDeleteIdentifier(targetUser);
+
+        sensitiveActionVerificationService.verifyHardDeleteAuthorization(
+                admin,
+            expectedHardDeleteIdentifier,
+                deleteRequest,
+            "la suppression definitive du compte interne ID "
+                + expectedHardDeleteIdentifier
+                + " ("
+                + targetUser.getEmail()
+                + ")"
+        );
+
         String oldValue = String.format(
                 "email=%s, role=%s, active=%s",
                 targetUser.getEmail(),
@@ -230,7 +247,7 @@ public class UserController {
                 targetUser.getIsActive()
         );
 
-        userService.hardDeleteUserByAdmin(id);
+        userService.hardDeleteUserByAdmin(id, admin);
 
         auditLogService.log(
                 AuditAction.USER_DELETED,
@@ -245,6 +262,50 @@ public class UserController {
         );
 
         return ResponseEntity.ok(Map.of("message", "Utilisateur supprime definitivement"));
+    }
+
+    @PostMapping("/{id}/hard-delete/challenge")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Envoie un code de verification email pour confirmer une suppression definitive d'utilisateur")
+    public ResponseEntity<Map<String, String>> issueHardDeleteChallenge(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User admin,
+            HttpServletRequest httpRequest) {
+        if (admin != null && admin.getId() != null && admin.getId().equals(id)) {
+            throw new BadRequestException("Vous ne pouvez pas supprimer definitivement votre propre compte");
+        }
+
+        User targetUser = userService.getUserEntityById(id);
+        if (targetUser.getClientProfile() != null) {
+            throw new BadRequestException(
+                    "Utilisez la suppression client dediee depuis le module Clients"
+            );
+        }
+
+        sensitiveActionVerificationService.issueHardDeleteVerificationCode(
+                admin,
+            "la suppression definitive du compte interne ID "
+                + buildUserHardDeleteIdentifier(targetUser)
+                + " ("
+                + targetUser.getEmail()
+                + ")"
+        );
+
+        auditLogService.log(
+                AuditAction.USER_UPDATED,
+                "User",
+                id,
+                targetUser.getFullName(),
+                "Challenge de verification emis avant suppression definitive du compte " + targetUser.getEmail(),
+                admin,
+                httpRequest
+        );
+
+        return ResponseEntity.ok(Map.of("message", "Code de verification envoye"));
+    }
+
+    private String buildUserHardDeleteIdentifier(User user) {
+        return String.valueOf(user.getId());
     }
 
     @PutMapping("/{id}/password")

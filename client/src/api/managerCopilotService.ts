@@ -3,11 +3,14 @@ import type { DashboardFilters } from "./dashboardService";
 import type {
   ManagerCopilotAssignmentSignal,
   ManagerCopilotConfidence,
+  ManagerCopilotDecisionArea,
   ManagerCopilotMetric,
+  ManagerCopilotNearestExample,
   ManagerCopilotQuickAction,
   ManagerCopilotSignal,
   ManagerCopilotSnapshot,
   ManagerCopilotTone,
+  ManagerCopilotWhyCard,
 } from "../components/manager-copilot/types";
 import {
   buildDecisionAreas,
@@ -31,6 +34,20 @@ interface ManagerCopilotDashboardApiResponse {
   summary?: string;
   executiveSummary?: string;
   executive_summary?: string;
+  modelVersion?: string;
+  model_version?: string;
+  inferenceMode?: string;
+  inference_mode?: string;
+  confidenceScore?: number;
+  confidence_score?: number;
+  featureSummary?: unknown[];
+  feature_summary?: unknown[];
+  reasoningSteps?: unknown[];
+  reasoning_steps?: unknown[];
+  decisionAreas?: unknown[];
+  decision_areas?: unknown[];
+  whyCards?: unknown[];
+  why_cards?: unknown[];
   metrics?: unknown[];
   priorityTickets?: unknown[];
   ticketSuggestions?: unknown[];
@@ -66,7 +83,7 @@ export const managerCopilotService = {
   },
 };
 
-function normalizeDashboardSnapshot(
+export function normalizeDashboardSnapshot(
   payload: ManagerCopilotDashboardApiResponse,
 ): ManagerCopilotSnapshot {
   const priorityTickets = normalizeSignals(
@@ -91,6 +108,10 @@ function normalizeDashboardSnapshot(
     assignments,
     slaAlerts,
   );
+  const decisionAreas = normalizeDecisionAreas(
+    pickArray(payload.decisionAreas, payload.decision_areas),
+  );
+  const whyCards = normalizeWhyCards(pickArray(payload.whyCards, payload.why_cards));
   const summary =
     pickText(payload.summary, payload.executiveSummary, payload.executive_summary) ??
     DEFAULT_SUMMARY;
@@ -103,20 +124,32 @@ function normalizeDashboardSnapshot(
     generatedAt: pickText(payload.generatedAt, payload.generated_at) ?? new Date().toISOString(),
     summary,
     urgentCount: countUrgentSignals(priorityTickets, probableIncidents, assignments, slaAlerts),
+    modelVersion: pickText(payload.modelVersion, payload.model_version),
+    inferenceMode: pickText(payload.inferenceMode, payload.inference_mode),
+    confidenceScore: toNumber(payload.confidenceScore ?? payload.confidence_score) ?? undefined,
+    featureSummary: normalizeStringList(payload.featureSummary, payload.feature_summary),
+    reasoningSteps: normalizeStringList(payload.reasoningSteps, payload.reasoning_steps),
+    recommendedActions: normalizeStringList(payload.recommendedActions, payload.recommended_actions),
     metrics,
-    decisionAreas: buildDecisionAreas({
-      summary,
-      priorityTickets,
-      probableIncidents,
-      assignments,
-      slaAlerts,
-    }),
-    whyCards: buildWhyCards({
-      priorityTickets,
-      probableIncidents,
-      assignments,
-      slaAlerts,
-    }),
+    decisionAreas:
+      decisionAreas.length > 0
+        ? decisionAreas
+        : buildDecisionAreas({
+            summary,
+            priorityTickets,
+            probableIncidents,
+            assignments,
+            slaAlerts,
+          }),
+    whyCards:
+      whyCards.length > 0
+        ? whyCards
+        : buildWhyCards({
+            priorityTickets,
+            probableIncidents,
+            assignments,
+            slaAlerts,
+          }),
     priorityTickets,
     probableIncidents,
     assignments,
@@ -295,7 +328,90 @@ function normalizeSignal(
     serviceName: pickText(item.serviceName, item.service),
     priorityValue: pickText(item.priority, item.priorityValue, item.priority_value),
     statusValue: pickText(item.status, item.statusLabel, item.status_label),
+    predictedAction: pickText(item.predictedAction, item.predicted_action),
+    confidenceScore:
+      toNumber(item.confidenceScore ?? item.confidence_score ?? item.score) ?? undefined,
+    inferenceMode: pickText(item.inferenceMode, item.inference_mode),
+    modelVersion: pickText(item.modelVersion, item.model_version),
+    featureSummary: normalizeStringList(item.featureSummary, item.feature_summary),
+    nearestExamples: normalizeNearestExamples(item.nearestExamples, item.nearest_examples),
   };
+}
+
+function normalizeDecisionAreas(source: unknown): ManagerCopilotDecisionArea[] {
+  return normalizeList(source, (item, index) => {
+    if (!isRecord(item)) {
+      return null;
+    }
+
+    const title = pickText(item.title, item.label);
+    const headline = pickText(item.headline, item.summary);
+    const description = pickText(item.description, item.whyMatters, item.why_matters);
+    if (!title || !headline || !description) {
+      return null;
+    }
+
+    return {
+      id: pickText(item.id) ?? `decision-area-${index}`,
+      title,
+      headline,
+      description,
+      tone: inferTone(pickText(item.tone, item.severity, item.priority)),
+      confidence: inferConfidence(item.confidenceScore ?? item.confidence_score, pickText(item.confidence)),
+    };
+  });
+}
+
+function normalizeWhyCards(source: unknown): ManagerCopilotWhyCard[] {
+  return normalizeList(source, (item, index) => {
+    if (!isRecord(item)) {
+      return null;
+    }
+
+    const title = pickText(item.title, item.label);
+    const description = pickText(item.description, item.summary);
+    if (!title || !description) {
+      return null;
+    }
+
+    return {
+      id: pickText(item.id) ?? `why-card-${index}`,
+      title,
+      description,
+      tone: inferTone(pickText(item.tone, item.severity, item.priority)),
+    };
+  });
+}
+
+function normalizeNearestExamples(...candidates: unknown[]): ManagerCopilotNearestExample[] {
+  for (const candidate of candidates) {
+    const normalized = normalizeList(candidate, (item, index) => {
+      if (!isRecord(item)) {
+        return null;
+      }
+
+      const title = pickText(item.title);
+      if (!title) {
+        return null;
+      }
+
+      return {
+        exampleId: pickText(item.exampleId, item.example_id) ?? `example-${index}`,
+        label: pickText(item.label) ?? "MONITOR",
+        title,
+        summary: pickText(item.summary) ?? "",
+        recommendation: pickText(item.recommendation) ?? "",
+        distance: toNumber(item.distance) ?? undefined,
+        featureSummary: normalizeStringList(item.featureSummary, item.feature_summary),
+      };
+    });
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+
+  return [];
 }
 
 function buildHref(item: Record<string, unknown>, defaultKind: ManagerCopilotItemKind): string {
@@ -432,6 +548,24 @@ function inferWhyMatters(kind: ManagerCopilotItemKind, item: Record<string, unkn
 
 function countUrgentSignals(...groups: Array<Array<{ tone: ManagerCopilotTone }>>): number {
   return groups.flat().filter((item) => item.tone === "critical").length;
+}
+
+function normalizeStringList(...candidates: unknown[]): string[] {
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) {
+      continue;
+    }
+
+    const normalized = candidate
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter(Boolean);
+
+    if (normalized.length > 0) {
+      return normalized;
+    }
+  }
+
+  return [];
 }
 
 function normalizeList<T>(

@@ -11,16 +11,16 @@ describe("chatbotTicketDraft", () => {
     const draft = buildDraftFromAssistantMessage({
       id: "assistant-1",
       role: "assistant",
-      content: "Resume : Diagnostic incident BSCS.",
+      content: "Résumé : Diagnostic incident BSCS.",
       timestamp: new Date().toISOString(),
       serviceDetected: "BSCS Billing System",
       analysis: {
         summary: "Diagnostic incident BSCS.",
         probableCause: "Parseur mediation bloque",
         impact: "200 clients impactes.",
-        nextAction: "Verifier les incidents similaires.",
+        nextAction: "Vérifier les incidents similaires.",
         clarificationNeeded: true,
-        missingInformation: ["heure de debut"],
+        missingInformation: ["heure de début"],
         draftTicketTitle: "Blocage du rating BSCS",
       },
       results: [
@@ -40,13 +40,13 @@ describe("chatbotTicketDraft", () => {
     expect(draft.summary).toContain("Diagnostic incident BSCS");
     expect(draft.probableCause).toBe("Parseur mediation bloque");
     expect(draft.impact).toBe("200 clients impactes.");
-    expect(draft.missingInformation).toContain("heure de debut");
+    expect(draft.missingInformation).toContain("heure de début");
   });
 
   it("detects safe draft intent from chatbot action text", () => {
-    expect(isCreateTicketIntent("Preparer un brouillon de ticket")).toBe(true);
-    expect(isCreateTicketIntent("Prepare un brouillon de ticket pour ce service.")).toBe(true);
-    expect(isCreateTicketIntent("Verifier le SLA")).toBe(false);
+    expect(isCreateTicketIntent("Préparer un brouillon de ticket")).toBe(true);
+    expect(isCreateTicketIntent("Prépare un brouillon de ticket pour ce service.")).toBe(true);
+    expect(isCreateTicketIntent("Vérifier le SLA")).toBe(false);
   });
 
   it("maps confidence to safe ticket priority", () => {
@@ -72,7 +72,7 @@ describe("chatbotTicketDraft", () => {
         clusterEnd: "2026-03-18T11:00:00",
         ticketIds: ["1", "2", "3", "4", "5", "6", "7"],
         detectionReason: "7 tickets similaires detectes",
-        recommendation: "Preparer un ticket global",
+        recommendation: "Préparer un ticket global",
       },
     });
 

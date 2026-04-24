@@ -11,6 +11,7 @@ if not exist "%SERVER_DIR%\pom.xml" (
 
 if not defined DB_URL set "DB_URL=jdbc:mysql://localhost:3306/mts_telecom_db"
 if not defined DB_USERNAME set "DB_USERNAME=mts_user"
+rem DEMO ONLY: fallback password for local dev convenience, never reuse in production.
 if not defined DB_PASSWORD set "DB_PASSWORD=mts_password"
 if not defined COOKIE_SECURE set "COOKIE_SECURE=false"
 if not defined CORS_ALLOWED_ORIGINS set "CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000"

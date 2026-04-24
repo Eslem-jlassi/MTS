@@ -44,6 +44,7 @@ public class SecurityConfig {
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/google",
+            "/api/auth/google/config",
             "/api/auth/refresh",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
@@ -54,6 +55,7 @@ public class SecurityConfig {
             "/swagger-ui.html",
             "/v3/api-docs/**",
             "/actuator/health",
+            "/api/system/health",
             "/ws/**"
     };
 
@@ -94,8 +96,10 @@ public class SecurityConfig {
                         // Manager / Admin
                         .requestMatchers("/api/reports/**").hasAnyRole(ADMIN, MANAGER)
                         .requestMatchers("/api/tickets/*/assign").hasAnyRole(ADMIN, MANAGER)
+                        .requestMatchers("/api/tickets/*/take").hasRole(AGENT)
                         .requestMatchers(HttpMethod.GET, "/api/clients/**").hasAnyRole(ADMIN, MANAGER)
                         .requestMatchers("/api/users/agents/available").hasAnyRole(ADMIN, MANAGER)
+                        .requestMatchers("/api/manager-ai/**").hasRole(MANAGER)
 
                         // Agent / Manager / Admin
                         .requestMatchers("/api/tickets/*/status").hasAnyRole(ADMIN, MANAGER, AGENT)
@@ -104,6 +108,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/tickets/*/hard-delete/challenge").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.DELETE, "/api/incidents/*/hard-delete").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/incidents/*/hard-delete/challenge").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/clients/*/hard-delete/challenge").hasRole(ADMIN)
 
                         // Client
                         .requestMatchers(HttpMethod.POST, "/api/tickets").hasRole(CLIENT)
@@ -118,6 +123,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/users/*/activate").hasRole(ADMIN)
                         .requestMatchers("/api/users/*/deactivate").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.DELETE, "/api/users/*/hard-delete").hasRole(ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/users/*/hard-delete/challenge").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/users/*/reset-password").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/clients").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.PUT, "/api/clients/**").hasRole(ADMIN)

@@ -3,6 +3,9 @@ import { AlertTriangle, ChevronDown, ChevronUp, Clock3, Copy, Radar, UserPlus } 
 import { Badge, Button } from "../ui";
 import ManagerCopilotAvatar from "./ManagerCopilotAvatar";
 import {
+  formatManagerCopilotConfidenceScore,
+  formatManagerCopilotDecisionAction,
+  getManagerCopilotInferenceModeLabel,
   MANAGER_COPILOT_NAME,
   MANAGER_COPILOT_PRODUCT_LABEL,
   MANAGER_COPILOT_SUBTITLE,
@@ -78,6 +81,40 @@ const ManagerCopilotTicketCard: React.FC<ManagerCopilotTicketCardProps> = ({
           <p className="manager-copilot-ticket-brief-text">{context.avoidedRisk}</p>
         </div>
       </div>
+
+      {context.knnTrace && (
+        <div className="manager-copilot-knn-trace manager-copilot-knn-trace-compact">
+          <div className="manager-copilot-knn-topline">
+            <span className="manager-copilot-knn-label">Recommandation KNN</span>
+            <Badge size="sm" variant="ai">
+              {getManagerCopilotInferenceModeLabel(context.knnTrace.inferenceMode)}
+            </Badge>
+          </div>
+          <div className="manager-copilot-knn-metrics">
+            <div className="manager-copilot-knn-metric">
+              <span className="manager-copilot-knn-label">Action suggeree</span>
+              <strong className="manager-copilot-knn-value">
+                {formatManagerCopilotDecisionAction(context.knnTrace.predictedAction)}
+              </strong>
+            </div>
+            <div className="manager-copilot-knn-metric">
+              <span className="manager-copilot-knn-label">Confiance KNN</span>
+              <strong className="manager-copilot-knn-value">
+                {formatManagerCopilotConfidenceScore(context.knnTrace.confidenceScore)}
+              </strong>
+            </div>
+          </div>
+          {context.knnTrace.nearestExamples.length > 0 && (
+            <p className="manager-copilot-knn-summary">
+              Voisins similaires :{" "}
+              {context.knnTrace.nearestExamples
+                .slice(0, 2)
+                .map((example) => example.title)
+                .join(" - ")}
+            </p>
+          )}
+        </div>
+      )}
 
       {context.badges.length > 0 && (
         <div className="manager-copilot-ticket-chip-row">

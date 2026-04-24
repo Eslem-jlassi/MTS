@@ -188,6 +188,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByRole(@Param("role") UserRole role);
 
     /**
+     * Compte le nombre d'utilisateurs actifs pour un role donne.
+     *
+     * @param role Le role a compter
+     * @return Nombre d'utilisateurs actifs avec ce role
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.isActive = true")
+    long countByRoleAndIsActiveTrue(@Param("role") UserRole role);
+
+    /**
      * Recherche d'utilisateurs par terme (prénom, nom ou email).
      * 
      * RECHERCHE INSENSIBLE À LA CASSE:

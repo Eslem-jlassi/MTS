@@ -1,62 +1,78 @@
 # MTS Telecom Supervision Platform
 
-Plateforme intelligente de supervision des services telecoms et de support client.
+Plateforme de supervision telecom et de support client, construite pour la periode de soutenance avec un frontend React, un backend Spring Boot et des services IA Python specialises.
 
-Le depot contient une application React, un backend Spring Boot, trois briques IA Python, une base MySQL, un mode demo explicite et une premiere chaine de lancement/deploiement reproductible.
+## Architecture
 
-## Modules presents
+- `client/` : application React + TypeScript + Redux Toolkit + MUI
+- `server/` : API Spring Boot, RBAC, tickets, SLA, incidents, audit, notifications, WebSocket
+- `sentiment-service/` : classification/sentiment de tickets
+- `duplicate-service/` : detection de tickets similaires
+- `ai-chatbot/` : assistant IA, recherche documentaire et signaux incident massif
+- `docker-compose.yml` : stack conteneurisee locale/officielle
+- `docker-compose.prod.yml` : variante production Docker simple
+- `scripts/` : points d'entree `dev`, `demo`, `deploy`
+- `docs/` : architecture, deploiement, soutenance, limitations et archives
 
-- Ticketing multi-profils avec historique, commentaires, pieces jointes, SLA et exports
-- Supervision des services telecoms, sante, topologie et historique de statut
-- Incidents, timeline, post-mortem et liaison tickets/services
-- Dashboards par role, rapports et audit
-- Gestion utilisateurs, clients, comptes, preferences et notifications
-- IA de sentiment/classification, detection de doublons et chatbot RAG
+## Lancement local
 
-## Structure du depot
-
-- `client` : frontend React + TypeScript
-- `server` : backend Spring Boot + Flyway + WebSocket
-- `sentiment-service` : microservice IA de classification et sentiment
-- `duplicate-service` : microservice IA de detection de doublons
-- `ai-chatbot` : chatbot RAG et detection d'incidents massifs
-- `docker-compose.yml` : stack conteneurisee officielle
-- `scripts/` : scripts officiels `dev`, `demo`, `deploy`
-- `docs/` : documentation technique, soutenance, audit et archives
-
-## Lancement officiel
-
-### Scenario local recommande
+### Option recommandee
 
 ```bat
 scripts\dev\start-local.bat
 ```
 
-Ce scenario demarre :
+Ce flux lance :
 
 1. MySQL et phpMyAdmin via Docker
-2. les 3 services IA en local
+2. les services IA Python en local
 3. le backend Spring Boot en local
 4. le frontend React en local
 
-### Scenario demo rapide
+### Lancement manuel par module
+
+Frontend :
+
+```bat
+cd client
+npm install
+npm start
+```
+
+Backend :
+
+```bat
+cd server
+mvn spring-boot:run
+```
+
+Services IA :
+
+```bat
+cd sentiment-service
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+```bat
+cd duplicate-service
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+```
+
+```bat
+cd ai-chatbot
+python -m uvicorn app:app --host 127.0.0.1 --port 8002
+```
+
+### Demo rapide H2
 
 ```bat
 scripts\demo\start-demo-h2.bat
 ```
 
-Ce scenario garde le frontend et les microservices IA en local, avec backend H2 pour une demo rapide sans MySQL Docker.
-
-### Scenario stack complete conteneurisee
+## Lancement Docker
 
 ```bash
 docker compose up -d --build
-```
-
-Alternative Windows :
-
-```bat
-scripts\deploy\start-stack.bat
 ```
 
 Arret :
@@ -65,68 +81,103 @@ Arret :
 docker compose down
 ```
 
-Ou :
+Helper Windows :
 
 ```bat
-scripts\deploy\stop-stack.bat
+scripts\deploy\start-stack.bat
 ```
+
+### Variante production Docker
+
+```bash
+cp .env.prod.example .env.prod
+docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+```
+
+Guide detaille :
+
+- [docs/DEPLOY_PROD.md](docs/DEPLOY_PROD.md)
+
+## Variables minimales
+
+Pour le local :
+
+1. Copier `.env.example` vers `.env`
+2. adapter au minimum :
+   - `DB_USERNAME`
+   - `DB_PASSWORD`
+   - `DB_ROOT_PASSWORD`
+   - `JWT_SECRET`
+   - `REACT_APP_API_URL` si votre backend n'est pas sur `http://localhost:8080/api`
+
+Pour un profil production / defense :
+
+- partir de `.env.production.example` ou `.env.defense.example`
+- pour la variante Docker production, partir de `.env.prod.example`
+- remplacer tous les `CHANGE_ME_*`
+- garder `ALLOW_INTERNAL_SIGNUP=false`
+- garder `AUTH_EXPOSE_TOKENS_IN_BODY=false`
+- activer `COMPOSE_COOKIE_SECURE=true`
+
+### Verification email
+
+Le projet dispose deja d'une verification email reelle pour les nouvelles inscriptions `CLIENT`.
+
+- backend : generation de token, expiration, activation du compte apres verification
+- frontend : page `/verify-email` avec retours succes/erreur
+- email : envoi SMTP via variables `MAIL_*` ou `COMPOSE_MAIL_*`
+
+Pour l'activer :
+
+1. configurer `MAIL_ENABLED=true` ou `COMPOSE_MAIL_ENABLED=true`
+2. renseigner l'hote SMTP, l'identifiant et le mot de passe
+3. definir `FRONTEND_BASE_URL` ou `COMPOSE_FRONTEND_BASE_URL`
+4. passer `AUTH_REQUIRE_EMAIL_VERIFICATION=true` ou `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true`
 
 ## URLs utiles
 
-| Composant | URL |
-|---|---|
-| Frontend local | `http://localhost:3000` |
-| Backend | `http://localhost:8080` |
-| Swagger | `http://localhost:8080/swagger-ui.html` |
-| phpMyAdmin | `http://localhost:8081` |
-| Sentiment IA | `http://127.0.0.1:8000/health` |
-| Doublons IA | `http://127.0.0.1:8001/health` |
-| Chatbot IA | `http://127.0.0.1:8002/health` |
+- Frontend : `http://localhost:3000`
+- Backend : `http://localhost:8080`
+- Swagger : `http://localhost:8080/swagger-ui.html`
+- phpMyAdmin : `http://localhost:8081`
+- Sentiment service : `http://127.0.0.1:8000/health`
+- Duplicate service : `http://127.0.0.1:8001/health`
+- AI chatbot : `http://127.0.0.1:8002/health`
 
-## Comptes de demonstration
+## Comptes de demo
 
-### MySQL / migrations Flyway
+- Les comptes seedes sont definis dans les seeds backend MySQL/H2.
+- Les identifiants de demo et mots de passe associes sont a presenter uniquement dans le cadre de la demo locale.
+- Ne pas reutiliser ces comptes ni ces mots de passe hors environnement de demonstration.
 
-- Emails seedes dans `V2__seed_data.sql`
-- Mot de passe commun : `Password1!`
-
-### H2 / DataInitializer
-
-- Emails seedes dans `DataInitializer`
-- Mot de passe commun : `Password1!`
-
-## Verification post-deploy rapide
+## Smoke test
 
 ```bat
 scripts\deploy\smoke-post-deploy.bat
 ```
 
-## Mode demo frontend
+Verification minimale :
 
-Le mode demo est volontairement explicite.
+1. ouvrir le frontend
+2. verifier `/api/auth/me`
+3. ouvrir le dashboard selon un role seed
+4. creer ou consulter un ticket
+5. verifier les healthchecks des 3 services IA
 
-- Activer : copier `client/.env.demo` vers `client/.env`, puis lancer `npm start`
-- Desactiver : remettre `REACT_APP_DEMO_MODE=false` ou utiliser `client/.env.sample`
-- Le mode demo ne s'active plus via `?demo=true`
-- Les routes non mockees doivent continuer a echouer visiblement pour ne pas masquer un bug API
+## Non-regression importantes
 
-## Documentation principale
+- La source de verite RBAC reste le backend Spring Boot.
+- L'auth navigateur reste `cookie-first`.
+- ALLIE reste reserve au role `MANAGER`.
+- Les suppressions destructives restent controlees cote serveur avec audit.
+- Le mode demo et le chemin Docker doivent rester fonctionnels.
 
-- [Index documentation](docs/README.md)
-- [Guide de lancement/deploiement](docs/DEPLOYMENT.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Contrats API](docs/API_CONTRACTS.md)
-- [Matrice RBAC](docs/RBAC_MATRIX.md)
-- [Base de donnees](docs/DATABASE.md)
-- [Guide soutenance](docs/DEMO_JURY.md)
-- [Checklist soutenance finale](docs/DEMO_JURY_FINAL_CHECKLIST.md)
-- [Readiness deploiement (Lot 8)](docs/final-audit/progress/lot-8-deploy-readiness.md)
-- [Progression des lots](docs/final-audit/progress/)
+## Documentation utile
 
-## Notes importantes
-
-- Le backend navigateur suit un modele `cookie-first` avec cookies HttpOnly.
-- La source de verite RBAC est le backend, pas l'UI.
-- `docker-compose.yml` est la source de verite du lancement conteneurise.
-- `INTEGRATION_DOCKER/docker-compose-full.yml` reste un fichier de compatibilite documentaire.
-- Les scripts historiques non officiels ont ete sortis du flux principal et archives dans `scripts/legacy/` quand ils n'etaient plus utiles au runtime.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
+- [docs/DEPLOY_PROD.md](docs/DEPLOY_PROD.md)
+- [docs/SOUTENANCE_LAST_MILE.md](docs/SOUTENANCE_LAST_MILE.md)
+- [docs/DEFENSE_SMOKE_CHECKLIST.md](docs/DEFENSE_SMOKE_CHECKLIST.md)
+- [docs/KNOWN_LIMITATIONS_FINAL.md](docs/KNOWN_LIMITATIONS_FINAL.md)
+- [docs/archive/legacy/README.md](docs/archive/legacy/README.md)

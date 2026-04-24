@@ -3,15 +3,18 @@
 // =============================================================================
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft, AlertTriangle, Plus, X, Search } from "lucide-react";
 import { incidentService } from "../api/incidentService";
 import { telecomServiceService } from "../api/telecomServiceService";
 import { ticketService } from "../api/ticketService";
+import { RootState } from "../redux/store";
 import type { IncidentRequest, TelecomService, Ticket } from "../types";
 import { Severity, SeverityLabels, IncidentImpact, ImpactLabels } from "../types";
 import { Card, Button } from "../components/ui";
 import type { ManagerCopilotIncidentPrefillState } from "../components/manager-copilot/managerCopilotActions";
+import { isManagerCopilotAllowedRole } from "../components/manager-copilot/managerCopilotUi";
 
 export default function IncidentNewPage() {
   const navigate = useNavigate();
@@ -41,6 +44,8 @@ export default function IncidentNewPage() {
   // Service/Ticket search
   const [serviceSearch, setServiceSearch] = useState("");
   const [ticketSearch, setTicketSearch] = useState("");
+  const currentUserRole = useSelector((state: RootState) => state.auth.user?.role);
+  const isManagerCopilotContext = isManagerCopilotAllowedRole(currentUserRole);
   const prefillState = location.state as ManagerCopilotIncidentPrefillState | null;
 
   const loadReferenceData = useCallback(async () => {
@@ -66,7 +71,7 @@ export default function IncidentNewPage() {
   }, [loadReferenceData]);
 
   useEffect(() => {
-    if (!prefillState || prefillState.source !== "allie") {
+    if (!isManagerCopilotContext || !prefillState || prefillState.source !== "allie") {
       return;
     }
 
@@ -81,7 +86,7 @@ export default function IncidentNewPage() {
     );
     setTicketIds((current) => (current.length > 0 ? current : prefill.ticketIds || []));
     setCause((current) => current || prefill.cause || "");
-  }, [prefillState]);
+  }, [isManagerCopilotContext, prefillState]);
 
   const filteredServices = services.filter(
     (s) =>
@@ -149,7 +154,7 @@ export default function IncidentNewPage() {
         </p>
       </div>
 
-      {prefillState?.source === "allie" && (
+      {isManagerCopilotContext && prefillState?.source === "allie" && (
         <div className="rounded-xl border border-primary-200 bg-primary-50/80 px-4 py-3 text-sm text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/10 dark:text-primary-200">
           Contexte pre-rempli par ALLIE pour accelerer la qualification manager. Verifiez les champs
           avant validation.

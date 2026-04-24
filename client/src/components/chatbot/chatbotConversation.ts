@@ -73,13 +73,46 @@ interface BuildLowConfidenceMessageOptions {
   language?: ChatLanguage;
 }
 
+const isTechnicalUnavailableBackendAnswer = (answer?: string): boolean => {
+  const normalizedAnswer = (answer || "").trim().toLowerCase();
+  if (!normalizedAnswer) {
+    return false;
+  }
+
+  return [
+    "chatbot ia est indisponible",
+    "assistant temporairement indisponible",
+    "assistant ia est temporairement indisponible",
+    "the ai assistant is temporarily unavailable",
+    "i could not reach the ai assistant",
+    "service d'assistance ia est temporairement indisponible",
+  ].some((pattern) => normalizedAnswer.includes(pattern));
+};
+
+const isGenericPartialBackendAnswer = (answer?: string): boolean => {
+  const normalizedAnswer = (answer || "").trim().toLowerCase();
+  if (!normalizedAnswer) {
+    return false;
+  }
+
+  return [
+    "analyse partielle disponible",
+    "partial analysis is available",
+    "consultez les blocs detailes",
+    "check the detailed blocks",
+    "aucune reponse disponible",
+    "no response available",
+  ].some((pattern) => normalizedAnswer.includes(pattern));
+};
+
 const buildRelatedCasesHint = (
   results: ChatbotResult[] = [],
   language: ChatLanguage = "fr",
 ): string => {
+  const unknownServiceLabel = language === "en" ? "unknown service" : "service inconnu";
   const topCases = results.slice(0, 3).map(
     (item) =>
-      `${item.title} (${item.serviceName || "N/A"}, score ${formatNumberValue(Number(item.score), {
+      `${item.title} (${item.serviceName || unknownServiceLabel}, score ${formatNumberValue(Number(item.score), {
         maximumFractionDigits: 2,
       })})`,
   );
@@ -113,10 +146,14 @@ export function buildLowConfidenceMessage({
         : "";
   const backendHint =
     language === "en"
-      ? backendAnswer
+      ? backendAnswer &&
+        !isTechnicalUnavailableBackendAnswer(backendAnswer) &&
+        !isGenericPartialBackendAnswer(backendAnswer)
         ? `AI feedback: ${backendAnswer} `
         : ""
-      : backendAnswer
+      : backendAnswer &&
+          !isTechnicalUnavailableBackendAnswer(backendAnswer) &&
+          !isGenericPartialBackendAnswer(backendAnswer)
         ? `Retour IA : ${backendAnswer} `
         : "";
   const relatedCasesHint = buildRelatedCasesHint(results, language);

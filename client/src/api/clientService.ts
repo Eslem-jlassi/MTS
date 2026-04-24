@@ -3,7 +3,13 @@
 // =============================================================================
 
 import api from "./client";
-import { Client, CreateClientFormData, PageRequest, PageResponse } from "../types";
+import {
+  AdminHardDeleteRequestPayload,
+  Client,
+  CreateClientFormData,
+  PageRequest,
+  PageResponse,
+} from "../types";
 
 const CLIENTS_PREFIX = "/clients";
 
@@ -60,8 +66,15 @@ export const clientService = {
     return response.data;
   },
 
-  hardDeleteClient: async (id: number): Promise<void> => {
-    await api.delete(`${CLIENTS_PREFIX}/${id}/hard-delete`);
+  hardDeleteClient: async (id: number, payload: AdminHardDeleteRequestPayload): Promise<void> => {
+    await api.delete(`${CLIENTS_PREFIX}/${id}/hard-delete`, { data: payload });
+  },
+
+  requestHardDeleteChallenge: async (id: number): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(
+      `${CLIENTS_PREFIX}/${id}/hard-delete/challenge`,
+    );
+    return response.data;
   },
 
   createClientFull: async (data: CreateClientFormData): Promise<Client> => {

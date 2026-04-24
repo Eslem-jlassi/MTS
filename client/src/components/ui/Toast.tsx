@@ -57,8 +57,8 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onDismiss }) => {
       animate={{ opacity: 1, x: 0, scale: 1 }}
       exit={{ opacity: 0, x: 48, scale: 0.97 }}
       transition={{ type: "spring", stiffness: 360, damping: 30 }}
-      className={`ds-toast-surface relative flex w-80 items-start gap-3 overflow-hidden border p-4 ${skinClasses[toast.variant]}`}
-      role="alert"
+      className={`ds-toast-surface relative flex w-full max-w-[22rem] items-start gap-3 overflow-hidden border p-4 ${skinClasses[toast.variant]}`}
+      role={toast.variant === "error" ? "alert" : "status"}
     >
       <div className={`absolute inset-x-0 top-0 h-1 ${progressClasses[toast.variant]}`} />
       <span className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-white/35 bg-white/55 text-current shadow-[inset_0_1px_0_rgb(255_255_255_/_0.28)] dark:border-white/10 dark:bg-white/5">
@@ -89,8 +89,24 @@ interface ToastContainerProps {
 }
 
 const containerPositionClasses = {
-  "bottom-right": "bottom-6 right-6 flex-col-reverse",
-  "top-right": "top-4 right-4 flex-col",
+  "bottom-right": [
+    "inset-x-3",
+    "bottom-4",
+    "items-end",
+    "flex-col-reverse",
+    "md:inset-x-auto",
+    "md:bottom-6",
+    "md:right-6",
+  ].join(" "),
+  "top-right": [
+    "inset-x-3",
+    "top-3",
+    "items-end",
+    "flex-col",
+    "md:inset-x-auto",
+    "md:top-4",
+    "md:right-4",
+  ].join(" "),
 };
 
 const ToastContainer: React.FC<ToastContainerProps> = ({
@@ -100,10 +116,12 @@ const ToastContainer: React.FC<ToastContainerProps> = ({
 }) => (
   <div
     className={`pointer-events-none fixed z-[999] flex gap-3 ${containerPositionClasses[position]}`}
+    aria-live="polite"
+    aria-atomic="false"
   >
     <AnimatePresence mode="popLayout">
       {toasts.map((toast) => (
-        <div key={toast.id} className="pointer-events-auto">
+        <div key={toast.id} className="pointer-events-auto w-full md:w-auto">
           <ToastItem toast={toast} onDismiss={onDismiss} />
         </div>
       ))}

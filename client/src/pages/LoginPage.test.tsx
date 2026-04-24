@@ -43,14 +43,16 @@ describe("LoginPage", () => {
     renderLoginPage();
 
     expect(screen.getByText("Connexion")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("votre@email.com")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("vous@entreprise.com")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("********")).toBeInTheDocument();
   });
 
   it("prefills the documented demo credentials", () => {
     renderLoginPage();
 
-    expect(screen.getByPlaceholderText("votre@email.com")).toHaveValue("admin@mts-telecom.ma");
+    expect(screen.getByPlaceholderText("vous@entreprise.com")).toHaveValue(
+      "admin@mts-telecom.ma",
+    );
     expect(screen.getByPlaceholderText("********")).toHaveValue("Password1!");
   });
 
@@ -94,7 +96,7 @@ describe("LoginPage", () => {
   it("allows typing in email and password fields", () => {
     renderLoginPage();
 
-    const emailInput = screen.getByPlaceholderText("votre@email.com");
+    const emailInput = screen.getByPlaceholderText("vous@entreprise.com");
     const passwordInput = screen.getByPlaceholderText("********");
 
     fireEvent.change(emailInput, { target: { value: "admin@mts-telecom.ma" } });
@@ -116,7 +118,7 @@ describe("LoginPage", () => {
       } as any,
     });
 
-    expect(screen.getByText("Compte non verifie")).toBeInTheDocument();
+    expect(screen.getByText(/Compte non vérifié/i)).toBeInTheDocument();
     expect(screen.getByText(/Renvoyer l'email/i)).toBeInTheDocument();
   });
 });

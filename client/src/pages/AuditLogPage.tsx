@@ -1,84 +1,113 @@
 // =============================================================================
 // MTS TELECOM - AuditLogPage (Admin Audit Logs Console)
 // =============================================================================
-// Billcom Consulting - PFE 2026
-// =============================================================================
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  ShieldCheck,
-  Filter,
-  RotateCcw,
+  Activity,
   ChevronLeft,
   ChevronRight,
   Clock,
-  Globe,
-  User,
   FileText,
-  Activity,
-  Info,
+  Filter,
+  Globe,
   Inbox,
+  Info,
+  RotateCcw,
+  ShieldCheck,
+  User,
 } from "lucide-react";
 import { usePermissions } from "../hooks/usePermissions";
 import auditService from "../api/auditService";
 import { AuditLog, AuditLogSearchParams } from "../types";
-import { useNavigate } from "react-router-dom";
-import { Card, Badge, Modal } from "../components/ui";
+import { Badge, Card, Modal } from "../components/ui";
 import type { BadgeVariant } from "../components/ui/Badge";
 import { formatDateTime } from "../utils/formatters";
 
-/**
- * AuditLogPage - Console d'audit complète pour les admins (RGPD/ISO 27001).
- *
- * Features:
- * - Advanced search with 7 filters (user, entity type, action, date range, IP)
- * - Paginated table with sortable columns
- * - Click row to show modal with full details (old/new values)
- * - Role-based access: ADMIN only
- *
- * @author Billcom Consulting
- * @version 2.0 - Enhanced for V30 audit_logs schema
- * @since 2026-02-28
- */
+const DEFAULT_FILTERS: AuditLogSearchParams = {
+  page: 0,
+  size: 20,
+  sortBy: "timestamp",
+  sortDir: "DESC",
+};
+
+const ENTITY_TYPE_OPTIONS = [
+  { value: "", label: "Tous les types" },
+  { value: "TICKET", label: "Tickets" },
+  { value: "SERVICE", label: "Services" },
+  { value: "CLIENT", label: "Clients" },
+  { value: "USER", label: "Utilisateurs" },
+  { value: "INCIDENT", label: "Incidents" },
+  { value: "SLA", label: "SLA" },
+  { value: "REPORT", label: "Rapports" },
+];
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+
+const formatValue = (value?: string | null): string => {
+  if (!value) {
+    return "Aucune valeur";
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return value;
+  }
+};
+
+const getActionBadgeVariant = (action: string): BadgeVariant => {
+  const normalized = action.toUpperCase();
+
+  if (
+    normalized.includes("DELETED") ||
+    normalized.includes("SUPPRIM") ||
+    normalized.includes("HARD")
+  ) {
+    return "danger";
+  }
+  if (normalized.includes("CREATED")) {
+    return "success";
+  }
+  if (
+    normalized.includes("LOGIN") ||
+    normalized.includes("LOGOUT") ||
+    normalized.includes("AUTH")
+  ) {
+    return "warning";
+  }
+  if (
+    normalized.includes("UPDATED") ||
+    normalized.includes("MODIFIED") ||
+    normalized.includes("ASSIGNED") ||
+    normalized.includes("STATUS")
+  ) {
+    return "info";
+  }
+
+  return "neutral";
+};
+
 const AuditLogPage: React.FC = () => {
   const { isAdmin, canAccessAuditLogs } = usePermissions();
   const navigate = useNavigate();
-
-  // ==========================================================================
-  // STATE MANAGEMENT
-  // ==========================================================================
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-
-  // Search filters
-  const [filters, setFilters] = useState<AuditLogSearchParams>({
-    page: 0,
-    size: 20,
-    sortBy: "timestamp",
-    sortDir: "DESC",
-  });
-
-  // Selected log for detail modal
+  const [filters, setFilters] = useState<AuditLogSearchParams>(DEFAULT_FILTERS);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-
-  // ==========================================================================
-  // RBAC CHECK
-  // ==========================================================================
 
   useEffect(() => {
     if (!isAdmin || !canAccessAuditLogs) {
       navigate("/dashboard");
     }
   }, [isAdmin, canAccessAuditLogs, navigate]);
-
-  // ==========================================================================
-  // DATA FETCHING
-  // ==========================================================================
 
   const fetchAuditLogs = useCallback(async () => {
     setLoading(true);
@@ -103,34 +132,21 @@ const AuditLogPage: React.FC = () => {
     }
   }, [isAdmin, fetchAuditLogs]);
 
-  // ==========================================================================
-  // FILTER HANDLERS
-  // ==========================================================================
-
   const handleFilterChange = (key: keyof AuditLogSearchParams, value: any) => {
     setFilters((prev) => ({
       ...prev,
       [key]: value,
-      page: 0, // Reset to first page on filter change
+      page: 0,
     }));
   };
 
-  const handlePageChange = (newPage: number) => {
-    setFilters((prev) => ({ ...prev, page: newPage }));
+  const handlePageChange = (nextPage: number) => {
+    setFilters((prev) => ({ ...prev, page: nextPage }));
   };
 
   const handleResetFilters = () => {
-    setFilters({
-      page: 0,
-      size: 20,
-      sortBy: "timestamp",
-      sortDir: "DESC",
-    });
+    setFilters(DEFAULT_FILTERS);
   };
-
-  // ==========================================================================
-  // DETAIL MODAL
-  // ==========================================================================
 
   const handleRowClick = (log: AuditLog) => {
     setSelectedLog(log);
@@ -142,33 +158,47 @@ const AuditLogPage: React.FC = () => {
     setSelectedLog(null);
   };
 
-  // ==========================================================================
-  // RENDER HELPERS
-  // ==========================================================================
+  const inputClass =
+    "h-10 w-full rounded-xl border border-ds-border bg-ds-card px-3 text-sm text-ds-primary shadow-sm transition-all placeholder:text-ds-muted focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20";
+  const selectClass = inputClass;
 
-  const getActionBadgeVariant = (action: string): BadgeVariant => {
-    if (action.includes("CREATED")) return "success";
-    if (action.includes("UPDATED") || action.includes("MODIFIED")) return "info";
-    if (action.includes("DELETED") || action.includes("SUPPRIM")) return "danger";
-    if (action.includes("LOGIN") || action.includes("LOGOUT")) return "warning";
-    return "neutral";
-  };
+  const currentPage = filters.page ?? 0;
+  const pageSize = filters.size ?? 20;
+  const startEntry = totalElements === 0 ? 0 : currentPage * pageSize + 1;
+  const endEntry = Math.min(totalElements, (currentPage + 1) * pageSize);
 
-  const formatValue = (value: string | null): string => {
-    if (!value) return "—";
+  const activeFiltersCount = useMemo(() => {
+    const filterValues = [
+      filters.userId,
+      filters.entityType,
+      filters.action,
+      filters.startDate,
+      filters.endDate,
+      filters.ipAddress,
+      filters.entityId,
+    ];
 
-    // Try to parse as JSON for pretty printing
-    try {
-      const parsed = JSON.parse(value);
-      return JSON.stringify(parsed, null, 2);
-    } catch {
-      return value;
+    return filterValues.reduce<number>((count, value) => {
+      if (value === undefined || value === null || value === "") {
+        return count;
+      }
+      return count + 1;
+    }, 0);
+  }, [filters]);
+
+  const pageNumbers = useMemo(() => {
+    if (totalPages <= 1) {
+      return [];
     }
-  };
 
-  // ==========================================================================
-  // LOADING & ERROR STATES
-  // ==========================================================================
+    const windowSize = 5;
+    const halfWindow = Math.floor(windowSize / 2);
+    let start = Math.max(0, currentPage - halfWindow);
+    let end = Math.min(totalPages - 1, start + windowSize - 1);
+    start = Math.max(0, end - windowSize + 1);
+
+    return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+  }, [totalPages, currentPage]);
 
   if (!isAdmin) {
     return null;
@@ -177,18 +207,19 @@ const AuditLogPage: React.FC = () => {
   if (loading && auditLogs.length === 0) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="h-7 w-48 bg-ds-elevated rounded-lg animate-pulse" />
-        </div>
+        <div className="h-7 w-52 animate-pulse rounded-lg bg-ds-elevated" />
         <Card padding="none">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex gap-4 px-5 py-3 border-b border-ds-border last:border-0">
-              <div className="h-4 w-28 bg-ds-elevated rounded animate-pulse" />
-              <div className="h-4 w-24 bg-ds-elevated rounded animate-pulse" />
-              <div className="h-4 w-20 bg-ds-elevated rounded animate-pulse" />
-              <div className="h-4 w-16 bg-ds-elevated rounded animate-pulse" />
-              <div className="h-4 flex-1 bg-ds-elevated rounded animate-pulse" />
-              <div className="h-4 w-24 bg-ds-elevated rounded animate-pulse" />
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex gap-4 border-b border-ds-border px-5 py-3 last:border-0"
+            >
+              <div className="h-4 w-28 animate-pulse rounded bg-ds-elevated" />
+              <div className="h-4 w-24 animate-pulse rounded bg-ds-elevated" />
+              <div className="h-4 w-20 animate-pulse rounded bg-ds-elevated" />
+              <div className="h-4 w-16 animate-pulse rounded bg-ds-elevated" />
+              <div className="h-4 flex-1 animate-pulse rounded bg-ds-elevated" />
+              <div className="h-4 w-24 animate-pulse rounded bg-ds-elevated" />
             </div>
           ))}
         </Card>
@@ -196,158 +227,199 @@ const AuditLogPage: React.FC = () => {
     );
   }
 
-  const inputClass =
-    "block w-full rounded-xl border border-ds-border bg-ds-card text-ds-primary text-sm px-3.5 py-2 transition-all focus:ring-2 focus:ring-primary-400/30 focus:border-primary-500 hover:border-ds-muted/50";
-  const selectClass =
-    "block w-full rounded-xl border border-ds-border bg-ds-card text-ds-primary text-sm px-3.5 py-2 transition-all focus:ring-2 focus:ring-primary-400/30 focus:border-primary-500 hover:border-ds-muted/50";
-
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-ds-primary flex items-center gap-2">
-            <ShieldCheck className="w-7 h-7 text-primary-500" />
+          <h1 className="flex items-center gap-2 text-2xl font-bold text-ds-primary">
+            <ShieldCheck className="h-7 w-7 text-primary-500" />
             Journal d'Audit
           </h1>
-          <p className="text-ds-muted mt-1">
-            Traçabilité complète des actions sur le système (RGPD, ISO 27001)
+          <p className="mt-1 text-sm text-ds-muted">
+            Traçabilité complète des actions système, utilisateur et sécurité.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-ds-muted">
-          <Activity className="w-4 h-4" />
-          <span className="font-semibold text-ds-primary">{totalElements}</span> entrée
-          {totalElements > 1 ? "s" : ""}
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-2.5 py-1 text-ds-secondary">
+            <Activity className="h-3.5 w-3.5" />
+            <span className="font-semibold text-ds-primary">{totalElements}</span>
+            entrée{totalElements > 1 ? "s" : ""}
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-2.5 py-1 text-ds-secondary">
+            Page <span className="font-semibold text-ds-primary">{currentPage + 1}</span> /{" "}
+            <span className="font-semibold text-ds-primary">{Math.max(totalPages, 1)}</span>
+          </span>
         </div>
       </div>
 
-      {/* Filters Card */}
-      <Card padding="md">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-4 h-4 text-ds-muted" />
-          <h2 className="text-sm font-semibold text-ds-primary uppercase tracking-wide">Filtres</h2>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Entity Type */}
-          <div>
-            <label className="block text-xs font-medium text-ds-muted mb-1.5">Type d'Entité</label>
-            <select
-              className={selectClass}
-              value={filters.entityType || ""}
-              onChange={(e) => handleFilterChange("entityType", e.target.value || undefined)}
-            >
-              <option value="">Tous les types</option>
-              <option value="TICKET">Tickets</option>
-              <option value="SERVICE">Services</option>
-              <option value="CLIENT">Clients</option>
-              <option value="USER">Utilisateurs</option>
-              <option value="INCIDENT">Incidents</option>
-              <option value="SLA">SLA</option>
-              <option value="REPORT">Rapports</option>
-            </select>
+      <Card padding="md" className="space-y-3 border border-ds-border/80">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-ds-muted" />
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ds-primary">
+              Filtres
+            </h2>
+            <span className="rounded-full border border-ds-border bg-ds-surface px-2 py-0.5 text-xs font-medium text-ds-muted">
+              {activeFiltersCount} actif{activeFiltersCount > 1 ? "s" : ""}
+            </span>
           </div>
-
-          {/* Start Date */}
-          <div>
-            <label className="block text-xs font-medium text-ds-muted mb-1.5">Date Début</label>
-            <input
-              type="datetime-local"
-              className={inputClass}
-              value={filters.startDate || ""}
-              onChange={(e) => handleFilterChange("startDate", e.target.value || undefined)}
-            />
-          </div>
-
-          {/* End Date */}
-          <div>
-            <label className="block text-xs font-medium text-ds-muted mb-1.5">Date Fin</label>
-            <input
-              type="datetime-local"
-              className={inputClass}
-              value={filters.endDate || ""}
-              onChange={(e) => handleFilterChange("endDate", e.target.value || undefined)}
-            />
-          </div>
-
-          {/* IP Address */}
-          <div>
-            <label className="block text-xs font-medium text-ds-muted mb-1.5">Adresse IP</label>
-            <input
-              type="text"
-              className={inputClass}
-              placeholder="192.168.1.1"
-              value={filters.ipAddress || ""}
-              onChange={(e) => handleFilterChange("ipAddress", e.target.value || undefined)}
-            />
-          </div>
-        </div>
-
-        {/* Reset + Page size */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-ds-border">
           <button
             onClick={handleResetFilters}
-            className="flex items-center gap-1.5 text-sm text-ds-muted hover:text-ds-primary transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-ds-border bg-ds-card px-2.5 py-1.5 text-xs font-medium text-ds-secondary transition-colors hover:bg-ds-surface hover:text-ds-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
-            Réinitialiser
+            <RotateCcw className="h-3.5 w-3.5" />
+            Reinitialiser
           </button>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-ds-muted">Par page :</span>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            Type d'entite
             <select
-              className="rounded-lg border border-ds-border bg-ds-card text-ds-primary text-xs px-2 py-1.5 focus:ring-2 focus:ring-primary-400/30"
-              value={filters.size}
-              onChange={(e) => handleFilterChange("size", parseInt(e.target.value))}
+              className={`${selectClass} mt-1.5`}
+              value={filters.entityType || ""}
+              onChange={(event) =>
+                handleFilterChange("entityType", event.target.value || undefined)
+              }
             >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
+              {ENTITY_TYPE_OPTIONS.map((option) => (
+                <option key={option.value || "all"} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
-          </div>
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            Action
+            <input
+              type="text"
+              className={`${inputClass} mt-1.5`}
+              placeholder="Ex. : TICKET_CREATED"
+              value={filters.action || ""}
+              onChange={(event) => handleFilterChange("action", event.target.value || undefined)}
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            Date début
+            <input
+              type="datetime-local"
+              className={`${inputClass} mt-1.5`}
+              value={filters.startDate || ""}
+              onChange={(event) => handleFilterChange("startDate", event.target.value || undefined)}
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            Date fin
+            <input
+              type="datetime-local"
+              className={`${inputClass} mt-1.5`}
+              value={filters.endDate || ""}
+              onChange={(event) => handleFilterChange("endDate", event.target.value || undefined)}
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            Adresse IP
+            <input
+              type="text"
+              className={`${inputClass} mt-1.5`}
+              placeholder="192.168.1.1"
+              value={filters.ipAddress || ""}
+              onChange={(event) => handleFilterChange("ipAddress", event.target.value || undefined)}
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            ID utilisateur
+            <input
+              type="number"
+              className={`${inputClass} mt-1.5`}
+              placeholder="Ex. : 12"
+              value={filters.userId ?? ""}
+              onChange={(event) =>
+                handleFilterChange(
+                  "userId",
+                  event.target.value ? Number(event.target.value) : undefined,
+                )
+              }
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            ID entite
+            <input
+              type="number"
+              className={`${inputClass} mt-1.5`}
+              placeholder="Ex. : 2026"
+              value={filters.entityId ?? ""}
+              onChange={(event) =>
+                handleFilterChange(
+                  "entityId",
+                  event.target.value ? Number(event.target.value) : undefined,
+                )
+              }
+            />
+          </label>
+
+          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+            Lignes par page
+            <select
+              className={`${selectClass} mt-1.5`}
+              value={filters.size}
+              onChange={(event) => handleFilterChange("size", Number(event.target.value))}
+            >
+              {PAGE_SIZE_OPTIONS.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </Card>
 
-      {/* Error */}
       {error && (
-        <div className="flex items-center gap-3 p-4 rounded-xl bg-error-50 dark:bg-error-500/10 border border-error-200 dark:border-error-500/30 text-error-700 dark:text-error-300 text-sm">
-          <Info className="w-5 h-5 flex-shrink-0" />
+        <div className="flex items-center gap-3 rounded-xl border border-error-200 bg-error-50 p-4 text-sm text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-300">
+          <Info className="h-5 w-5 flex-shrink-0" />
           {error}
         </div>
       )}
 
-      {/* Table */}
-      <Card padding="none">
+      <Card padding="none" className="overflow-hidden border border-ds-border/80">
         <div className="overflow-x-auto">
-          <table className="ds-table-raw w-full text-sm">
-            <thead>
-              <tr className="border-b border-ds-border bg-ds-elevated/50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider w-40">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" />
+          <table className="ds-table-raw w-full min-w-[1024px]">
+            <thead className="bg-ds-elevated/70">
+              <tr className="border-b border-ds-border">
+                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  <div className="inline-flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
                     Date
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider w-36">
-                  <div className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5" />
+                <th className="w-52 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  <div className="inline-flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5" />
                     Utilisateur
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider w-44">
+                <th className="w-52 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
                   Action
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider w-32">
-                  <div className="flex items-center gap-1.5">
-                    <FileText className="w-3.5 h-3.5" />
+                <th className="w-56 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  <div className="inline-flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" />
                     Entité
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
                   Description
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider w-32">
-                  <div className="flex items-center gap-1.5">
-                    <Globe className="w-3.5 h-3.5" />
+                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                  <div className="inline-flex items-center gap-1.5">
+                    <Globe className="h-3.5 w-3.5" />
                     IP
                   </div>
                 </th>
@@ -357,8 +429,8 @@ const AuditLogPage: React.FC = () => {
               {auditLogs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-16 text-center">
-                    <Inbox className="w-12 h-12 text-ds-muted mx-auto mb-3 opacity-40" />
-                    <p className="text-ds-muted text-sm">Aucun log d'audit trouvé</p>
+                    <Inbox className="mx-auto mb-3 h-12 w-12 text-ds-muted/50" />
+                    <p className="text-sm text-ds-muted">Aucun log d'audit trouvé</p>
                   </td>
                 </tr>
               ) : (
@@ -366,40 +438,60 @@ const AuditLogPage: React.FC = () => {
                   <tr
                     key={log.id}
                     onClick={() => handleRowClick(log)}
-                    className="hover:bg-ds-elevated/50 cursor-pointer transition-colors"
+                    className="group cursor-pointer bg-ds-card/50 transition-colors hover:bg-ds-elevated/70"
                   >
-                    <td className="px-4 py-3 text-xs text-ds-secondary whitespace-nowrap">
-                      {formatDateTime(log.timestamp)}
+                    <td className="px-4 py-2.5 align-top">
+                      <time
+                        dateTime={log.timestamp}
+                        className="block whitespace-nowrap text-xs font-medium text-ds-secondary"
+                      >
+                        {formatDateTime(log.timestamp)}
+                      </time>
                     </td>
-                    <td className="px-4 py-3 text-xs">
+                    <td className="px-4 py-2.5 align-top">
                       {log.systemAction ? (
-                        <Badge variant="neutral">SYSTEM</Badge>
+                        <Badge variant="neutral" size="sm">
+                          SYSTEM
+                        </Badge>
                       ) : (
-                        <span
-                          className="text-ds-primary font-medium"
-                          title={log.userEmail || undefined}
-                        >
-                          {log.userName || "N/A"}
-                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-ds-primary">
+                            {log.userName || "N/A"}
+                          </p>
+                          <p className="truncate text-xs text-ds-muted">{log.userEmail || "N/A"}</p>
+                        </div>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge variant={getActionBadgeVariant(log.action)}>
+                    <td className="px-4 py-2.5 align-top">
+                      <Badge variant={getActionBadgeVariant(log.action)} size="sm">
                         {log.actionLabel || log.action}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="text-xs font-medium text-ds-primary">{log.entityType}</div>
-                      <div className="text-xs text-ds-muted">
-                        #{log.entityId}
-                        {log.entityName && <span> — {log.entityName.substring(0, 20)}</span>}
+                    <td className="px-4 py-2.5 align-top">
+                      <div className="space-y-1">
+                        <Badge variant="neutral" size="sm">
+                          {log.entityType}
+                        </Badge>
+                        <p className="text-xs text-ds-secondary">#{log.entityId}</p>
+                        {log.entityName && (
+                          <p className="truncate text-xs text-ds-muted" title={log.entityName}>
+                            {log.entityName}
+                          </p>
+                        )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-ds-secondary max-w-xs truncate">
-                      {log.description}
+                    <td className="px-4 py-2.5 align-top">
+                      <p
+                        className="max-w-[30rem] break-words text-sm leading-5 text-ds-secondary"
+                        title={log.description}
+                      >
+                        {log.description}
+                      </p>
                     </td>
-                    <td className="px-4 py-3 text-xs text-ds-muted font-mono">
-                      {log.ipAddress || "—"}
+                    <td className="px-4 py-2.5 align-top">
+                      <code className="block break-all text-xs font-medium text-ds-muted">
+                        {log.ipAddress || "N/A"}
+                      </code>
                     </td>
                   </tr>
                 ))
@@ -408,129 +500,166 @@ const AuditLogPage: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-ds-border">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ds-border px-4 py-3">
             <p className="text-xs text-ds-muted">
-              Page <span className="font-semibold text-ds-primary">{(filters.page || 0) + 1}</span>{" "}
-              sur <span className="font-semibold text-ds-primary">{totalPages}</span>
+              Affichage <span className="font-semibold text-ds-primary">{startEntry}</span>-
+              <span className="font-semibold text-ds-primary">{endEntry}</span> sur{" "}
+              <span className="font-semibold text-ds-primary">{totalElements}</span>
             </p>
+
             <div className="flex items-center gap-1">
               <button
-                onClick={() => handlePageChange((filters.page || 0) - 1)}
-                disabled={(filters.page || 0) === 0}
-                className="p-1.5 rounded-lg text-ds-muted hover:text-ds-primary hover:bg-ds-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 0}
+                className="rounded-lg p-1.5 text-ds-muted transition-colors hover:bg-ds-elevated hover:text-ds-primary disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Page precedente"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="h-4 w-4" />
               </button>
 
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                const current = filters.page || 0;
-                const pageNum = current < 3 ? i : current - 2 + i;
-                if (pageNum >= totalPages) return null;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => handlePageChange(pageNum)}
-                    className={`min-w-[32px] h-8 rounded-lg text-xs font-medium transition-colors ${
-                      current === pageNum
-                        ? "bg-primary-500 text-white shadow-sm"
-                        : "text-ds-muted hover:text-ds-primary hover:bg-ds-elevated"
-                    }`}
-                  >
-                    {pageNum + 1}
-                  </button>
-                );
-              })}
+              {pageNumbers.map((pageNumber) => (
+                <button
+                  key={pageNumber}
+                  onClick={() => handlePageChange(pageNumber)}
+                  className={`h-8 min-w-[32px] rounded-lg px-2 text-xs font-medium transition-colors ${
+                    currentPage === pageNumber
+                      ? "bg-primary-500 text-white shadow-sm"
+                      : "text-ds-muted hover:bg-ds-elevated hover:text-ds-primary"
+                  }`}
+                >
+                  {pageNumber + 1}
+                </button>
+              ))}
 
               <button
-                onClick={() => handlePageChange((filters.page || 0) + 1)}
-                disabled={(filters.page || 0) === totalPages - 1}
-                className="p-1.5 rounded-lg text-ds-muted hover:text-ds-primary hover:bg-ds-elevated disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage >= totalPages - 1}
+                className="rounded-lg p-1.5 text-ds-muted transition-colors hover:bg-ds-elevated hover:text-ds-primary disabled:cursor-not-allowed disabled:opacity-30"
+                aria-label="Page suivante"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="h-4 w-4" />
               </button>
             </div>
           </div>
         )}
       </Card>
 
-      {/* Detail Modal */}
       <Modal
         isOpen={showDetailModal}
         onClose={handleCloseDetailModal}
-        title={selectedLog ? `Détail Audit #${selectedLog.id}` : ""}
-        size="lg"
+        title={selectedLog ? `Détail audit #${selectedLog.id}` : ""}
+        size="xl"
+        contentClassName="max-h-[72vh] overflow-y-auto px-5 pb-5 pt-4"
       >
         {selectedLog && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">Timestamp</p>
-                <p className="text-sm text-ds-primary">{formatDateTime(selectedLog.timestamp)}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">Utilisateur</p>
-                {selectedLog.systemAction ? (
-                  <Badge variant="neutral">SYSTEM</Badge>
-                ) : (
-                  <div>
-                    <p className="text-sm text-ds-primary font-medium">{selectedLog.userName}</p>
-                    <p className="text-xs text-ds-muted">{selectedLog.userEmail}</p>
+          <div className="space-y-4 pr-1">
+            <section className="rounded-xl border border-ds-border bg-ds-surface/40 p-4">
+              <h3 className="text-sm font-semibold text-ds-primary">Evenement</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                    Horodatage
+                  </p>
+                  <p className="mt-1 text-sm text-ds-primary">
+                    {formatDateTime(selectedLog.timestamp)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                    Utilisateur
+                  </p>
+                  {selectedLog.systemAction ? (
+                    <div className="mt-1">
+                      <Badge variant="neutral" size="sm">
+                        SYSTEM
+                      </Badge>
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <p className="text-sm font-medium text-ds-primary">
+                        {selectedLog.userName || "N/A"}
+                      </p>
+                      <p className="text-xs text-ds-muted">{selectedLog.userEmail || "N/A"}</p>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                    Action
+                  </p>
+                  <div className="mt-1">
+                    <Badge variant={getActionBadgeVariant(selectedLog.action)} size="sm">
+                      {selectedLog.actionLabel || selectedLog.action}
+                    </Badge>
                   </div>
-                )}
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                    Entité
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-ds-primary">
+                    {selectedLog.entityType}{" "}
+                    <span className="text-ds-muted">#{selectedLog.entityId}</span>
+                  </p>
+                  {selectedLog.entityName && (
+                    <p className="mt-0.5 break-words text-xs text-ds-muted">
+                      {selectedLog.entityName}
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">Action</p>
-                <Badge variant={getActionBadgeVariant(selectedLog.action)}>
-                  {selectedLog.actionLabel || selectedLog.action}
-                </Badge>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">Entité</p>
-                <p className="text-sm text-ds-primary">
-                  {selectedLog.entityType}{" "}
-                  <span className="text-ds-muted">#{selectedLog.entityId}</span>
+            </section>
+
+            <section className="rounded-xl border border-ds-border bg-ds-surface/40 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                Description
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-ds-primary">
+                {selectedLog.description || "N/A"}
+              </p>
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div className="rounded-xl border border-ds-border bg-ds-surface/35 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                  Ancienne valeur
                 </p>
-                {selectedLog.entityName && (
-                  <p className="text-xs text-ds-muted">{selectedLog.entityName}</p>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs font-medium text-ds-muted mb-1">Description</p>
-              <p className="text-sm text-ds-primary">{selectedLog.description}</p>
-            </div>
-
-            {selectedLog.oldValue && (
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">Ancienne valeur</p>
-                <pre className="text-xs bg-ds-elevated rounded-lg p-3 overflow-x-auto text-ds-secondary border border-ds-border">
+                <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-ds-border bg-ds-card p-3 text-xs leading-5 text-ds-secondary whitespace-pre-wrap break-all">
                   {formatValue(selectedLog.oldValue)}
                 </pre>
               </div>
-            )}
-
-            {selectedLog.newValue && (
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">Nouvelle valeur</p>
-                <pre className="text-xs bg-ds-elevated rounded-lg p-3 overflow-x-auto text-ds-secondary border border-ds-border">
+              <div className="rounded-xl border border-ds-border bg-ds-surface/35 p-4">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                  Nouvelle valeur
+                </p>
+                <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-ds-border bg-ds-card p-3 text-xs leading-5 text-ds-secondary whitespace-pre-wrap break-all">
                   {formatValue(selectedLog.newValue)}
                 </pre>
               </div>
-            )}
+            </section>
 
-            <div className="grid grid-cols-2 gap-4 pt-3 border-t border-ds-border">
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">Adresse IP</p>
-                <p className="text-sm text-ds-primary font-mono">{selectedLog.ipAddress || "—"}</p>
+            <section className="rounded-xl border border-ds-border bg-ds-surface/40 p-4">
+              <h3 className="text-sm font-semibold text-ds-primary">Contexte technique</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                    Adresse IP
+                  </p>
+                  <code className="mt-1 block break-all text-xs text-ds-primary">
+                    {selectedLog.ipAddress || "N/A"}
+                  </code>
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
+                    User-Agent
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap break-all text-xs leading-5 text-ds-secondary">
+                    {selectedLog.userAgent || "N/A"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-xs font-medium text-ds-muted mb-1">User-Agent</p>
-                <p className="text-xs text-ds-muted break-all">{selectedLog.userAgent || "—"}</p>
-              </div>
-            </div>
+            </section>
           </div>
         )}
       </Modal>

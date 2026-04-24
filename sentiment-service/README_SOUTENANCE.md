@@ -182,7 +182,7 @@ curl -X POST http://localhost:8000/analyze \
 ```
 
 ### Étape 2: Copier le client Java
-Copier le fichier `INTEGRATION_JAVA/SentimentAnalysisClient.java` dans:
+Copier le fichier archive `docs/archive/integration/INTEGRATION_JAVA/SentimentAnalysisClient.java` dans:
 ```
 server/src/main/java/com/billcom/mts/client/
 ```

@@ -14,14 +14,14 @@ interface ChatbotResponseSectionsProps {
 
 const CONFIDENCE_LABELS: Record<ChatLanguage, Record<string, string>> = {
   fr: {
-    high: "Confiance elevee",
+    high: "Confiance élevée",
     medium: "Confiance moyenne",
-    low: "Confiance faible",
+    low: "À confirmer",
   },
   en: {
     high: "High confidence",
     medium: "Medium confidence",
-    low: "Low confidence",
+    low: "Needs confirmation",
   },
 };
 
@@ -61,23 +61,23 @@ const UI_LABELS: Record<
   }
 > = {
   fr: {
-    summary: "Resume",
+    summary: "Résumé",
     probableCause: "Cause probable",
-    knownResolution: "Resolution connue",
+    knownResolution: "Résolution connue",
     workaround: "Contournement",
     impact: "Impact",
     nextAction: "Action suivante",
-    infoToConfirm: "Informations a confirmer",
+    infoToConfirm: "Informations à confirmer",
     caution: "Prudence",
-    detectedService: "Service detecte",
-    serviceDetectionReliability: "Fiabilite detection service",
+    detectedService: "Service détecté",
+    serviceDetectionReliability: "Fiabilité de détection du service",
     confidenceLevel: "Niveau de confiance",
     similarCases: "Incidents ou tickets similaires",
-    found: "trouves",
+    found: "trouvés",
     aiRecommendations: "Recommandations IA",
-    reasoningSteps: "Etapes de raisonnement",
+    reasoningSteps: "Étapes de raisonnement",
     riskFlags: "Drapeaux de risque",
-    modelVersion: "Version modele",
+    modelVersion: "Version du modèle",
     fallbackMode: "Mode fallback",
     latency: "Latence",
     sources: "Sources",
@@ -86,11 +86,11 @@ const UI_LABELS: Record<
     candidate: "Candidat",
     why: "Pourquoi",
     recommendation: "Recommandation",
-    clusterSize: "Taille cluster",
-    timeWindow: "Fenetre",
+    clusterSize: "Taille du cluster",
+    timeWindow: "Fenêtre",
     noValue: "N/A",
-    unspecifiedConfidence: "Confiance non precisee",
-    unspecifiedReliability: "Fiabilite non precisee",
+    unspecifiedConfidence: "Confiance non précisée",
+    unspecifiedReliability: "Fiabilité non précisée",
   },
   en: {
     summary: "Summary",

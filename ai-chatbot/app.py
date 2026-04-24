@@ -22,6 +22,12 @@ from massive_incident_detector import (
     detect_massive_incident_candidates,
     load_ticket_records,
 )
+from manager_copilot_knn import (
+    DEFAULT_K,
+    MODEL_VERSION as MANAGER_COPILOT_MODEL_VERSION,
+    load_or_train_artifact,
+    score_cases_payload,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_DIR = BASE_DIR / "index"
@@ -41,16 +47,22 @@ model = None
 ticket_records = []
 runtime_loading = False
 runtime_loaded = False
+manager_copilot_artifact = None
+manager_copilot_error: Optional[str] = None
 
 
 def initialize_runtime() -> None:
     global startup_error, index, metadata, model, ticket_records, runtime_loading, runtime_loaded
+    global manager_copilot_artifact, manager_copilot_error
 
     runtime_loading = True
     runtime_loaded = False
     startup_error = None
+    manager_copilot_error = None
 
     try:
+        manager_copilot_artifact = load_or_train_artifact()
+
         print("Chargement de l'index FAISS...")
         loaded_index = faiss.read_index(str(INDEX_FILE))
 
@@ -69,12 +81,30 @@ def initialize_runtime() -> None:
         runtime_loaded = True
     except Exception as error:  # pragma: no cover - startup fallback
         startup_error = f"{type(error).__name__}: {error}"
+        if manager_copilot_artifact is None:
+            manager_copilot_error = startup_error
         index = None
         metadata = []
         model = None
         ticket_records = []
     finally:
         runtime_loading = False
+
+
+def _get_manager_copilot_artifact():
+    global manager_copilot_artifact, manager_copilot_error
+
+    if manager_copilot_artifact is not None:
+        return manager_copilot_artifact
+
+    try:
+        manager_copilot_artifact = load_or_train_artifact()
+        manager_copilot_error = None
+    except Exception as error:  # pragma: no cover - runtime fallback
+        manager_copilot_error = f"{type(error).__name__}: {error}"
+        manager_copilot_artifact = None
+
+    return manager_copilot_artifact
 
 
 @app.on_event("startup")
@@ -170,6 +200,72 @@ class MassiveIncidentDetectionResponse(BaseModel):
     missing_information: List[str] = Field(default_factory=list)
     sources: List[str] = Field(default_factory=list)
     latency_ms: Optional[float] = None
+
+
+class ManagerCopilotFeatureSet(BaseModel):
+    priority: str
+    status: str
+    age_hours: float = 0.0
+    sla_remaining_minutes: float = 0.0
+    sla_breached: bool = False
+    service_degraded: bool = False
+    similar_ticket_count: float = 0.0
+    probable_mass_incident: bool = False
+    duplicate_confidence: float = 0.0
+    frustration_score: float = 0.0
+    backlog_open_tickets: float = 0.0
+    agent_open_ticket_count: float = 0.0
+    incident_linked: bool = False
+    business_impact: str = "MEDIUM"
+    service_criticality: str = "MEDIUM"
+    assigned: bool = False
+
+
+class ManagerCopilotScoreCaseRequest(BaseModel):
+    case_id: str
+    title: str
+    service_name: Optional[str] = None
+    ticket_number: Optional[str] = None
+    features: ManagerCopilotFeatureSet
+
+
+class ManagerCopilotScoreRequest(BaseModel):
+    k: int = DEFAULT_K
+    cases: List[ManagerCopilotScoreCaseRequest]
+
+
+class ManagerCopilotNearestExampleResponse(BaseModel):
+    example_id: str
+    label: str
+    title: str
+    summary: str
+    recommendation: str
+    distance: float
+    feature_summary: List[str] = Field(default_factory=list)
+
+
+class ManagerCopilotScoreCaseResponse(BaseModel):
+    case_id: str
+    predicted_action: str
+    confidence_score: float
+    confidence_level: str
+    nearest_examples: List[ManagerCopilotNearestExampleResponse] = Field(default_factory=list)
+    feature_summary: List[str] = Field(default_factory=list)
+    reasoning: str
+    inference_mode: str = "knn"
+    model_version: str = MANAGER_COPILOT_MODEL_VERSION
+    fallback_mode: str = "knn_primary"
+
+
+class ManagerCopilotScoreResponse(BaseModel):
+    available: bool = True
+    model_version: str = MANAGER_COPILOT_MODEL_VERSION
+    inference_mode: str = "knn"
+    fallback_mode: str = "knn_primary"
+    confidence_score: float = 0.0
+    confidence_level: str = "low"
+    results: List[ManagerCopilotScoreCaseResponse] = Field(default_factory=list)
+    reasoning_steps: List[str] = Field(default_factory=list)
 
 
 def _normalize_text(value: Optional[str]) -> str:
@@ -339,6 +435,26 @@ def _resolve_detection_confidence(candidates: List[MassiveIncidentCandidateRespo
     return (candidates[0].confidence_level or "low").lower()
 
 
+def _resolve_runtime_unavailability_reason(language: str = "fr") -> Optional[str]:
+    if runtime_loading and model is None:
+        if language == "en":
+            return "The AI runtime is still starting. A reduced fallback response is returned."
+        return "Le moteur IA est en cours d'initialisation. Une reponse degradee est renvoyee."
+
+    if startup_error or index is None or model is None:
+        if language == "en":
+            return (
+                "The AI runtime is not fully available. "
+                "Check the FAISS index, embeddings model, and Python dependencies."
+            )
+        return (
+            "Le moteur IA n'est pas completement disponible. "
+            "Verifiez l'index FAISS, le modele d'embeddings et les dependances Python."
+        )
+
+    return None
+
+
 def _build_detection_reasoning_steps(
     request: MassiveIncidentDetectionRequest,
     response_candidates: List[MassiveIncidentCandidateResponse],
@@ -500,24 +616,103 @@ def _run_massive_incident_detection(
     )
 
 
-def ensure_runtime_ready() -> None:
-    if runtime_loading and model is None:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Le moteur du chatbot IA est en cours d'initialisation. "
-                "Reessayez dans quelques instants."
-            ),
-        )
+def _build_runtime_fallback_chat_response(
+    request: ChatRequest,
+    response_language: str,
+    reason: str,
+    started_at: float,
+) -> ChatResponse:
+    analysis = build_structured_analysis(
+        question=request.question,
+        raw_results=[],
+        confidence="low",
+        service_detected="N/A",
+        language=response_language,
+    )
+    answer = build_answer_from_analysis(analysis, response_language)
+    latency_ms = round((time.time() - started_at) * 1000, 1)
 
-    if startup_error or index is None or model is None:
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Le moteur du chatbot IA n'est pas pret. "
-                "Verifiez les index, le modele d'embeddings et les dependances Python."
-            ),
-        )
+    recommended_actions = [
+        "Redemarrer le microservice ai-chatbot puis relancer la question."
+        if response_language == "fr"
+        else "Restart the ai-chatbot service and ask again.",
+        "Poursuivre l'analyse manuelle avec le contexte ticket disponible."
+        if response_language == "fr"
+        else "Continue with a manual analysis using the available ticket context.",
+    ]
+
+    return ChatResponse(
+        answer=answer,
+        confidence="low",
+        top_score=0.0,
+        service_detected="N/A",
+        service_detection_confidence="low",
+        response_language=response_language,
+        analysis=ChatAnalysisResponse(
+            summary=analysis.summary,
+            probable_cause=analysis.probable_cause,
+            known_resolution=analysis.known_resolution,
+            workaround=analysis.workaround,
+            impact=analysis.impact,
+            next_action=analysis.next_action,
+            clarification_needed=analysis.clarification_needed,
+            missing_information=analysis.missing_information,
+            caution=analysis.caution or reason,
+            draft_ticket_title=analysis.draft_ticket_title,
+        ),
+        results=[],
+        massive_incident_candidate=None,
+        model_version=CHATBOT_MODEL_VERSION,
+        fallback_mode="runtime_unavailable",
+        reasoning_steps=[
+            "Aucun resultat RAG n'a ete interroge car le runtime IA n'est pas pret."
+            if response_language == "fr"
+            else "No RAG lookup was executed because the AI runtime is not ready.",
+            reason,
+        ],
+        recommended_actions=recommended_actions,
+        risk_flags=["RUNTIME_UNAVAILABLE"],
+        missing_information=analysis.missing_information if analysis.missing_information else [],
+        sources=["runtime-fallback"],
+        latency_ms=latency_ms,
+    )
+
+
+def _build_runtime_fallback_detection_response(
+    request: MassiveIncidentDetectionRequest,
+    language: str,
+    reason: str,
+    started_at: float,
+) -> MassiveIncidentDetectionResponse:
+    latency_ms = round((time.time() - started_at) * 1000, 1)
+
+    return MassiveIncidentDetectionResponse(
+        available=False,
+        evaluated_tickets=len(ticket_records),
+        candidates_found=0,
+        candidates=[],
+        confidence="low",
+        model_version=MASSIVE_DETECTION_MODEL_VERSION,
+        fallback_mode="runtime_unavailable",
+        reasoning_steps=[
+            "Detection massive non executee: runtime IA indisponible."
+            if language == "fr"
+            else "Massive-incident detection not executed because the AI runtime is unavailable.",
+            reason,
+        ],
+        recommended_actions=[
+            "Relancer ai-chatbot puis reexecuter la detection."
+            if language == "fr"
+            else "Restart ai-chatbot and rerun the detection.",
+            "Continuer la supervision manuelle et consolider les tickets similaires."
+            if language == "fr"
+            else "Continue manual supervision and consolidate similar tickets.",
+        ],
+        risk_flags=["RUNTIME_UNAVAILABLE", "NO_MASS_CLUSTER_DETECTED"],
+        missing_information=[],
+        sources=["runtime-fallback"],
+        latency_ms=latency_ms,
+    )
 
 
 @app.get("/")
@@ -545,8 +740,16 @@ def health():
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
     start_time = time.time()
-    ensure_runtime_ready()
     response_language = resolve_response_language(request.question, request.preferred_language)
+    runtime_unavailability_reason = _resolve_runtime_unavailability_reason(response_language)
+
+    if runtime_unavailability_reason:
+        return _build_runtime_fallback_chat_response(
+            request,
+            response_language,
+            runtime_unavailability_reason,
+            start_time,
+        )
 
     query_embedding = model.encode(
         [request.question],
@@ -662,16 +865,33 @@ def chat(request: ChatRequest):
     )
 
 
+@app.post("/manager-copilot/score", response_model=ManagerCopilotScoreResponse)
+def score_manager_copilot_cases(request: ManagerCopilotScoreRequest):
+    payload = score_cases_payload(
+        cases=[case.model_dump() for case in request.cases],
+        artifact=_get_manager_copilot_artifact(),
+        k=request.k,
+    )
+    return ManagerCopilotScoreResponse(**payload)
+
+
 @app.post("/massive-incidents/detect", response_model=MassiveIncidentDetectionResponse)
 def detect_massive_incidents(request: MassiveIncidentDetectionRequest):
     start_time = time.time()
-    ensure_runtime_ready()
 
     try:
         response_language = resolve_response_language(
             request.query_hint or "",
             request.preferred_language,
         )
+        runtime_unavailability_reason = _resolve_runtime_unavailability_reason(response_language)
+        if runtime_unavailability_reason:
+            return _build_runtime_fallback_detection_response(
+                request,
+                response_language,
+                runtime_unavailability_reason,
+                start_time,
+            )
         response = _run_massive_incident_detection(request, response_language)
         response.latency_ms = round((time.time() - start_time) * 1000, 1)
         return response

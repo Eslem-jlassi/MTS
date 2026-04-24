@@ -253,26 +253,14 @@ class AuthServiceImplTest {
         }
 
         @Test
-        @DisplayName("Devrait autoriser un role ADMIN si allowInternalSignup=true")
-        void register_admin_allowed_when_signup_enabled() {
+        @DisplayName("Devrait refuser un role ADMIN meme si allowInternalSignup=true")
+        void register_admin_still_forbidden_when_signup_enabled() {
             ReflectionTestUtils.setField(authService, "allowInternalSignup", true);
             RegisterRequest request = validClientRequest();
             request.setRole(UserRole.ADMIN);
 
-            when(userRepository.existsByEmail(anyString())).thenReturn(false);
-            when(passwordEncoder.encode(anyString())).thenReturn("encoded");
-            when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-                User user = invocation.getArgument(0);
-                user.setId(2L);
-                return user;
-            });
-            when(refreshTokenService.createRefreshToken(any(), anyString(), anyString()))
-                    .thenReturn(testRefreshToken);
-            when(jwtService.generateAccessToken(any())).thenReturn("tok");
-            when(jwtService.getAccessTokenExpiration()).thenReturn(900000L);
-
-            AuthResponse response = authService.register(request, "127.0.0.1");
-            assertThat(response).isNotNull();
+            assertThatThrownBy(() -> authService.register(request, "127.0.0.1"))
+                    .isInstanceOf(ForbiddenException.class);
         }
 
         @Test
@@ -324,7 +312,134 @@ class AuthServiceImplTest {
             assertThat(response.getAccessToken()).isEqualTo("new-access-token");
             assertThat(response.getRefreshToken()).isEqualTo("new-refresh-token");
         }
+
+        @Test
+        @DisplayName("Devrait refuser le refresh si l'email n'est pas verifie quand la verification est activee")
+        void refreshToken_unverifiedEmail_forbidden() {
+            ReflectionTestUtils.setField(authService, "requireEmailVerification", true);
+
+            User unverifiedUser = User.builder()
+                    .id(2L)
+                    .email("client@test.tn")
+                    .password("encoded")
+                    .firstName("Client")
+                    .lastName("Test")
+                    .role(UserRole.CLIENT)
+                    .isActive(true)
+                    .emailVerified(false)
+                    .build();
+
+            RefreshToken staleToken = RefreshToken.builder()
+                    .id(3L)
+                    .user(unverifiedUser)
+                    .token("stale-refresh-token")
+                    .expiresAt(LocalDateTime.now().plusDays(1))
+                    .revoked(false)
+                    .build();
+
+            when(refreshTokenService.validateRefreshToken("stale-refresh-token")).thenReturn(staleToken);
+
+            assertThatThrownBy(() -> authService.refreshToken("stale-refresh-token", "127.0.0.1"))
+                    .isInstanceOf(ForbiddenException.class)
+                    .hasMessageContaining("pas encore verifiee");
+
+            verify(refreshTokenService).revokeToken("stale-refresh-token");
+            verify(refreshTokenService, never()).rotateRefreshToken(anyString(), anyString(), anyString());
+        }
     }
+
+        @Nested
+        @DisplayName("forgotPassword() / resetPassword()")
+        class PasswordResetTests {
+
+                @Test
+                @DisplayName("Devrait stocker un hash du token de reset et envoyer le token brut par email")
+                void forgotPassword_storesHashAndEmailsRawToken() {
+                        User user = User.builder()
+                                        .id(7L)
+                                        .email("client@test.tn")
+                                        .password("encoded")
+                                        .role(UserRole.CLIENT)
+                                        .isActive(true)
+                                        .emailVerified(true)
+                                        .build();
+
+                        when(userRepository.findByEmail("client@test.tn")).thenReturn(java.util.Optional.of(user));
+                        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                        authService.forgotPassword("client@test.tn");
+
+                        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+                        verify(userRepository).save(userCaptor.capture());
+                        User savedUser = userCaptor.getValue();
+
+                        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+                        verify(emailService).sendPasswordResetEmail(eq("client@test.tn"), tokenCaptor.capture());
+
+                        String rawToken = tokenCaptor.getValue();
+                        assertThat(rawToken).isNotBlank();
+                        assertThat(savedUser.getPasswordResetToken()).isNotBlank();
+                        assertThat(savedUser.getPasswordResetToken()).isNotEqualTo(rawToken);
+                        assertThat(savedUser.getPasswordResetTokenExpiry()).isAfter(LocalDateTime.now().minusSeconds(5));
+                }
+
+                @Test
+                @DisplayName("Devrait accepter un token de reset historique en clair")
+                void resetPassword_acceptsLegacyPlaintextToken() {
+                        User user = User.builder()
+                                        .id(8L)
+                                        .email("legacy@test.tn")
+                                        .password("old-encoded")
+                                        .passwordResetToken("legacy-token")
+                                        .passwordResetTokenExpiry(LocalDateTime.now().plusMinutes(30))
+                                        .role(UserRole.CLIENT)
+                                        .isActive(true)
+                                        .emailVerified(true)
+                                        .build();
+
+                        when(userRepository.findByPasswordResetToken(anyString())).thenReturn(java.util.Optional.empty());
+                        when(userRepository.findByPasswordResetToken("legacy-token"))
+                                        .thenReturn(java.util.Optional.of(user));
+                        when(passwordEncoder.encode("NouveauPass1")).thenReturn("new-encoded");
+
+                        authService.resetPassword("legacy-token", "NouveauPass1");
+
+                        verify(userRepository).save(argThat(saved ->
+                                        "new-encoded".equals(saved.getPassword())
+                                                        && saved.getPasswordResetToken() == null
+                                                        && saved.getPasswordResetTokenExpiry() == null
+                        ));
+                }
+        }
+
+        @Nested
+        @DisplayName("googleLogin()")
+        class GoogleLoginTests {
+
+                @Test
+                @DisplayName("Devrait refuser la connexion Google si la configuration serveur est absente")
+                void googleLogin_missingBackendConfiguration_badRequest() {
+                        ReflectionTestUtils.setField(authService, "googleClientId", "");
+
+                        assertThatThrownBy(() -> authService.googleLogin("google-id-token", "127.0.0.1"))
+                                        .isInstanceOf(BadRequestException.class)
+                                        .hasMessageContaining("Connexion Google non configuree");
+                }
+
+                @Test
+                @DisplayName("Devrait refuser la connexion Google si le token est manquant")
+                void googleLogin_missingToken_badRequest() {
+                        ReflectionTestUtils.setField(
+                                        authService,
+                                        "googleClientId",
+                                        "frontend-app.apps.googleusercontent.com"
+                        );
+
+                        assertThatThrownBy(() -> authService.googleLogin("   ", "127.0.0.1"))
+                                        .isInstanceOf(BadRequestException.class)
+                                        .hasMessageContaining("Token Google manquant");
+                }
+        }
 
     @Nested
     @DisplayName("verifyEmail()")
@@ -341,6 +456,7 @@ class AuthServiceImplTest {
                     .emailVerificationTokenExpiry(LocalDateTime.now().plusHours(2))
                     .build();
 
+            when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(java.util.Optional.empty());
             when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
 
             authService.verifyEmail("verify-token");
@@ -363,6 +479,7 @@ class AuthServiceImplTest {
                     .emailVerificationTokenExpiry(LocalDateTime.now().minusMinutes(1))
                     .build();
 
+            when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(java.util.Optional.empty());
             when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
 
             assertThatThrownBy(() -> authService.verifyEmail("verify-token"))
@@ -381,6 +498,7 @@ class AuthServiceImplTest {
                     .emailVerificationTokenExpiry(LocalDateTime.now().plusHours(2))
                     .build();
 
+            when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(java.util.Optional.empty());
             when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
 
             authService.verifyEmail("verify-token");
@@ -416,12 +534,16 @@ class AuthServiceImplTest {
 
             assertThat(savedUser.getEmailVerificationToken()).isNotBlank();
             assertThat(savedUser.getEmailVerificationTokenExpiry()).isAfter(LocalDateTime.now());
+            ArgumentCaptor<String> sentTokenCaptor = ArgumentCaptor.forClass(String.class);
             verify(emailService).sendEmailVerificationEmail(
                     eq("agent@test.tn"),
                     eq("Agent Test"),
-                    eq(savedUser.getEmailVerificationToken()),
+                    sentTokenCaptor.capture(),
                     eq(savedUser.getEmailVerificationTokenExpiry())
             );
+
+            assertThat(sentTokenCaptor.getValue()).isNotBlank();
+            assertThat(savedUser.getEmailVerificationToken()).isNotEqualTo(sentTokenCaptor.getValue());
         }
 
         @Test

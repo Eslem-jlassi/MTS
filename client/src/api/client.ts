@@ -124,6 +124,23 @@ export const getErrorMessage = (error: unknown): string => {
         return (data as ApiError).message;
       }
     }
+
+    if (status === 400) {
+      return "Requete invalide. Verifiez les informations saisies.";
+    }
+    if (status === 401) {
+      return "Authentification invalide ou expiree.";
+    }
+    if (status === 403) {
+      return "Acces refuse pour cette operation.";
+    }
+    if (status === 404) {
+      return "Ressource introuvable.";
+    }
+    if (status >= 500) {
+      return "Une erreur serveur est survenue. Reessayez dans quelques instants.";
+    }
+
     return error.message || "Une erreur est survenue";
   }
   if (error instanceof Error) {

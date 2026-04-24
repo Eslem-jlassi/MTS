@@ -5,13 +5,17 @@ package com.billcom.mts.repository;
 // =============================================================================
 
 import com.billcom.mts.entity.Ticket;
+import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.TicketPriority;
 import com.billcom.mts.enums.TicketStatus;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -94,6 +98,9 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
     @EntityGraph(attributePaths = {"client", "service", "assignedTo"})
     Page<Ticket> findByClientId(Long clientId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"client", "service", "assignedTo"})
+    List<Ticket> findByClientId(Long clientId);
+
     /**
      * Trouve les tickets actifs d'un client (excluant un statut).
      */
@@ -123,6 +130,13 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
      */
     @EntityGraph(attributePaths = {"client", "service", "assignedTo"})
     Page<Ticket> findByAssignedToId(Long agentId, Pageable pageable);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT t FROM Ticket t WHERE t.id = :ticketId")
+    Optional<Ticket> findByIdForUpdate(@Param("ticketId") Long ticketId);
+
+    @EntityGraph(attributePaths = {"client", "service", "assignedTo"})
+    List<Ticket> findByCreatedById(Long userId);
 
     /**
      * Trouve les tickets non assignes encore actifs.
@@ -378,6 +392,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.assignedTo.id = :agentId AND t.breachedSla = true")
     long countSlaBreachedByAgent(@Param("agentId") Long agentId);
 
+    long countByAssignedToIdAndStatus(Long agentId, TicketStatus status);
+
     /** Compte les tickets d'un client */
     long countByClientId(Long clientId);
 
@@ -386,6 +402,14 @@ public interface TicketRepository extends JpaRepository<Ticket, Long>, JpaSpecif
 
     /** Compte les tickets crees par un utilisateur */
     long countByCreatedById(Long userId);
+
+    @Modifying
+    @Query("UPDATE Ticket t SET t.createdBy = :replacementUser WHERE t.createdBy.id = :userId")
+    int reassignCreatedBy(@Param("userId") Long userId, @Param("replacementUser") User replacementUser);
+
+    @Modifying
+    @Query("UPDATE Ticket t SET t.assignedTo = NULL WHERE t.assignedTo.id = :userId")
+    int clearAssignmentsForUser(@Param("userId") Long userId);
 
     /** Compte les tickets actifs d'un client */
     @Query("SELECT COUNT(t) FROM Ticket t WHERE t.client.id = :clientId AND t.status NOT IN (com.billcom.mts.enums.TicketStatus.CLOSED, com.billcom.mts.enums.TicketStatus.RESOLVED, com.billcom.mts.enums.TicketStatus.CANCELLED)")

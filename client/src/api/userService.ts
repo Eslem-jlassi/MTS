@@ -4,6 +4,7 @@
 
 import api from "./client";
 import {
+  AdminHardDeleteRequestPayload,
   CreateInternalUserRequest,
   NotificationPreferences,
   PageRequest,
@@ -73,8 +74,15 @@ export const userService = {
     await api.post(`${USERS_PREFIX}/${id}/activate`);
   },
 
-  hardDeleteUser: async (id: number): Promise<void> => {
-    await api.delete(`${USERS_PREFIX}/${id}/hard-delete`);
+  hardDeleteUser: async (id: number, payload: AdminHardDeleteRequestPayload): Promise<void> => {
+    await api.delete(`${USERS_PREFIX}/${id}/hard-delete`, { data: payload });
+  },
+
+  requestHardDeleteChallenge: async (id: number): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(
+      `${USERS_PREFIX}/${id}/hard-delete/challenge`,
+    );
+    return response.data;
   },
 
   setPasswordByAdmin: async (id: number, newPassword: string): Promise<void> => {

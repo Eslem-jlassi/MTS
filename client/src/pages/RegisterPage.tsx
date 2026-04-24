@@ -37,7 +37,7 @@ const roleOptions: RoleOption[] = [
   {
     value: UserRole.CLIENT,
     label: "Client",
-    description: "Creer et suivre vos tickets de support",
+    description: "Créer et suivre vos tickets de support",
     icon: <Users size={20} />,
     cls: "bg-primary-600/10 border-primary-600/20 text-primary-600",
   },
@@ -98,7 +98,7 @@ export default function RegisterPage() {
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
-    if (!formData.firstName.trim()) errors.firstName = "Le prenom est requis";
+    if (!formData.firstName.trim()) errors.firstName = "Le prénom est requis";
     if (!formData.lastName.trim()) errors.lastName = "Le nom est requis";
     if (!formData.email.trim()) errors.email = "L'adresse email est requise";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -141,7 +141,9 @@ export default function RegisterPage() {
       ).unwrap();
 
       if (shouldWaitForEmailVerification(response)) {
-        navigate(`/verify-email?email=${encodeURIComponent(response.user.email)}&status=pending`);
+        navigate(
+          `/verify-email?email=${encodeURIComponent(response.user.email)}&status=pending&source=signup`,
+        );
         return;
       }
 
@@ -164,7 +166,7 @@ export default function RegisterPage() {
   };
 
   const handleGoogleError = () => {
-    setGoogleError("Echec de la connexion Google");
+    setGoogleError("Échec de la connexion Google");
   };
 
   const selectedRole = roleOptions.find((r) => r.value === formData.role);
@@ -183,7 +185,7 @@ export default function RegisterPage() {
     rightElement?: React.ReactNode,
   ) => (
     <div className="group">
-      <label className="mb-1.5 block text-sm font-medium text-ds-secondary">{label}</label>
+      <label className="auth-field-label">{label}</label>
       <div className="relative">
         {icon && (
           <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ds-muted transition-colors group-focus-within:text-primary-400">
@@ -206,20 +208,24 @@ export default function RegisterPage() {
           <span className="absolute right-3.5 top-1/2 -translate-y-1/2">{rightElement}</span>
         )}
       </div>
-      {validationErrors[name] && (
-        <p className="mt-1 text-xs text-red-400">{validationErrors[name]}</p>
-      )}
+      {validationErrors[name] && <p className="auth-field-error">{validationErrors[name]}</p>}
     </div>
   );
 
   return (
     <AuthLayout>
       <motion.div
-        className="auth-glass p-7 sm:p-9"
+        className="auth-panel auth-glass auth-panel-wide"
         initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, delay: 0.2 }}
       >
+        <div className="mb-6">
+          <span className="auth-kicker">
+            <CheckCircle size={14} />
+            Inscription client
+          </span>
+        </div>
         <div className="mb-6 flex justify-center gap-2 lg:hidden">
           {steps.map((s) => (
             <span
@@ -265,11 +271,11 @@ export default function RegisterPage() {
 
         <AnimatePresence mode="wait">
           {step === 1 ? (
-            <motion.div key="step1" {...pageTransition} className="space-y-6">
+            <motion.div key="step1" {...pageTransition} className="space-y-5">
               <div className="text-center">
-                <h2 className="text-xl font-bold text-ds-primary">Choisissez votre profil</h2>
+                <h2 className="auth-title text-xl">Choisissez votre profil</h2>
                 <p className="mt-1.5 text-sm text-ds-muted">
-                  Inscription publique reservee aux comptes clients
+                  Inscription publique réservée aux comptes clients
                 </p>
               </div>
 
@@ -279,7 +285,7 @@ export default function RegisterPage() {
                     key={option.value}
                     type="button"
                     onClick={() => handleRoleSelect(option.value)}
-                    className="group rounded-xl border border-ds-border/50 bg-ds-elevated/40 p-4 text-left transition-all duration-200 hover:border-primary/20 hover:shadow-soft-lg"
+                    className="group rounded-xl border border-ds-border/50 bg-ds-elevated/40 p-4 text-left transition-all duration-200 hover:border-primary/20 hover:shadow-soft-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
                     whileHover={{ y: -2 }}
                   >
                     <div className="flex items-center gap-3">
@@ -301,13 +307,13 @@ export default function RegisterPage() {
 
               <div className="rounded-xl border border-ds-border/60 bg-ds-elevated/40 px-4 py-3">
                 <p className="text-sm text-ds-muted">
-                  Les comptes internes agent, manager et administrateur sont crees par un
+                  Les comptes internes agent, manager et administrateur sont créés par un
                   administrateur depuis le back-office.
                 </p>
               </div>
 
               <p className="pt-2 text-center text-sm text-ds-muted">
-                Deja un compte ?{" "}
+                Déjà un compte ?{" "}
                 <Link to="/login" className="auth-link font-semibold">
                   Se connecter
                 </Link>
@@ -333,21 +339,21 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              <h2 className="text-xl font-bold text-ds-primary">Creer votre compte</h2>
-              <p className="mb-5 mt-1 text-sm text-ds-muted">
+              <h2 className="auth-title text-xl">Créer votre compte</h2>
+              <p className="mb-4 mt-1 text-sm text-ds-muted">
                 Renseignez vos informations pour activer votre espace client.
               </p>
 
               {displayError && (
-                <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-500 dark:text-red-400">
-                  <AlertCircle size={18} className="flex-shrink-0 text-red-400" />
-                  <span>{displayError}</span>
+                <div className="auth-alert auth-alert-error mb-5">
+                  <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+                  <p className="leading-relaxed">{displayError}</p>
                 </div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  {renderField("firstName", "Prenom *", "text", "Jean")}
+              <form onSubmit={handleSubmit} className="auth-form-stack">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {renderField("firstName", "Prénom *", "text", "Jean")}
                   {renderField("lastName", "Nom *", "text", "Dupont")}
                 </div>
 
@@ -358,7 +364,7 @@ export default function RegisterPage() {
                   "vous@entreprise.com",
                   <Mail size={18} />,
                 )}
-                {renderField("phone", "Telephone", "tel", "+216 XX XXX XXX", <Phone size={18} />)}
+                {renderField("phone", "Téléphone", "tel", "+216 XX XXX XXX", <Phone size={18} />)}
 
                 {formData.role === UserRole.CLIENT &&
                   renderField(
@@ -384,8 +390,8 @@ export default function RegisterPage() {
                   </button>,
                 )}
                 {!validationErrors.password && (
-                  <p className="-mt-3 text-xs text-ds-muted">
-                    Minimum 8 caracteres, avec une majuscule, une minuscule et un chiffre
+                  <p className="auth-help-text">
+                    Minimum 8 caractères, avec une majuscule, une minuscule et un chiffre
                   </p>
                 )}
 
@@ -417,25 +423,25 @@ export default function RegisterPage() {
                     }}
                     className="mt-1 h-4 w-4 cursor-pointer rounded border-ds-border bg-ds-elevated text-primary-500 focus:ring-primary-500/30"
                   />
-                  <label htmlFor="acceptTerms" className="cursor-pointer text-sm text-ds-muted">
+                  <label htmlFor="acceptTerms" className="cursor-pointer text-sm text-ds-secondary">
                     J'accepte les <span className="auth-link">conditions d'utilisation</span> et la{" "}
-                    <span className="auth-link">politique de confidentialite</span>.
+                    <span className="auth-link">politique de confidentialité</span>.
                   </label>
                 </div>
                 {validationErrors.terms && (
-                  <p className="text-xs text-red-400">{validationErrors.terms}</p>
+                  <p className="auth-field-error">{validationErrors.terms}</p>
                 )}
 
                 <button type="submit" disabled={loading} className="auth-btn-primary">
                   {loading ? (
                     <>
                       <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                      Creation...
+                      Création...
                     </>
                   ) : (
                     <>
                       <CheckCircle size={18} />
-                      Creer mon compte
+                      Créer mon compte
                     </>
                   )}
                 </button>

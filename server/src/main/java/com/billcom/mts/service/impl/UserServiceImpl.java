@@ -2,14 +2,25 @@ package com.billcom.mts.service.impl;
 
 import com.billcom.mts.dto.user.UserResponse;
 import com.billcom.mts.dto.user.UserUpdateRequest;
+import com.billcom.mts.entity.Report;
+import com.billcom.mts.entity.Ticket;
+import com.billcom.mts.entity.TicketAttachment;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.UserRole;
 import com.billcom.mts.exception.BadRequestException;
 import com.billcom.mts.exception.ResourceNotFoundException;
 import com.billcom.mts.repository.AuditLogRepository;
+import com.billcom.mts.repository.EscalationRuleRepository;
+import com.billcom.mts.repository.IncidentRepository;
+import com.billcom.mts.repository.IncidentTimelineRepository;
 import com.billcom.mts.repository.NotificationRepository;
+import com.billcom.mts.repository.QuickReplyTemplateRepository;
 import com.billcom.mts.repository.RefreshTokenRepository;
 import com.billcom.mts.repository.ReportRepository;
+import com.billcom.mts.repository.ServiceStatusHistoryRepository;
+import com.billcom.mts.repository.SlaTimelineRepository;
+import com.billcom.mts.repository.TelecomServiceRepository;
+import com.billcom.mts.repository.TicketAttachmentRepository;
 import com.billcom.mts.repository.TicketCommentRepository;
 import com.billcom.mts.repository.TicketHistoryRepository;
 import com.billcom.mts.repository.TicketRepository;
@@ -17,6 +28,7 @@ import com.billcom.mts.repository.UserRepository;
 import com.billcom.mts.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -63,16 +75,27 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
+    private final TicketAttachmentRepository ticketAttachmentRepository;
     private final TicketCommentRepository ticketCommentRepository;
     private final TicketHistoryRepository ticketHistoryRepository;
     private final ReportRepository reportRepository;
     private final AuditLogRepository auditLogRepository;
     private final NotificationRepository notificationRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final IncidentRepository incidentRepository;
+    private final IncidentTimelineRepository incidentTimelineRepository;
+    private final TelecomServiceRepository telecomServiceRepository;
+    private final QuickReplyTemplateRepository quickReplyTemplateRepository;
+    private final ServiceStatusHistoryRepository serviceStatusHistoryRepository;
+    private final EscalationRuleRepository escalationRuleRepository;
+    private final SlaTimelineRepository slaTimelineRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${users.avatar-upload-dir:uploads/avatars}")
     private String avatarUploadDir;
+
+    @Value("${tickets.upload-dir:uploads/tickets}")
+    private String ticketUploadDir;
 
     @Override
     public UserResponse getUserById(Long id) {
@@ -120,6 +143,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserResponse updateUserRole(Long userId, UserRole role) {
         User user = getUserEntityById(userId);
+        ensureLastActiveAdminRemains(user, role != UserRole.ADMIN, "retrograde");
         user.setRole(role);
         user = userRepository.save(user);
         log.info("User role updated: {} -> {}", user.getEmail(), role);
@@ -166,6 +190,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deactivateUser(Long userId) {
         User user = getUserEntityById(userId);
+        ensureLastActiveAdminRemains(user, true, "desactive");
         user.setIsActive(false);
         userRepository.save(user);
         log.info("User deactivated: {}", user.getEmail());
@@ -182,30 +207,26 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void hardDeleteUserByAdmin(Long userId) {
+    public void hardDeleteUserByAdmin(Long userId, User currentAdmin) {
         User user = getUserEntityById(userId);
-        List<String> blockers = collectHardDeleteBlockers(user, false);
-        throwIfHardDeleteBlocked(blockers);
-
+        validateAdminDeletionRequest(user, currentAdmin, false);
+        reassignInternalUserReferences(user, currentAdmin);
         deleteUserEphemeralData(user);
-        userRepository.delete(user);
-        log.info("User permanently deleted: {}", user.getEmail());
+        deleteUserRecord(user, "User");
     }
 
     @Override
     @Transactional
-    public void hardDeleteClientAccountByAdmin(Long userId) {
+    public void hardDeleteClientAccountByAdmin(Long userId, User currentAdmin) {
         User user = getUserEntityById(userId);
         if (user.getClientProfile() == null) {
             throw new BadRequestException("Ce compte ne correspond pas a un client");
         }
 
-        List<String> blockers = collectHardDeleteBlockers(user, true);
-        throwIfHardDeleteBlocked(blockers);
-
+        validateAdminDeletionRequest(user, currentAdmin, true);
+        deleteClientTickets(user);
         deleteUserEphemeralData(user);
-        userRepository.delete(user);
-        log.info("Client account permanently deleted: {}", user.getEmail());
+        deleteUserRecord(user, "Client account");
     }
 
     @Override
@@ -371,64 +392,139 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    private List<String> collectHardDeleteBlockers(User user, boolean allowClientProfileDeletion) {
-        List<String> blockers = new ArrayList<>();
-
-        if (user.getRole() == UserRole.ADMIN && userRepository.countByRole(UserRole.ADMIN) <= 1) {
-            blockers.add("le dernier administrateur ne peut pas etre supprime");
+    private void validateAdminDeletionRequest(User user, User currentAdmin, boolean allowClientProfileDeletion) {
+        if (currentAdmin == null || currentAdmin.getId() == null) {
+            throw new BadRequestException("Un administrateur authentifie est requis pour cette suppression");
         }
-
-        if (user.getClientProfile() != null) {
-            long clientTicketCount = ticketRepository.countByClientId(user.getClientProfile().getId());
-            if (clientTicketCount > 0) {
-                blockers.add("le compte client possede " + clientTicketCount + " ticket(s)");
-            }
-            if (!allowClientProfileDeletion) {
-                blockers.add("les comptes clients doivent etre supprimes depuis le module Clients");
+        if (user.getRole() == UserRole.ADMIN) {
+            long activeAdminCount = userRepository.countByRoleAndIsActiveTrue(UserRole.ADMIN);
+            if (Boolean.TRUE.equals(user.getIsActive()) && activeAdminCount <= 1) {
+                throw new BadRequestException("Le dernier administrateur actif ne peut pas etre supprime");
+            } else if (userRepository.countByRole(UserRole.ADMIN) <= 1) {
+                throw new BadRequestException("Le dernier administrateur ne peut pas etre supprime");
             }
         }
 
-        long createdTicketCount = ticketRepository.countByCreatedById(user.getId());
-        if (createdTicketCount > 0 && user.getClientProfile() == null) {
-            blockers.add("l'utilisateur a cree " + createdTicketCount + " ticket(s)");
+        if (!allowClientProfileDeletion && user.getClientProfile() != null) {
+            throw new BadRequestException("Les comptes clients doivent etre supprimes depuis le module Clients");
         }
 
-        long assignedTicketCount = ticketRepository.countByAssignedToId(user.getId());
-        if (assignedTicketCount > 0) {
-            blockers.add("l'utilisateur est encore assigne a " + assignedTicketCount + " ticket(s)");
+        if (currentAdmin.getId().equals(user.getId())) {
+            throw new BadRequestException("Vous ne pouvez pas supprimer definitivement votre propre compte");
         }
-
-        long commentCount = ticketCommentRepository.countByAuthorId(user.getId());
-        if (commentCount > 0) {
-            blockers.add("l'utilisateur a redige " + commentCount + " commentaire(s)");
-        }
-
-        long historyCount = ticketHistoryRepository.countByUserId(user.getId());
-        if (historyCount > 0) {
-            blockers.add("l'utilisateur apparait dans " + historyCount + " entree(s) d'historique ticket");
-        }
-
-        long reportCount = reportRepository.countByCreatedBy(user);
-        if (reportCount > 0) {
-            blockers.add("l'utilisateur a genere " + reportCount + " rapport(s)");
-        }
-
-        long auditCount = auditLogRepository.countByUserId(user.getId());
-        if (auditCount > 0) {
-            blockers.add("l'utilisateur apparait dans " + auditCount + " log(s) d'audit");
-        }
-
-        return blockers;
     }
 
-    private void throwIfHardDeleteBlocked(List<String> blockers) {
-        if (blockers.isEmpty()) {
+    private void reassignInternalUserReferences(User user, User currentAdmin) {
+        if (user.getClientProfile() != null) {
             return;
         }
 
-        throw new BadRequestException(
-            "Suppression definitive impossible: " + String.join("; ", blockers)
-        );
+        ticketRepository.reassignCreatedBy(user.getId(), currentAdmin);
+        ticketRepository.clearAssignmentsForUser(user.getId());
+        ticketCommentRepository.reassignAuthor(user.getId(), currentAdmin);
+        ticketHistoryRepository.reassignUser(user.getId(), currentAdmin);
+        ticketAttachmentRepository.reassignUploadedBy(user.getId(), currentAdmin);
+        reportRepository.reassignCreatedBy(user.getId(), currentAdmin);
+        telecomServiceRepository.reassignCreatedBy(user.getId(), currentAdmin);
+        quickReplyTemplateRepository.reassignCreatedBy(user.getId(), currentAdmin);
+        incidentRepository.clearCommanderReference(user.getId());
+        incidentTimelineRepository.clearAuthorReference(user.getId());
+        telecomServiceRepository.clearOwnerReference(user.getId());
+        serviceStatusHistoryRepository.clearChangedByReference(user.getId());
+        escalationRuleRepository.clearAutoAssignReference(user.getId());
+        auditLogRepository.clearUserReference(user.getId());
+    }
+
+    private void deleteClientTickets(User user) {
+        if (user.getClientProfile() == null || user.getClientProfile().getId() == null) {
+            return;
+        }
+
+        List<Ticket> clientTickets = ticketRepository.findByClientId(user.getClientProfile().getId());
+        for (Ticket ticket : clientTickets) {
+            hardDeleteTicketRecord(ticket);
+        }
+    }
+
+    private void hardDeleteTicketRecord(Ticket ticket) {
+        detachTicketFromIncidents(ticket.getId());
+        slaTimelineRepository.deleteByTicketId(ticket.getId());
+        ticketHistoryRepository.deleteByTicketId(ticket.getId());
+        ticketRepository.delete(ticket);
+        ticketRepository.flush();
+        notificationRepository.deleteByReferenceTypeAndReferenceId("TICKET", ticket.getId());
+        cleanupTicketUploadDirectory(ticket.getId());
+    }
+
+    private void detachTicketFromIncidents(Long ticketId) {
+        Map<Long, com.billcom.mts.entity.Incident> impactedIncidents = new java.util.LinkedHashMap<>();
+        for (com.billcom.mts.entity.Incident incident : incidentRepository.findByTicketId(ticketId)) {
+            impactedIncidents.put(incident.getId(), incident);
+        }
+        for (com.billcom.mts.entity.Incident incident : incidentRepository.findDistinctByTickets_Id(ticketId)) {
+            impactedIncidents.putIfAbsent(incident.getId(), incident);
+        }
+
+        for (com.billcom.mts.entity.Incident incident : impactedIncidents.values()) {
+            boolean changed = false;
+            if (incident.getTicket() != null && ticketId.equals(incident.getTicket().getId())) {
+                incident.setTicket(null);
+                changed = true;
+            }
+            if (incident.getTickets() != null) {
+                changed = incident.getTickets().removeIf(linkedTicket -> ticketId.equals(linkedTicket.getId())) || changed;
+            }
+            if (changed) {
+                incidentRepository.save(incident);
+            }
+        }
+
+        if (!impactedIncidents.isEmpty()) {
+            incidentRepository.flush();
+        }
+    }
+
+    private void cleanupTicketUploadDirectory(Long ticketId) {
+        if (ticketUploadDir == null || ticketUploadDir.isBlank()) {
+            return;
+        }
+
+        Path uploadDirectory = Paths.get(ticketUploadDir, ticketId.toString()).normalize();
+        if (!Files.exists(uploadDirectory)) {
+            return;
+        }
+
+        try (java.util.stream.Stream<Path> paths = Files.walk(uploadDirectory)) {
+            paths.sorted(java.util.Comparator.reverseOrder()).forEach(path -> {
+                try {
+                    Files.deleteIfExists(path);
+                } catch (IOException exception) {
+                    log.warn("Unable to delete ticket upload residue {}: {}", path, exception.getMessage());
+                }
+            });
+        } catch (IOException exception) {
+            log.warn("Unable to clean ticket upload directory {}: {}", ticketId, exception.getMessage());
+        }
+    }
+
+    private void deleteUserRecord(User user, String label) {
+        try {
+            userRepository.delete(user);
+            userRepository.flush();
+            log.info("{} permanently deleted: {}", label, user.getEmail());
+        } catch (DataIntegrityViolationException exception) {
+            log.warn(
+                    "Hard delete blocked by data integrity for {} {}: {}",
+                    label,
+                    user.getEmail(),
+                    exception.getMostSpecificCause() != null
+                            ? exception.getMostSpecificCause().getMessage()
+                            : exception.getMessage()
+            );
+            throw new BadRequestException(
+                    "Suppression definitive impossible: des references techniques residuelles existent encore pour ce compte."
+            );
+        }
     }
 
     private void deleteUserEphemeralData(User user) {
@@ -490,6 +586,19 @@ public class UserServiceImpl implements UserService {
             }
         } catch (IOException | IllegalArgumentException ex) {
             log.debug("Unable to delete previous avatar {}: {}", currentProfilePhotoUrl, ex.getMessage());
+        }
+    }
+
+    private void ensureLastActiveAdminRemains(User user, boolean removingActiveAdminPrivilege, String actionLabel) {
+        if (!removingActiveAdminPrivilege || user.getRole() != UserRole.ADMIN || !Boolean.TRUE.equals(user.getIsActive())) {
+            return;
+        }
+
+        long activeAdminCount = userRepository.countByRoleAndIsActiveTrue(UserRole.ADMIN);
+        if (activeAdminCount <= 1) {
+            throw new BadRequestException(
+                "Impossible de " + actionLabel + " le dernier administrateur actif"
+            );
         }
     }
 }

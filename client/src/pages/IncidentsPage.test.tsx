@@ -96,12 +96,11 @@ describe("IncidentsPage hard delete guardrails", () => {
       expect(screen.getByText("INC-00077")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTitle(/Supprimer définitivement/i));
+    fireEvent.click(screen.getByTitle(/Supprimer/i));
 
-    expect(screen.getByText("Supprimer définitivement l'incident ?")).toBeInTheDocument();
+    expect(screen.getByText(/Supprimer .*incident \?/i)).toBeInTheDocument();
     expect(screen.getByText(/Tapez SUPPRIMER/)).toBeInTheDocument();
     expect(screen.getByText(/Mot de passe administrateur/)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Tapez 77")).toBeInTheDocument();
   });
 
   it("hides destructive action for non-admin users", async () => {
@@ -120,7 +119,7 @@ describe("IncidentsPage hard delete guardrails", () => {
       expect(screen.getByText("INC-00077")).toBeInTheDocument();
     });
 
-    expect(screen.queryByTitle(/Supprimer définitivement/i)).not.toBeInTheDocument();
+    expect(screen.queryByTitle(/Supprimer/i)).not.toBeInTheDocument();
   });
 
   it("shows OAuth challenge path and requests code", async () => {
@@ -139,9 +138,9 @@ describe("IncidentsPage hard delete guardrails", () => {
       expect(screen.getByText("INC-00077")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTitle(/Supprimer définitivement/i));
+    fireEvent.click(screen.getByTitle(/Supprimer/i));
 
-    expect(screen.getByText(/Code de verification email/)).toBeInTheDocument();
+    expect(screen.getByText(/Code de v[ée]rification email/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Envoyer un code" }));
 
     await waitFor(() => {

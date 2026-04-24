@@ -19,7 +19,6 @@ public class AdminHardDeleteRequest {
     @NotBlank(message = "Le mot-cle de confirmation est obligatoire")
     private String confirmationKeyword;
 
-    @NotBlank(message = "L'identifiant exact de la ressource est obligatoire")
     private String confirmationTargetId;
 
     @Size(max = 255, message = "Le mot de passe est trop long")

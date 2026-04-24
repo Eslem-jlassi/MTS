@@ -158,4 +158,25 @@ class SensitiveActionVerificationServiceTest {
                 .isInstanceOf(BadRequestException.class)
                 .hasMessageContaining("code de verification");
     }
+
+    @Test
+    @DisplayName("verifyHardDeleteAuthorization should no longer block on a mismatched displayed identifier")
+    void verifyHardDeleteAuthorization_businessIdentifierMismatch_isIgnored() {
+        AdminHardDeleteRequest request = AdminHardDeleteRequest.builder()
+                .confirmationKeyword("SUPPRIMER")
+                .confirmationTargetId("INC-00098")
+                .currentPassword("Password1!")
+                .build();
+
+        when(passwordEncoder.matches("Password1!", "hashed-password")).thenReturn(true);
+
+        service.verifyHardDeleteAuthorization(
+                localAdmin,
+                "INC-00099",
+                request,
+                "delete incident"
+        );
+
+        verify(userRepository, never()).save(any(User.class));
+    }
 }

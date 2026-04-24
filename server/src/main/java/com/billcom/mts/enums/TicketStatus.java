@@ -160,9 +160,9 @@ public enum TicketStatus {
         // Règles de transition par statut (Java 17+ switch expression)
         return switch (this) {
             case NEW -> target == ASSIGNED || target == IN_PROGRESS || target == CANCELLED;
-            case ASSIGNED -> target == IN_PROGRESS || target == CANCELLED;
+            case ASSIGNED -> target == IN_PROGRESS || target == RESOLVED || target == CANCELLED;
             case IN_PROGRESS -> target == PENDING || target == PENDING_THIRD_PARTY || target == RESOLVED || target == ESCALATED;
-            case PENDING -> target == IN_PROGRESS || target == CANCELLED;
+            case PENDING -> target == IN_PROGRESS || target == RESOLVED || target == CANCELLED;
             case PENDING_THIRD_PARTY -> target == IN_PROGRESS || target == RESOLVED || target == ESCALATED;
             case ESCALATED -> target == IN_PROGRESS || target == RESOLVED;
             case RESOLVED -> target == CLOSED || target == IN_PROGRESS; // Réouverture possible
@@ -181,9 +181,9 @@ public enum TicketStatus {
     public TicketStatus[] getAllowedTransitions() {
         return switch (this) {
             case NEW -> new TicketStatus[]{ASSIGNED, IN_PROGRESS, CANCELLED};
-            case ASSIGNED -> new TicketStatus[]{IN_PROGRESS, CANCELLED};
+            case ASSIGNED -> new TicketStatus[]{IN_PROGRESS, RESOLVED, CANCELLED};
             case IN_PROGRESS -> new TicketStatus[]{PENDING, PENDING_THIRD_PARTY, RESOLVED, ESCALATED};
-            case PENDING -> new TicketStatus[]{IN_PROGRESS, CANCELLED};
+            case PENDING -> new TicketStatus[]{IN_PROGRESS, RESOLVED, CANCELLED};
             case PENDING_THIRD_PARTY -> new TicketStatus[]{IN_PROGRESS, RESOLVED, ESCALATED};
             case ESCALATED -> new TicketStatus[]{IN_PROGRESS, RESOLVED};
             case RESOLVED -> new TicketStatus[]{CLOSED, IN_PROGRESS};

@@ -69,7 +69,7 @@ const ResetPasswordPage: React.FC = () => {
     name: string,
   ) => (
     <div className="group">
-      <label className="block text-sm font-medium text-ds-muted mb-2">{label}</label>
+      <label className="auth-field-label">{label}</label>
       <div className="relative">
         <Lock
           size={18}
@@ -85,7 +85,7 @@ const ResetPasswordPage: React.FC = () => {
             }
           }}
           autoComplete="new-password"
-          className="w-full bg-ds-elevated text-ds-primary placeholder:text-ds-muted border border-transparent focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 rounded-xl py-3 pl-11 pr-12 text-sm outline-none transition-all duration-200"
+          className="auth-input pr-12"
           placeholder="********"
         />
         <button
@@ -97,122 +97,125 @@ const ResetPasswordPage: React.FC = () => {
           {show ? <EyeOff size={18} /> : <Eye size={18} />}
         </button>
       </div>
-      {validationErrors[name] && (
-        <p className="text-xs text-error-500 mt-1">{validationErrors[name]}</p>
-      )}
+      {validationErrors[name] && <p className="auth-field-error">{validationErrors[name]}</p>}
     </div>
   );
 
   return (
     <AuthLayout>
       <motion.div
-        className="text-center mb-8"
-        initial={{ opacity: 0, y: 12 }}
+        className="auth-panel auth-panel-wide"
+        initial={{ opacity: 0, y: 14, scale: 0.98 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
+        transition={{ delay: 0.2 }}
       >
-        <h2 className="text-3xl font-extrabold text-ds-primary tracking-tight">
-          Reinitialiser le mot de passe
-        </h2>
-        <p className="text-ds-muted mt-2 text-sm">
+        <div className="mb-7">
+          <span className="auth-kicker">
+            <ShieldCheck size={14} />
+            Réinitialisation protégée
+          </span>
+        </div>
+
+        <h2 className="auth-title">Réinitialiser le mot de passe</h2>
+        <p className="auth-subtitle mt-2">
           Definissez un nouveau mot de passe pour votre compte.
         </p>
-      </motion.div>
 
-      {pageState === "success" && (
-        <motion.div
-          className="p-6 rounded-2xl text-center bg-success-50 dark:bg-success/10 border border-success-200 dark:border-success/20"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <CheckCircle size={40} className="mx-auto text-success-500 mb-3" />
-          <p className="text-sm text-success-700 dark:text-success-200 font-medium">
-            Mot de passe modifie avec succes.
-          </p>
-          <p className="text-xs text-ds-muted mt-2">
-            Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
-          </p>
-          <Link
-            to="/login"
-            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-500 hover:text-accent-600 transition-colors"
+        {pageState === "success" && (
+          <motion.div
+            className="auth-alert auth-alert-success auth-state-card mt-7 flex-col text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
           >
-            <ArrowLeft size={16} />
-            Retour a la connexion
-          </Link>
-        </motion.div>
-      )}
-
-      {pageState === "error" && (
-        <motion.div
-          className="p-6 rounded-2xl text-center bg-error-50 dark:bg-error/10 border border-error-200 dark:border-error/20"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-        >
-          <AlertCircle size={40} className="mx-auto text-error-500 mb-3" />
-          <p className="text-sm text-error-700 dark:text-error-200 font-medium">
-            Lien invalide ou expire
-          </p>
-          <p className="text-xs text-ds-muted mt-2">
-            Demandez un nouveau lien depuis la page de reinitialisation ou utilisez un lien plus
-            recent.
-          </p>
-          <Link
-            to="/forgot-password"
-            className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-500 hover:text-accent-600 transition-colors"
-          >
-            Aide a la reinitialisation
-          </Link>
-        </motion.div>
-      )}
-
-      {(pageState === "form" || pageState === "loading") && (
-        <form onSubmit={handleSubmit} className="space-y-5" aria-busy={pageState === "loading"}>
-          {renderPasswordField(
-            "Nouveau mot de passe",
-            password,
-            setPassword,
-            showPassword,
-            () => setShowPassword((prev) => !prev),
-            "password",
-          )}
-          <p className="text-xs text-ds-muted -mt-3">
-            Minimum 8 caracteres, avec une majuscule, une minuscule et un chiffre
-          </p>
-
-          {renderPasswordField(
-            "Confirmer le mot de passe",
-            confirmPassword,
-            setConfirmPassword,
-            showConfirmPassword,
-            () => setShowConfirmPassword((prev) => !prev),
-            "confirmPassword",
-          )}
-
-          <button type="submit" disabled={pageState === "loading"} className="auth-btn-primary">
-            {pageState === "loading" ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-                Reinitialisation...
-              </>
-            ) : (
-              <>
-                <ShieldCheck size={18} />
-                Reinitialiser le mot de passe
-              </>
-            )}
-          </button>
-
-          <p className="text-center text-sm text-ds-muted">
+            <CheckCircle size={40} className="mx-auto mb-3 text-success-500" />
+            <p className="text-sm font-semibold">Mot de passe modifie avec succes.</p>
+            <p className="text-xs text-ds-muted">
+              Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+            </p>
             <Link
               to="/login"
-              className="inline-flex items-center gap-1.5 font-semibold text-accent-500 hover:text-accent-600 transition-colors"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-500 transition-colors hover:text-accent-600"
             >
               <ArrowLeft size={16} />
               Retour a la connexion
             </Link>
-          </p>
-        </form>
-      )}
+          </motion.div>
+        )}
+
+        {pageState === "error" && (
+          <motion.div
+            className="auth-alert auth-alert-error auth-state-card mt-7 flex-col text-center"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <AlertCircle size={40} className="mx-auto mb-3 text-error-500" />
+            <p className="text-sm font-semibold">Lien invalide ou expire</p>
+            <p className="text-xs text-ds-muted">
+              Demandez un nouveau lien depuis la page de reinitialisation ou utilisez un lien plus
+              recent.
+            </p>
+            <Link
+              to="/forgot-password"
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-500 transition-colors hover:text-accent-600"
+            >
+              Aide a la reinitialisation
+            </Link>
+          </motion.div>
+        )}
+
+        {(pageState === "form" || pageState === "loading") && (
+          <form
+            onSubmit={handleSubmit}
+            className="auth-form-stack"
+            aria-busy={pageState === "loading"}
+          >
+            {renderPasswordField(
+              "Nouveau mot de passe",
+              password,
+              setPassword,
+              showPassword,
+              () => setShowPassword((prev) => !prev),
+              "password",
+            )}
+            <p className="auth-help-text">
+              Minimum 8 caracteres, avec une majuscule, une minuscule et un chiffre
+            </p>
+
+            {renderPasswordField(
+              "Confirmer le mot de passe",
+              confirmPassword,
+              setConfirmPassword,
+              showConfirmPassword,
+              () => setShowConfirmPassword((prev) => !prev),
+              "confirmPassword",
+            )}
+
+            <button type="submit" disabled={pageState === "loading"} className="auth-btn-primary">
+              {pageState === "loading" ? (
+                <>
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Reinitialisation...
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={18} />
+                  Reinitialiser le mot de passe
+                </>
+              )}
+            </button>
+
+            <p className="text-center text-sm text-ds-muted">
+              <Link
+                to="/login"
+                className="inline-flex items-center gap-1.5 font-semibold text-accent-500 transition-colors hover:text-accent-600"
+              >
+                <ArrowLeft size={16} />
+                Retour a la connexion
+              </Link>
+            </p>
+          </form>
+        )}
+      </motion.div>
     </AuthLayout>
   );
 };

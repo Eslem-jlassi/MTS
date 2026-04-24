@@ -1,6 +1,7 @@
 package com.billcom.mts.controller;
 
 import com.billcom.mts.dto.auth.AuthResponse;
+import com.billcom.mts.exception.UnauthorizedException;
 import com.billcom.mts.security.JwtService;
 import com.billcom.mts.service.AuthRateLimitService;
 import com.billcom.mts.service.AuthService;
@@ -14,6 +15,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -30,6 +32,9 @@ class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+        @Autowired
+        private AuthController authController;
 
     @MockBean
     private AuthService authService;
@@ -71,6 +76,81 @@ class AuthControllerTest {
 
         verify(authRateLimitService).checkRegister("203.0.113.10");
         verify(authService).register(org.mockito.ArgumentMatchers.any(), eq("203.0.113.10"));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/google delegue vers authService.googleLogin")
+    void googleLogin_delegatesToService() throws Exception {
+        when(authService.googleLogin(eq("google-id-token"), eq("203.0.113.50")))
+                .thenReturn(sampleAuthResponse());
+
+        mockMvc.perform(post("/api/auth/google")
+                        .header("X-Forwarded-For", "203.0.113.50")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "token": "google-id-token"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tokenType").value("Cookie"));
+
+        verify(authService).googleLogin("google-id-token", "203.0.113.50");
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/google retourne 401 si token Google invalide")
+    void googleLogin_returnsUnauthorizedWhenTokenInvalid() throws Exception {
+        when(authService.googleLogin(eq("bad-token"), eq("203.0.113.51")))
+                .thenThrow(new UnauthorizedException("Token Google invalide ou expire"));
+
+        mockMvc.perform(post("/api/auth/google")
+                        .header("X-Forwarded-For", "203.0.113.51")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "token": "bad-token"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.detail").value("Token Google invalide ou expire"));
+    }
+
+    @Test
+    @DisplayName("GET /api/auth/google/config retourne missing-client-id si non configure")
+    void googleConfig_returnsMissingClientIdWhenNotConfigured() throws Exception {
+        ReflectionTestUtils.setField(authController, "googleClientId", "");
+
+        mockMvc.perform(get("/api/auth/google/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.reason").value("missing-client-id"));
+    }
+
+    @Test
+    @DisplayName("GET /api/auth/google/config retourne invalid-client-id si format invalide")
+    void googleConfig_returnsInvalidClientIdWhenMalformed() throws Exception {
+        ReflectionTestUtils.setField(authController, "googleClientId", "invalid-client-id");
+
+        mockMvc.perform(get("/api/auth/google/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(false))
+                .andExpect(jsonPath("$.reason").value("invalid-client-id"));
+    }
+
+    @Test
+    @DisplayName("GET /api/auth/google/config retourne configured si Client ID valide")
+    void googleConfig_returnsConfiguredWhenClientIdValid() throws Exception {
+        ReflectionTestUtils.setField(
+                authController,
+                "googleClientId",
+                "frontend-app.apps.googleusercontent.com"
+        );
+
+        mockMvc.perform(get("/api/auth/google/config"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.enabled").value(true))
+                .andExpect(jsonPath("$.reason").value("configured"));
     }
 
     @Test

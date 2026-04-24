@@ -34,6 +34,7 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
 }) => {
   const currentMode = snapshot?.mode ?? mode;
   const moment = getManagerCopilotMoment(snapshot);
+  const isWidgetVariant = variant === "widget";
   const showInlineDegradedBadge = modeDisplay === "badge" && currentMode === "degraded";
   const showHeaderActions =
     Boolean(actions) || (modeDisplay === "chip" && currentMode === "degraded");
@@ -56,7 +57,7 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
               {showDecisionBadge && (
                 <Badge
                   size="sm"
-                  variant="info"
+                  variant="ai"
                   icon={<Sparkles size={12} />}
                   className="manager-copilot-badge"
                 >
@@ -70,7 +71,7 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
                   icon={<ShieldAlert size={12} />}
                   className="manager-copilot-badge"
                 >
-                  Mode degrade
+                  Mode dégradé
                 </Badge>
               )}
             </div>
@@ -83,10 +84,12 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
                 <Radar size={12} />
                 {moment.title}
               </span>
-              <span className="manager-copilot-presence-pill">
-                <ShieldCheck size={12} />
-                {telemetryLabel}
-              </span>
+              {!isWidgetVariant && (
+                <span className="manager-copilot-presence-pill">
+                  <ShieldCheck size={12} />
+                  {telemetryLabel}
+                </span>
+              )}
               <span className="manager-copilot-presence-pill">
                 <Clock3 size={12} />
                 {updatedLabel}
@@ -96,13 +99,15 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
         </div>
 
         <div className="manager-copilot-header-aside">
-          <div
-            className={`manager-copilot-header-status-card manager-copilot-header-status-card-${moment.tone}`}
-          >
-            <span className="manager-copilot-header-status-label">Signal du moment</span>
-            <strong className="manager-copilot-header-status-title">{moment.title}</strong>
-            <span className="manager-copilot-header-status-text">{moment.detail}</span>
-          </div>
+          {!isWidgetVariant && (
+            <div
+              className={`manager-copilot-header-status-card manager-copilot-header-status-card-${moment.tone}`}
+            >
+              <span className="manager-copilot-header-status-label">Signal du moment</span>
+              <strong className="manager-copilot-header-status-title">{moment.title}</strong>
+              <span className="manager-copilot-header-status-text">{moment.detail}</span>
+            </div>
+          )}
 
           {showHeaderActions && (
             <div className="manager-copilot-header-actions">

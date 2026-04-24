@@ -4,7 +4,7 @@
  * Vérifie : squelette loading, état vide, affichage des tickets, recherche.
  */
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { configureStore, combineReducers } from "@reduxjs/toolkit";
@@ -32,6 +32,7 @@ jest.mock("../api/ticketService", () => {
     exportPdf: jest.fn(),
     deleteTicket: jest.fn(),
     hardDeleteTicket: jest.fn(),
+    takeTicket: jest.fn(),
     getTickets: jest.fn().mockResolvedValue({
       content: [],
       totalElements: 0,
@@ -56,6 +57,7 @@ jest.mock("../api", () => {
 import { ticketService as mockedService } from "../api/ticketService";
 const mockGetTickets = mockedService.getTickets as jest.Mock;
 const mockHardDeleteTicket = mockedService.hardDeleteTicket as jest.Mock;
+const mockTakeTicket = mockedService.takeTicket as jest.Mock;
 
 // ----- Helpers ---------------------------------------------------------------
 
@@ -86,6 +88,7 @@ function buildTicket(overrides: Record<string, unknown> = {}) {
     slaRemainingMinutes: 120,
     createdAt: new Date().toISOString(),
     commentCount: 2,
+    canTakeOwnership: false,
     ...overrides,
   };
 }
@@ -172,6 +175,7 @@ describe("TicketList", () => {
   beforeEach(() => {
     mockGetTickets.mockReset();
     mockHardDeleteTicket.mockReset();
+    mockTakeTicket.mockReset();
     mockGetTickets.mockResolvedValue({
       content: [],
       totalElements: 0,
@@ -180,6 +184,7 @@ describe("TicketList", () => {
       size: 10,
     });
     mockHardDeleteTicket.mockResolvedValue(undefined);
+    mockTakeTicket.mockResolvedValue(undefined);
   });
 
   it("shows loading skeleton when isLoading is true", () => {
@@ -367,6 +372,37 @@ describe("TicketList", () => {
     expect(screen.getByTestId("ticket-drawer")).toHaveAttribute("data-ticket-id", "42");
   });
 
+  it("lets an AGENT take a ticket only when the backend marks it as takeable", async () => {
+    const tickets = [
+      buildTicket({
+        id: 9,
+        ticketNumber: "TK-20240009",
+        title: "Ticket disponible",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+        canTakeOwnership: true,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+    mockTakeTicket.mockResolvedValue({ id: 9 });
+
+    renderTicketList();
+
+    fireEvent.click(await screen.findByLabelText("Prendre le ticket TK-20240009"));
+
+    await waitFor(() => {
+      expect(mockTakeTicket).toHaveBeenCalledWith(9);
+    });
+  });
+
   it("shows the hard delete action only for ADMIN on a new unassigned ticket", async () => {
     const tickets = [
       buildTicket({
@@ -413,6 +449,52 @@ describe("TicketList", () => {
     });
   });
 
+  it("keeps the hard delete action visible for ADMIN even on non-eligible tickets", async () => {
+    const tickets = [
+      buildTicket({
+        id: 13,
+        ticketNumber: "TK-20240103",
+        title: "Ticket deja assigne",
+        status: TicketStatus.IN_PROGRESS,
+        assignedToId: 5,
+        assignedToName: "Agent Dupont",
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 1,
+          role: "ADMIN",
+          firstName: "Admin",
+          lastName: "Root",
+          email: "admin@test.com",
+        },
+        isAuthenticated: true,
+        isInitialized: true,
+        isLoading: false,
+        token: "fake",
+        refreshToken: null,
+        error: null,
+      },
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText("Supprimer definitivement le ticket TK-20240103"),
+      ).toBeInTheDocument();
+    });
+  });
+
   it("does not show the hard delete action for AGENT on the same ticket", async () => {
     const tickets = [
       buildTicket({
@@ -441,6 +523,90 @@ describe("TicketList", () => {
 
     expect(
       screen.queryByLabelText("Supprimer definitivement le ticket TK-20240004"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show the hard delete action for MANAGER on the same ticket", async () => {
+    const tickets = [
+      buildTicket({
+        id: 14,
+        ticketNumber: "TK-20240104",
+        title: "Ticket non deletable manager",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 2,
+          role: "MANAGER",
+          firstName: "Manager",
+          lastName: "Test",
+          email: "manager@test.com",
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("TK-20240104")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByLabelText("Supprimer definitivement le ticket TK-20240104"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("does not show the hard delete action for CLIENT on the same ticket", async () => {
+    const tickets = [
+      buildTicket({
+        id: 15,
+        ticketNumber: "TK-20240105",
+        title: "Ticket non deletable client",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 7,
+          role: "CLIENT",
+          firstName: "Client",
+          lastName: "Test",
+          email: "client@test.com",
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("TK-20240105")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.queryByLabelText("Supprimer definitivement le ticket TK-20240105"),
     ).not.toBeInTheDocument();
   });
 
@@ -538,7 +704,69 @@ describe("TicketList", () => {
     fireEvent.click(await screen.findByLabelText("Supprimer definitivement le ticket TK-20240006"));
 
     expect(screen.getByText(/Mot de passe administrateur/)).toBeInTheDocument();
-    expect(screen.queryByText(/Code de verification email/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Code de verification email/i)).not.toBeInTheDocument();
+  });
+
+  it("submits the ticket reference automatically for definitive deletion", async () => {
+    const tickets = [
+      buildTicket({
+        id: 8,
+        ticketNumber: "TK-20240008",
+        title: "Suppression reference metier",
+        status: TicketStatus.NEW,
+        assignedToId: undefined,
+        assignedToName: undefined,
+      }),
+    ];
+
+    mockGetTickets.mockResolvedValue({
+      content: tickets,
+      totalElements: 1,
+      totalPages: 1,
+      number: 0,
+      size: 10,
+    });
+
+    renderTicketList(
+      {},
+      {
+        user: {
+          id: 1,
+          role: "ADMIN",
+          firstName: "Admin",
+          lastName: "Local",
+          email: "admin.local@test.com",
+          oauthProvider: null,
+        },
+        isAuthenticated: true,
+        isInitialized: true,
+        isLoading: false,
+        token: "fake",
+        refreshToken: null,
+        error: null,
+      },
+    );
+
+    fireEvent.click(await screen.findByLabelText("Supprimer definitivement le ticket TK-20240008"));
+
+    const dialog = screen.getByRole("dialog");
+    const confirmationInput = within(dialog).getByRole("textbox");
+
+    fireEvent.change(confirmationInput, { target: { value: "SUPPRIMER" } });
+    fireEvent.change(screen.getByPlaceholderText("Confirmez avec votre mot de passe"), {
+      target: { value: "Password1!" },
+    });
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /Supprimer definitivement/i }));
+
+    await waitFor(() => {
+      expect(mockHardDeleteTicket).toHaveBeenCalledWith(8, {
+        confirmationKeyword: "SUPPRIMER",
+        confirmationTargetId: "TK-20240008",
+        currentPassword: "Password1!",
+        verificationCode: undefined,
+      });
+    });
   });
 
   it("shows verification code challenge fields for OAuth admin hard delete", async () => {
@@ -583,7 +811,7 @@ describe("TicketList", () => {
 
     fireEvent.click(await screen.findByLabelText("Supprimer definitivement le ticket TK-20240007"));
 
-    expect(screen.getByText(/Code de verification email/)).toBeInTheDocument();
+    expect(screen.getByText(/Code de verification email/i)).toBeInTheDocument();
     expect(screen.getByText("Envoyer un code")).toBeInTheDocument();
   });
 });

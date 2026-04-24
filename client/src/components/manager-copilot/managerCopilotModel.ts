@@ -388,7 +388,7 @@ function buildQuickActions(
     actions.push({
       id: "open-priority-ticket",
       label: "Traiter le ticket cle",
-      description: "Ouvre immediatement le ticket recommande en tete de liste.",
+      description: "Ouvre immédiatement le ticket recommandé en tête de liste.",
       href: priorityTickets[0].href,
       tone: priorityTickets[0].tone,
     });
@@ -426,7 +426,7 @@ function buildQuickActions(
 
   actions.push({
     id: "open-reports",
-    label: "Preparer la synthese",
+    label: "Préparer la synthèse",
     description: "Accede au reporting pour consolider le point manager du jour.",
     href: "/reports",
     tone: "neutral",
@@ -593,7 +593,7 @@ function buildSlaDescription(ticket: Ticket) {
     return `Temps restant estime: ${formatDuration(ticket.slaRemainingMinutes ?? 0)} avant depassement.`;
   }
 
-  return `SLA consomme a ${Math.round(ticket.slaPercentage ?? 0)}%, validation manager recommandee.`;
+  return `SLA consommé à ${Math.round(ticket.slaPercentage ?? 0)} %, validation manager recommandée.`;
 }
 
 function buildTicketRecommendation(
@@ -664,7 +664,7 @@ function rankAgents(agentStats: AgentStats[]) {
 
 function formatDuration(totalMinutes: number) {
   if (totalMinutes <= 0) {
-    return "echeance immediate";
+    return "échéance immédiate";
   }
 
   const hours = Math.floor(totalMinutes / 60);
@@ -683,7 +683,7 @@ function formatDuration(totalMinutes: number) {
 
 function formatHours(hours: number) {
   if (!Number.isFinite(hours) || hours <= 0) {
-    return "n/a";
+    return "n/d";
   }
 
   if (hours >= 10) {

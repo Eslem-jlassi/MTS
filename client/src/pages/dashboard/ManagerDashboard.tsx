@@ -2,12 +2,12 @@
 // MTS TELECOM - Manager Dashboard (Enterprise-Grade)
 // ---------------------------------------------------------------------------
 // Widgets : KPI row (SLA compliance, MTTR, backlog, escalations, critiques)
-//           Filtres globaux (période, service, équipe, client)
-//           2 charts cliquables → drill-down vers /tickets?...
-//           Section "Top services à risque"
-//           Performance équipe (bar chart)
+//           Filtres globaux (periode, service, equipe, client)
+//           2 charts cliquables -> drill-down vers /tickets?...
+//           Section "Top services a risque"
+//           Performance equipe (bar chart)
 //           Trend 7j (area chart)
-// DS tokens · Skeleton + Empty state · Code commenté (chart config)
+// DS tokens, skeleton + empty state, code commente (chart config)
 // Billcom Consulting - PFE 2026
 // =============================================================================
 
@@ -65,6 +65,7 @@ import {
   type ServiceAtRisk,
 } from "../../api/managerDashboardAdapter";
 import { formatDateDayMonth, formatHours, formatPercent, formatTime } from "../../utils/formatters";
+import { designTokens } from "../../theme";
 
 // =============================================================================
 // TYPES
@@ -106,7 +107,7 @@ const SectionLead: React.FC<{
     </div>
     <div className="flex items-center gap-3">
       {supporting}
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary-500/15 bg-gradient-to-br from-primary-500/12 to-accent-500/10 text-primary-500 shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-info-500/15 bg-gradient-to-br from-info-500/12 to-ai-500/10 text-info-500 shadow-sm">
         {icon}
       </div>
     </div>
@@ -117,14 +118,14 @@ const StageChip: React.FC<{
   label: string;
   value?: string;
 }> = ({ label, value }) => (
-  <div className="rounded-2xl border border-ds-border/70 bg-ds-surface/75 px-3 py-2">
+  <div className="rounded-2xl border border-ds-border/70 bg-ds-surface/75 px-3 py-1.5">
     <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">{label}</p>
-    {value && <p className="mt-1 text-sm font-semibold text-ds-primary">{value}</p>}
+    {value && <p className="mt-0.5 text-sm font-semibold text-ds-primary">{value}</p>}
   </div>
 );
 
 // =============================================================================
-// FILTER BAR — période, service, équipe, client
+// FILTER BAR - periode, service, equipe, client
 // =============================================================================
 
 interface FiltersBarProps {
@@ -142,7 +143,7 @@ interface FiltersBarProps {
   embedded?: boolean;
 }
 
-/** Barre de filtres globaux — appliqués à toute la page */
+/** Barre de filtres globaux - appliques a toute la page */
 const FiltersBar: React.FC<FiltersBarProps> = ({
   period,
   setPeriod,
@@ -158,7 +159,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
   embedded = false,
 }) => {
   const periodOptions: SelectOption[] = [
-    { value: "", label: "Toute période" },
+    { value: "", label: "Toute periode" },
     { value: "DAY", label: "Aujourd'hui" },
     { value: "WEEK", label: "Cette semaine" },
     { value: "MONTH", label: "Ce mois" },
@@ -168,7 +169,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
     <motion.div variants={fadeUp}>
       <div
         className={
-          embedded ? "rounded-2xl border border-ds-border/70 bg-ds-surface/70 px-4 py-4" : ""
+          embedded ? "rounded-2xl border border-ds-border/70 bg-ds-surface/70 px-4 py-3" : ""
         }
       >
         <div className="flex flex-wrap items-center gap-3">
@@ -182,7 +183,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
                 options={periodOptions}
                 value={period}
                 onChange={(e) => setPeriod(e.target.value)}
-                placeholder="Période"
+                placeholder="Periode"
               />
             </div>
             {serviceOptions.length > 0 && (
@@ -198,7 +199,7 @@ const FiltersBar: React.FC<FiltersBarProps> = ({
             {teamOptions.length > 0 && (
               <div className="w-40">
                 <Select
-                  options={[{ value: "", label: "Toute l'équipe" }, ...teamOptions]}
+                  options={[{ value: "", label: "Toute l'equipe" }, ...teamOptions]}
                   value={teamId}
                   onChange={(e) => setTeamId(e.target.value)}
                   placeholder="Agent"
@@ -238,7 +239,7 @@ const KpiCard: React.FC<{
 }> = ({ icon, iconBg, label, value, suffix, alert, to }) => {
   const inner = (
     <Card
-      className={`h-full min-h-[7.25rem] overflow-hidden border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
+      className={`h-full min-h-[6.9rem] overflow-hidden border border-ds-border/80 bg-ds-card group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
       ${alert ? "ring-1 ring-error/30" : ""} ${to ? "cursor-pointer" : ""}
     `}
     >
@@ -269,12 +270,12 @@ const KpiCard: React.FC<{
 };
 
 const KpiRow: React.FC<{ kpis: ManagerKpis }> = ({ kpis }) => (
-  <motion.div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" variants={stagger}>
+  <motion.div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" variants={stagger}>
     <motion.div variants={fadeUp}>
       <KpiCard
         icon={<ShieldCheck size={22} className="text-success-600 dark:text-success-400" />}
         iconBg="bg-success-50 dark:bg-success-900/30"
-        label="Conformité SLA"
+        label="Conformite SLA"
         value={formatPercent(kpis.slaCompliance)}
         alert={kpis.slaCompliance < 80}
       />
@@ -320,34 +321,34 @@ const KpiRow: React.FC<{ kpis: ManagerKpis }> = ({ kpis }) => (
 );
 
 // =============================================================================
-// CLICKABLE CHARTS — drill-down vers /tickets?status=XXX ou ?priority=XXX
+// CLICKABLE CHARTS - drill-down vers /tickets?status=XXX ou ?priority=XXX
 // =============================================================================
 
 /**
- * Tooltip personnalisé pour Recharts — style DS.
- * Utilisé dans tous les charts du Manager dashboard.
+ * Tooltip personnalise pour Recharts - style DS.
+ * Utilise dans tous les charts du Manager dashboard.
  */
 const ChartTooltipStyle = {
   backgroundColor: "var(--ds-card, #fff)",
   border: "1px solid var(--ds-border, #e2e8f0)",
   borderRadius: "10px",
   fontSize: "12px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+  boxShadow: designTokens.shadows.md,
 };
 
-/** Chart statut — clic → /tickets?status=KEY */
+/** Chart statut - clic -> /tickets?status=KEY */
 const StatusChart: React.FC<{
   data: ManagerDashboardData["statusChartData"];
   navigate: ReturnType<typeof useNavigate>;
 }> = ({ data, navigate }) => {
-  if (data.length === 0) return <ChartEmpty label="Aucune donnée statut" />;
+  if (data.length === 0) return <ChartEmpty label="Aucune donnee statut" />;
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
-        {/* ---------- BAR CHART : répartition par statut ----------
-             – Chaque barre = un statut (Nouveau, En cours, Escaladé…)
-             – Couleur = StatusColors du DS
-             – onClick → navigation drill-down vers /tickets?status=KEY
+        {/* ---------- BAR CHART : repartition par statut ----------
+             - Chaque barre = un statut (Nouveau, En cours, Escalade...)
+             - Couleur = StatusColors du DS
+             - onClick -> navigation drill-down vers /tickets?status=KEY
         */}
         <BarChart
           data={data}
@@ -370,7 +371,7 @@ const StatusChart: React.FC<{
             radius={[6, 6, 0, 0]}
             cursor="pointer"
             onClick={(_data: unknown, _index: number, _event: React.MouseEvent) => {
-              // Drill-down : retrouver la clé de statut originale
+              // Drill-down : retrouver la cle de statut originale
               // _data contient { name, value, color, ... }
               const d = _data as { name?: string };
               const key = statusNameToKey(d.name ?? "");
@@ -387,19 +388,19 @@ const StatusChart: React.FC<{
   );
 };
 
-/** Chart priorité — clic → /tickets?priority=KEY */
+/** Chart priorite - clic -> /tickets?priority=KEY */
 const PriorityChart: React.FC<{
   data: ManagerDashboardData["priorityChartData"];
   navigate: ReturnType<typeof useNavigate>;
 }> = ({ data, navigate }) => {
-  if (data.length === 0) return <ChartEmpty label="Aucune donnée priorité" />;
+  if (data.length === 0) return <ChartEmpty label="Aucune donnee priorite" />;
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
-        {/* ---------- PIE CHART : répartition par priorité ----------
-             – 4 slices : Critique / Haute / Moyenne / Basse
-             – Couleur = PriorityColors du DS
-             – onClick → navigation drill-down vers /tickets?priority=KEY
+        {/* ---------- PIE CHART : repartition par priorite ----------
+             - 4 slices : Critique / Haute / Moyenne / Basse
+             - Couleur = PriorityColors du DS
+             - onClick -> navigation drill-down vers /tickets?priority=KEY
         */}
         <PieChart>
           <Pie
@@ -432,18 +433,18 @@ const PriorityChart: React.FC<{
   );
 };
 
-/** Chart performance équipe (bar horizontal) */
+/** Chart performance equipe (bar horizontal) */
 const TeamPerformanceChart: React.FC<{ data: ManagerDashboardData["agentPerformance"] }> = ({
   data,
 }) => {
-  if (data.length === 0) return <ChartEmpty label="Aucune donnée de performance" />;
+  if (data.length === 0) return <ChartEmpty label="Aucune donnee de performance" />;
   return (
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         {/* ---------- STACKED BAR : performance agents ----------
-             – Axe X = agent name
-             – Barres empilées : résolus (vert) / assignés total (bleu)
-             – Permet de comparer la charge et la vélocité par agent
+             - Axe X = agent name
+             - Barres empilees : resolus (vert) / assignes total (bleu)
+             - Permet de comparer la charge et la velocite par agent
         */}
         <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 24 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-border, #e2e8f0)" />
@@ -457,8 +458,18 @@ const TeamPerformanceChart: React.FC<{ data: ManagerDashboardData["agentPerforma
           <YAxis tick={{ fontSize: 11, fill: "var(--ds-muted, #64748b)" }} allowDecimals={false} />
           <RTooltip contentStyle={ChartTooltipStyle} />
           <Legend wrapperStyle={{ fontSize: "12px" }} />
-          <Bar dataKey="resolved" name="Résolus" fill="#10b981" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="assigned" name="Assignés" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+          <Bar
+            dataKey="resolved"
+            name="Resolus"
+            fill={designTokens.colors.success}
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            dataKey="assigned"
+            name="Assignes"
+            fill={designTokens.colors.info}
+            radius={[4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -472,18 +483,18 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
     <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         {/* ---------- AREA CHART : tendances 7 jours ----------
-             – 2 courbes : tickets créés (orange) vs résolus (vert)
-             – Permet de voir l'évolution du flux entrant/sortant
+             - 2 courbes : tickets crees (orange) vs resolus (vert)
+             - Permet de voir l'evolution du flux entrant/sortant
         */}
         <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 8 }}>
           <defs>
             <linearGradient id="gradCreated" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f97316" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#f97316" stopOpacity={0} />
+              <stop offset="0%" stopColor={designTokens.colors.warning} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={designTokens.colors.warning} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradResolved" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#10b981" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="0%" stopColor={designTokens.colors.success} stopOpacity={0.3} />
+              <stop offset="100%" stopColor={designTokens.colors.success} stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-border, #e2e8f0)" />
@@ -504,16 +515,16 @@ const TrendChart: React.FC<{ data: ManagerDashboardData["trend7d"] }> = ({ data 
           <Area
             type="monotone"
             dataKey="created"
-            name="Créés"
-            stroke="#f97316"
+            name="Crees"
+            stroke={designTokens.colors.warning}
             strokeWidth={2}
             fill="url(#gradCreated)"
           />
           <Area
             type="monotone"
             dataKey="resolved"
-            name="Résolus"
-            stroke="#10b981"
+            name="Resolus"
+            stroke={designTokens.colors.success}
             strokeWidth={2}
             fill="url(#gradResolved)"
           />
@@ -539,8 +550,8 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
     return (
       <EmptyState
         icon={<Wifi size={40} />}
-        title="Aucun service à risque"
-        description="Tous les services fonctionnent dans les paramètres SLA."
+        title="Aucun service a risque"
+        description="Tous les services fonctionnent dans les parametres SLA."
       />
     );
   }
@@ -550,22 +561,22 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
       <table className="ds-table-raw w-full">
         <thead className="bg-ds-elevated border-b border-ds-border">
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
               Service
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
-              Catégorie
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+              Categorie
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
-              État
+            <th className="px-4 py-2.5 text-left text-xs font-medium text-ds-muted uppercase tracking-wider">
+              Etat
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
               Tickets
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
-              SLA dépassé
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+              SLA depasse
             </th>
-            <th className="px-4 py-3 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
+            <th className="px-4 py-2.5 text-right text-xs font-medium text-ds-muted uppercase tracking-wider">
               Taux SLA
             </th>
           </tr>
@@ -582,7 +593,7 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                 transition={{ delay: idx * 0.04 }}
                 className="hover:bg-ds-elevated/60 transition-colors"
               >
-                <td className="px-4 py-3">
+                <td className="px-4 py-2.5">
                   <Link
                     to={`/tickets?serviceId=${s.id}`}
                     className="text-sm font-medium text-primary-500 hover:text-primary-600 transition-colors"
@@ -590,8 +601,8 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                     {s.name}
                   </Link>
                 </td>
-                <td className="px-4 py-3 text-sm text-ds-secondary">{s.category}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-2.5 text-sm text-ds-secondary">{s.category}</td>
+                <td className="px-4 py-2.5">
                   <span
                     className={`inline-flex items-center gap-1 text-xs font-semibold ${ServiceStatusColors[status] || "text-ds-muted"}`}
                   >
@@ -599,17 +610,17 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
                     {ServiceStatusLabels[status] || s.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right text-sm font-semibold text-ds-primary tabular-nums">
+                <td className="px-4 py-2.5 text-right text-sm font-semibold text-ds-primary tabular-nums">
                   {s.openTickets}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <span
                     className={`text-sm font-semibold tabular-nums ${s.slaBreached > 0 ? "text-error" : "text-ds-muted"}`}
                   >
                     {s.slaBreached}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-2.5 text-right">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold ${
                       s.slaRate >= 90
@@ -632,19 +643,19 @@ const ServicesAtRiskSection: React.FC<{ data: ServiceAtRisk[] }> = ({ data }) =>
 };
 
 // =============================================================================
-// UTILITY: reverse label → enum key for drill-down
+// UTILITY: reverse label -> enum key for drill-down
 // =============================================================================
 
 const STATUS_LABEL_TO_KEY: Record<string, string> = {
   Nouveau: "NEW",
-  Assigné: "ASSIGNED",
+  Assigne: "ASSIGNED",
   "En cours": "IN_PROGRESS",
   "En attente": "PENDING",
   "Att. tiers": "PENDING_THIRD_PARTY",
-  Escaladé: "ESCALATED",
-  Résolu: "RESOLVED",
-  Fermé: "CLOSED",
-  Annulé: "CANCELLED",
+  Escalade: "ESCALATED",
+  Resolu: "RESOLVED",
+  Ferme: "CLOSED",
+  Annule: "CANCELLED",
 };
 const PRIORITY_LABEL_TO_KEY: Record<string, string> = {
   Critique: "CRITICAL",
@@ -664,14 +675,14 @@ function priorityNameToKey(name: string): string | undefined {
 // =============================================================================
 
 const ManagerSkeleton: React.FC = () => (
-  <div className="space-y-6">
+  <div className="space-y-5">
     <Skeleton height={48} className="rounded-xl" />
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
       {[1, 2, 3, 4, 5].map((i) => (
         <SkeletonCard key={i} />
       ))}
     </div>
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       <Skeleton height={340} className="rounded-xl" />
       <Skeleton height={340} className="rounded-xl" />
     </div>
@@ -735,25 +746,25 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
 
   return (
     <motion.div
-      className="space-y-10 xl:space-y-12"
+      className="space-y-8 xl:space-y-10"
       variants={stagger}
       initial="hidden"
       animate="show"
     >
-      {/* ─── Header + refresh ────────────────────────────────────────── */}
+      {/* --- Header + refresh ------------------------------------------- */}
       <motion.section variants={fadeUp}>
-        <Card className="overflow-hidden rounded-[1.75rem] border border-ds-border/80 bg-gradient-to-br from-ds-card to-ds-surface shadow-card">
-          <div className="space-y-6 p-5 sm:p-6">
+        <Card className="overflow-hidden rounded-[1.75rem] border border-ds-border/80 bg-ds-card shadow-card">
+          <div className="space-y-5 p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-4 xl:items-end">
               <div className="max-w-3xl">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">
                   Poste de pilotage manager
                 </span>
                 <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-ds-primary">
-                  Supervision Manager
+                  Cockpit manager
                 </h1>
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <StageChip label="Lecture" value="KPI, analytics puis ALLIE" />
+                <div className="mt-3 flex flex-wrap gap-2.5">
+                  <StageChip label="Lecture" value="KPI, analyses puis ALLIE" />
                   <StageChip
                     label="Filtres"
                     value={
@@ -762,14 +773,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
                   />
                 </div>
                 <p className="mt-2 text-sm leading-6 text-ds-muted">
-                  Vue consolidée des KPI, SLA et performance équipe
+                  Vue consolidee des KPI, des engagements SLA et de la performance equipe.
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {lastUpdated && (
-                  <span className="text-xs text-ds-muted font-medium hidden sm:inline">
-                    <CalendarClock size={13} className="inline mr-1 -mt-px" />
-                    MAJ {formatTime(lastUpdated)}
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-3 py-1.5 text-xs font-medium text-ds-secondary">
+                    <CalendarClock size={13} />
+                    Mise a jour {formatTime(lastUpdated)}
                   </span>
                 )}
                 <Button
@@ -792,7 +803,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
               </div>
             </div>
 
-            {/* ─── Filtres globaux ─────────────────────────────────────────── */}
+            {/* --- Filtres globaux -------------------------------------- */}
             {(showFilters || selectedFilterCount > 0) && (
               <FiltersBar
                 period={period}
@@ -821,18 +832,18 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </Card>
       </motion.section>
 
-      {/* ─── KPI row (5 cards) ───────────────────────────────────────── */}
-      <section className="space-y-5">
+      {/* --- KPI row (5 cards) ----------------------------------------- */}
+      <section className="space-y-4">
         <SectionLead
           eyebrow="Etat global"
           title="KPI manager"
-          description="Premiere lecture de situation: engagement SLA, rythme de resolution, backlog et urgences."
+          description="Premiere lecture de situation : engagement SLA, rythme de resolution, backlog et urgences."
           icon={<ShieldCheck size={20} />}
         />
         <KpiRow kpis={data.kpis} />
       </section>
 
-      <section className="space-y-5">
+      <section className="space-y-4">
         <SectionLead
           eyebrow="Lecture analytique"
           title="Analyses de supervision"
@@ -840,13 +851,13 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           icon={<TrendingUp size={20} />}
         />
 
-        {/* ─── Charts row: Statut + Priorité (clickable → drill-down) ── */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        {/* --- Charts row: Statut + Priorite (clickable -> drill-down) --- */}
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                  Répartition par statut
+                  Repartition par statut
                 </h3>
                 <span className="text-[10px] text-ds-muted font-medium uppercase">
                   Cliquer pour drill-down
@@ -859,9 +870,9 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </motion.div>
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
-                  Répartition par priorité
+                  Repartition par priorite
                 </h3>
                 <span className="text-[10px] text-ds-muted font-medium uppercase">
                   Cliquer pour drill-down
@@ -874,13 +885,13 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </motion.div>
         </div>
 
-        {/* ─── Top services à risque ───────────────────────────────────── */}
+        {/* --- Top services a risque ------------------------------------ */}
         <motion.div variants={fadeUp}>
           <Card padding="none" className="overflow-hidden">
-            <div className="px-5 py-4 border-b border-ds-border flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-ds-border px-5 py-3.5">
               <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                 <AlertTriangle size={18} className="text-warning-500" />
-                Top services à risque
+                Top services a risque
               </h3>
               <Link
                 to="/services"
@@ -893,14 +904,14 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </Card>
         </motion.div>
 
-        {/* ─── Charts row: Performance équipe + Tendances 7j ───────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* --- Charts row: Performance equipe + Tendances 7j ------------ */}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border">
+              <div className="border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                   <Users size={18} className="text-primary-500" />
-                  Performance équipe
+                  Performance equipe
                 </h3>
               </div>
               <div className="p-4">
@@ -910,7 +921,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
           </motion.div>
           <motion.div variants={fadeUp}>
             <Card padding="none" className="overflow-hidden">
-              <div className="px-5 py-4 border-b border-ds-border">
+              <div className="border-b border-ds-border px-5 py-3.5">
                 <h3 className="text-base font-bold text-ds-primary flex items-center gap-2">
                   <TrendingUp size={18} className="text-accent-500" />
                   Tendances 7 jours
@@ -924,7 +935,7 @@ export const ManagerDashboard: React.FC<ManagerDashboardProps> = ({
         </div>
       </section>
 
-      <section className="space-y-5">
+      <section className="space-y-4">
         <SectionLead
           eyebrow={MANAGER_COPILOT_PRODUCT_LABEL}
           title={MANAGER_COPILOT_TITLE}

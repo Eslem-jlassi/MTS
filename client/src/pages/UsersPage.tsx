@@ -40,6 +40,7 @@ import {
   getPasswordValidationError,
 } from "../utils/passwordValidation";
 import { formatDateTime } from "../utils/formatters";
+import { getAdminHardDeleteErrorMessage } from "../utils/hardDeleteFeedback";
 
 const roleConfig: Record<
   UserRole,
@@ -106,6 +107,9 @@ export default function UsersPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [passwordSubmitting, setPasswordSubmitting] = useState(false);
   const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteVerificationCode, setDeleteVerificationCode] = useState("");
+  const [isSendingDeleteCode, setIsSendingDeleteCode] = useState(false);
 
   const [createForm, setCreateForm] = useState<CreateInternalUserRequest>(emptyInternalUserForm);
   const [editForm, setEditForm] = useState({
@@ -117,6 +121,13 @@ export default function UsersPage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const isOauthAdmin = Boolean(currentUser?.role === UserRole.ADMIN && currentUser?.oauthProvider);
+  const getUserHardDeleteIdentifier = (user: UserResponse) => String(user.id);
+  const isUserHardDeleteReauthValid = isOauthAdmin
+    ? deleteVerificationCode.trim().length > 0
+    : deletePassword.trim().length > 0;
+  const isUserHardDeleteFormInvalid =
+    !showHardDeleteConfirm || !isUserHardDeleteReauthValid;
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -133,6 +144,17 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  useEffect(() => {
+    if (showHardDeleteConfirm) {
+      setDeletePassword("");
+      setDeleteVerificationCode("");
+      return;
+    }
+
+    setDeletePassword("");
+    setDeleteVerificationCode("");
+  }, [showHardDeleteConfirm]);
 
   const filteredUsers = useMemo(
     () =>
@@ -216,16 +238,58 @@ export default function UsersPage() {
   const handleHardDeleteUser = async () => {
     if (!showHardDeleteConfirm) return;
 
+    const providedUserIdentifier =
+      getUserHardDeleteIdentifier(showHardDeleteConfirm) || String(showHardDeleteConfirm.id);
+
+    if (!isOauthAdmin && !deletePassword.trim()) {
+      toast.error(
+        "Saisissez votre mot de passe administrateur pour confirmer cette suppression definitive.",
+      );
+      return;
+    }
+
+    if (isOauthAdmin && !deleteVerificationCode.trim()) {
+      toast.error(
+        "Saisissez le code de verification recu par email pour confirmer cette suppression definitive.",
+      );
+      return;
+    }
+
     setDeleteSubmitting(true);
     try {
-      await userService.hardDeleteUser(showHardDeleteConfirm.id);
+      await userService.hardDeleteUser(showHardDeleteConfirm.id, {
+        confirmationKeyword: "SUPPRIMER",
+        confirmationTargetId: providedUserIdentifier,
+        currentPassword: isOauthAdmin ? undefined : deletePassword,
+        verificationCode: isOauthAdmin ? deleteVerificationCode : undefined,
+      });
       toast.success("Utilisateur supprime definitivement.");
       setShowHardDeleteConfirm(null);
       await fetchUsers();
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      toast.error(
+        getAdminHardDeleteErrorMessage(
+          "user",
+          err,
+          "Suppression definitive impossible pour cet utilisateur.",
+        ),
+      );
     } finally {
       setDeleteSubmitting(false);
+    }
+  };
+
+  const handleRequestDeleteChallenge = async () => {
+    if (!showHardDeleteConfirm) return;
+
+    setIsSendingDeleteCode(true);
+    try {
+      await userService.requestHardDeleteChallenge(showHardDeleteConfirm.id);
+      toast.success("Un code de verification a ete envoye sur votre email administrateur.");
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsSendingDeleteCode(false);
     }
   };
 
@@ -871,13 +935,61 @@ export default function UsersPage() {
           showHardDeleteConfirm ? (
             <>
               <p>
-                Le compte {showHardDeleteConfirm.email} sera retire definitivement si aucune
-                dependance critique n'existe.
+                Le compte {showHardDeleteConfirm.email} sera retire definitivement.
               </p>
               <p className="mt-2">
-                Si l'utilisateur possede de l'historique ticket, des rapports ou des traces d'audit,
-                la suppression sera refusee et il faudra conserver la desactivation.
+                Le backend reaffectera ou nettoiera les references necessaires avant la suppression
+                finale pour eviter un etat incoherent.
               </p>
+              <div className="mt-3 space-y-3 rounded-xl border border-ds-border bg-ds-surface/70 p-3 text-left">
+                <p className="rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-xs text-ds-secondary">
+                  Identifiant systeme affiche pour controle :{" "}
+                  <span className="font-semibold text-ds-primary">
+                    {getUserHardDeleteIdentifier(showHardDeleteConfirm)}
+                  </span>
+                </p>
+
+                {isOauthAdmin ? (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Code de verification email
+                    </label>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        type="text"
+                        value={deleteVerificationCode}
+                        onChange={(event) => setDeleteVerificationCode(event.target.value)}
+                        className={inputClass}
+                        placeholder="Code a 6 chiffres"
+                        autoComplete="one-time-code"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleRequestDeleteChallenge}
+                        disabled={isSendingDeleteCode || deleteSubmitting}
+                      >
+                        {isSendingDeleteCode ? "Envoi..." : "Envoyer un code"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-ds-muted">
+                      Mot de passe administrateur
+                    </label>
+                    <input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(event) => setDeletePassword(event.target.value)}
+                      className={inputClass}
+                      placeholder="Confirmez avec votre mot de passe"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             "Cette action est irreversible."
@@ -887,8 +999,9 @@ export default function UsersPage() {
         cancelLabel="Conserver"
         variant="danger"
         loading={deleteSubmitting}
+        confirmDisabled={isUserHardDeleteFormInvalid}
         confirmationKeyword="SUPPRIMER"
-        confirmationHint="Tapez SUPPRIMER pour confirmer la suppression definitive de ce compte."
+        confirmationHint="Tapez SUPPRIMER, puis confirmez votre re-authentification administrateur."
       />
     </div>
   );

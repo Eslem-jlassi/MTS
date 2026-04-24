@@ -28,7 +28,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
           {icon}
         </div>
       )}
-      <p className="ds-kicker mb-2">Etat vide</p>
+      <p className="ds-kicker mb-2">État vide</p>
       <h3 className="text-lg font-semibold tracking-tight text-ds-primary">{title}</h3>
       {description && (
         <p className="mt-2 max-w-xl text-sm leading-6 text-ds-secondary">{description}</p>

@@ -126,6 +126,14 @@ export const ticketService = {
   },
 
   /**
+   * Take ownership of an unassigned ticket (agent only, backend validates workflow)
+   */
+  takeTicket: async (id: number): Promise<Ticket> => {
+    const response = await api.post<Ticket>(`${TICKETS_PREFIX}/${id}/take`);
+    return response.data;
+  },
+
+  /**
    * Unassign ticket
    */
   unassignTicket: async (id: number): Promise<Ticket> => {

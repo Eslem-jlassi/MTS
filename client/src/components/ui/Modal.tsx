@@ -12,6 +12,7 @@ interface ModalProps {
   description?: string;
   children: React.ReactNode;
   size?: "sm" | "md" | "lg" | "xl";
+  contentClassName?: string;
 }
 
 const sizeClasses = {
@@ -28,6 +29,7 @@ const Modal: React.FC<ModalProps> = ({
   description,
   children,
   size = "md",
+  contentClassName,
 }) => {
   useEffect(() => {
     if (!isOpen) return;
@@ -42,10 +44,12 @@ const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, onClose]);
 
+  const bodyClassName = contentClassName ?? `${title ? "p-5 pt-4" : "p-5"} overflow-y-auto`;
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -67,17 +71,17 @@ const Modal: React.FC<ModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
-              <div className="border-b border-ds-border/80 bg-ds-card/85 px-6 py-5 backdrop-blur-sm">
+              <div className="border-b border-ds-border/80 bg-ds-card/85 px-5 py-4 backdrop-blur-sm">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <h2
                       id="modal-title"
-                      className="text-xl font-semibold tracking-tight text-ds-primary"
+                      className="text-lg font-semibold tracking-tight text-ds-primary"
                     >
                       {title}
                     </h2>
                     {description && (
-                      <p className="mt-2 max-w-xl text-sm leading-6 text-ds-secondary">
+                      <p className="mt-1.5 max-w-xl text-sm leading-6 text-ds-secondary">
                         {description}
                       </p>
                     )}
@@ -86,7 +90,7 @@ const Modal: React.FC<ModalProps> = ({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="rounded-2xl border border-ds-border bg-ds-card/75 p-2 text-ds-muted transition-all duration-200 hover:border-primary-300/35 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="rounded-xl border border-ds-border bg-ds-card/75 p-2 text-ds-muted transition-all duration-200 hover:border-primary-300/35 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       aria-label="Fermer"
                     >
                       <svg
@@ -107,7 +111,7 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
               </div>
             )}
-            <div className={`${title ? "p-6 pt-5" : "p-6"} overflow-y-auto`}>{children}</div>
+            <div className={bodyClassName}>{children}</div>
           </motion.div>
         </div>
       )}

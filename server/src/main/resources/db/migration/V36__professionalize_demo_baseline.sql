@@ -177,12 +177,12 @@ WHERE content LIKE 'Pouvez-vous nous donner%';
 
 UPDATE ticket_history
 SET details = 'Ticket cree'
-WHERE details = 'Ticket crÃ©Ã©';
+WHERE details = 'Ticket créé';
 
 UPDATE ticket_history
 SET details = 'Ticket assigne a Karim Ziani',
     new_value = 'Karim Ziani'
-WHERE details = 'Ticket assignÃ© Ã  agent1';
+WHERE details = 'Ticket assigné à agent1';
 
 UPDATE ticket_history
 SET details = 'Prise en charge du ticket'
@@ -190,7 +190,7 @@ WHERE details = 'Prise en charge du ticket';
 
 UPDATE ticket_history
 SET details = 'En attente retour client sur tests reseau'
-WHERE details = 'En attente retour client sur tests rÃ©seau';
+WHERE details = 'En attente retour client sur tests réseau';
 
 -- ---------------------------------------------------------------------------
 -- 6. Timezone / business hours par defaut

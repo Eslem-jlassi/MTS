@@ -27,6 +27,9 @@ import {
 import {
   confidenceLabels,
   confidenceToBadgeVariant,
+  formatManagerCopilotConfidenceScore,
+  formatManagerCopilotDecisionAction,
+  getManagerCopilotInferenceModeLabel,
   toneLabels,
   toneToBadgeVariant,
 } from "./managerCopilotUi";
@@ -149,6 +152,80 @@ const ManagerCopilotSignalActions: React.FC<{
             <p className="manager-copilot-rationale-text">
               {signal.recommendation || actionPack.primary.description}
             </p>
+          </div>
+          <ManagerCopilotKnnTrace signal={signal} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ManagerCopilotKnnTrace: React.FC<{
+  signal: DisplaySignal;
+  compact?: boolean;
+}> = ({ signal, compact = false }) => {
+  const nearestExamples = (signal.nearestExamples ?? []).slice(0, compact ? 2 : 3);
+  const featureSummary = (signal.featureSummary ?? []).slice(0, compact ? 3 : 5);
+  const hasTrace =
+    Boolean(signal.inferenceMode || signal.predictedAction) ||
+    typeof signal.confidenceScore === "number" ||
+    nearestExamples.length > 0 ||
+    featureSummary.length > 0;
+
+  if (!hasTrace) {
+    return null;
+  }
+
+  return (
+    <div
+      className={`manager-copilot-knn-trace${compact ? " manager-copilot-knn-trace-compact" : ""}`}
+    >
+      <div className="manager-copilot-knn-metrics">
+        <div className="manager-copilot-knn-metric">
+          <span className="manager-copilot-knn-label">Recommandation KNN</span>
+          <strong className="manager-copilot-knn-value">
+            {formatManagerCopilotDecisionAction(signal.predictedAction)}
+          </strong>
+        </div>
+        <div className="manager-copilot-knn-metric">
+          <span className="manager-copilot-knn-label">Confiance KNN</span>
+          <strong className="manager-copilot-knn-value">
+            {formatManagerCopilotConfidenceScore(signal.confidenceScore)}
+          </strong>
+        </div>
+      </div>
+
+      <div className="manager-copilot-knn-topline">
+        <Badge size="sm" variant="ai" className="manager-copilot-badge">
+          {getManagerCopilotInferenceModeLabel(signal.inferenceMode)}
+        </Badge>
+        {signal.modelVersion && (
+          <span className="manager-copilot-knn-model">{signal.modelVersion}</span>
+        )}
+      </div>
+
+      {featureSummary.length > 0 && (
+        <p className="manager-copilot-knn-summary">{featureSummary.join(" - ")}</p>
+      )}
+
+      {nearestExamples.length > 0 && (
+        <div className="manager-copilot-knn-neighbors">
+          <span className="manager-copilot-knn-label">Voisins similaires</span>
+          <div className="manager-copilot-knn-neighbor-list">
+            {nearestExamples.map((example) => (
+              <div
+                key={`${signal.id}-${example.exampleId}`}
+                className="manager-copilot-knn-neighbor"
+              >
+                <strong className="manager-copilot-knn-neighbor-title">{example.title}</strong>
+                <span className="manager-copilot-knn-neighbor-meta">
+                  {formatManagerCopilotDecisionAction(example.label)}
+                  {typeof example.distance === "number"
+                    ? ` - distance ${example.distance.toFixed(2)}`
+                    : ""}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -295,7 +372,7 @@ export const ManagerCopilotFocusCard: React.FC<{
 }> = ({ signal, onNavigate }) => (
   <article className={`manager-copilot-focus-card manager-copilot-focus-card-${signal.tone}`}>
     <div className="manager-copilot-focus-topline">
-      <span className="manager-copilot-focus-kicker">Action recommandee</span>
+      <span className="manager-copilot-focus-kicker">Action recommandée</span>
       <div className="manager-copilot-signal-badges">
         <Badge
           size="sm"
@@ -319,6 +396,7 @@ export const ManagerCopilotFocusCard: React.FC<{
       <span className="manager-copilot-focus-meta">{signal.eyebrow}</span>
       {signal.meta && <span className="manager-copilot-focus-meta">{signal.meta}</span>}
     </div>
+    <ManagerCopilotKnnTrace signal={signal} compact />
     <ManagerCopilotSignalActions
       signal={signal}
       sectionKey={inferManagerCopilotSectionKey(signal)}
@@ -339,7 +417,7 @@ export const ManagerCopilotStatusBanner: React.FC<{
     <div className="manager-copilot-status-banner">
       <div className="manager-copilot-status-banner-copy">
         <strong className="manager-copilot-status-banner-title">
-          Lecture assistee en mode degrade
+          Lecture assistée en mode dégradé
         </strong>
         <p className="manager-copilot-status-banner-text">
           {error ||
@@ -385,7 +463,7 @@ export const ManagerCopilotSignalCard: React.FC<{
 
       {assignmentSignal && (
         <div className="manager-copilot-signal-highlight">
-          <span className="manager-copilot-signal-highlight-label">Agent recommande</span>
+          <span className="manager-copilot-signal-highlight-label">Agent recommandé</span>
           <strong className="manager-copilot-signal-highlight-value">
             {assignmentSignal.recommendedAgent}
           </strong>
@@ -393,6 +471,7 @@ export const ManagerCopilotSignalCard: React.FC<{
       )}
 
       <p className="manager-copilot-signal-description">{signal.description}</p>
+      <ManagerCopilotKnnTrace signal={signal} compact />
 
       <div className="manager-copilot-signal-footer">
         {signal.tags && signal.tags.length > 0 ? (

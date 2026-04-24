@@ -1,6 +1,7 @@
 package com.billcom.mts.controller;
 
 import com.billcom.mts.dto.auth.AuthResponse;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.dto.user.ChangePasswordRequest;
 import com.billcom.mts.dto.user.UserResponse;
 import com.billcom.mts.entity.User;
@@ -8,6 +9,7 @@ import com.billcom.mts.enums.UserRole;
 import com.billcom.mts.security.JwtService;
 import com.billcom.mts.service.AuditLogService;
 import com.billcom.mts.service.AuthService;
+import com.billcom.mts.service.SensitiveActionVerificationService;
 import com.billcom.mts.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -28,9 +30,12 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -55,6 +60,9 @@ class UserControllerTest {
     private AuditLogService auditLogService;
 
     @MockBean
+    private SensitiveActionVerificationService sensitiveActionVerificationService;
+
+    @MockBean
     private JwtService jwtService;
 
     @MockBean
@@ -76,7 +84,13 @@ class UserControllerTest {
                 .newPassword("NouveauPass1")
                 .build();
 
-        UserController controller = new UserController(authService, userService, auditLogService, new ObjectMapper());
+        UserController controller = new UserController(
+                authService,
+                userService,
+                auditLogService,
+                sensitiveActionVerificationService,
+                new ObjectMapper()
+        );
         ResponseEntity<Map<String, Boolean>> response = controller.changeCurrentUserPassword(request, currentUser);
 
         assertEquals(200, response.getStatusCode().value());
@@ -235,10 +249,49 @@ class UserControllerTest {
 
         when(userService.getUserEntityById(18L)).thenReturn(targetUser);
 
-        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/users/18/hard-delete"))
+        mockMvc.perform(delete("/api/users/18/hard-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "confirmationKeyword": "SUPPRIMER",
+                                  "confirmationTargetId": "18",
+                                  "currentPassword": "Password1!"
+                                }
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Utilisateur supprime definitivement"));
 
-        verify(userService).hardDeleteUserByAdmin(18L);
+        verify(sensitiveActionVerificationService).verifyHardDeleteAuthorization(
+                any(),
+                eq("18"),
+                any(AdminHardDeleteRequest.class),
+                contains("compte interne ID 18")
+        );
+        verify(userService).hardDeleteUserByAdmin(eq(18L), isNull());
+    }
+
+    @Test
+    @DisplayName("POST /api/users/{id}/hard-delete/challenge emet un challenge de verification")
+    @WithMockUser(roles = "ADMIN")
+    void issueHardDeleteChallenge_success() throws Exception {
+        User targetUser = User.builder()
+                .id(18L)
+                .email("agent3@mts-telecom.tn")
+                .firstName("Ali")
+                .lastName("Support")
+                .role(UserRole.AGENT)
+                .isActive(false)
+                .build();
+
+        when(userService.getUserEntityById(18L)).thenReturn(targetUser);
+
+        mockMvc.perform(post("/api/users/18/hard-delete/challenge"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Code de verification envoye"));
+
+        verify(sensitiveActionVerificationService).issueHardDeleteVerificationCode(
+                any(),
+                contains("compte interne ID 18")
+        );
     }
 }

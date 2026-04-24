@@ -44,15 +44,15 @@ const lowConfidenceActions = (
   return [
     {
       id: "rephrase-request",
-      label: "Completer le contexte",
-      message: `Je precise le contexte${serviceHint} : service impacte, symptomes observes, heure de debut et impact utilisateur.`,
+      label: "Compl\u00E9ter le contexte",
+      message: `Je pr\u00E9cise le contexte${serviceHint} : service impact\u00E9, sympt\u00F4mes observ\u00E9s, heure de d\u00E9but et impact utilisateur.`,
     },
     {
       id: "create-ticket",
-      label: "Preparer un brouillon de ticket",
+      label: "Pr\u00E9parer un brouillon de ticket",
       message: service
-        ? `Prepare un brouillon de ticket pour le service ${service}.`
-        : "Prepare un brouillon de ticket pour cet incident.",
+        ? `Pr\u00E9pare un brouillon de ticket pour le service ${service}.`
+        : "Pr\u00E9pare un brouillon de ticket pour cet incident.",
     },
   ];
 };
@@ -105,33 +105,34 @@ const mediumHighConfidenceActions = (
   const actions: ChatbotSuggestedAction[] = [
     {
       id: "check-similar-incidents",
-      label: "Verifier les incidents similaires",
-      message: `Verifie les incidents similaires${serviceSuffix}.`,
+      label: "V\u00E9rifier les incidents similaires",
+      message: `V\u00E9rifie les incidents similaires${serviceSuffix}.`,
     },
     {
       id: "create-ticket",
-      label: "Preparer un brouillon de ticket",
+      label: "Pr\u00E9parer un brouillon de ticket",
       message: service
-        ? `Prepare un brouillon de ticket pour le service ${service}.`
-        : "Prepare un brouillon de ticket pour cet incident.",
+        ? `Pr\u00E9pare un brouillon de ticket pour le service ${service}.`
+        : "Pr\u00E9pare un brouillon de ticket pour cet incident.",
     },
     {
       id: "check-sla",
-      label: "Verifier le SLA",
-      message: `Verifie le risque SLA${serviceSuffix}.`,
+      label: "V\u00E9rifier le SLA",
+      message: `V\u00E9rifie le risque SLA${serviceSuffix}.`,
     },
     {
       id: "rephrase-request",
       label: "Reformuler le diagnostic",
-      message: "Reformule le dernier diagnostic en francais clair avec des etapes operationnelles.",
+      message:
+        "Reformule le dernier diagnostic en fran\u00E7ais clair avec des \u00E9tapes op\u00E9rationnelles.",
     },
   ];
 
   if (service) {
     actions.splice(2, 0, {
       id: "consult-detected-service",
-      label: "Consulter le service detecte",
-      message: `Donne-moi l'etat detaille du service ${service}.`,
+      label: "Consulter le service d\u00E9tect\u00E9",
+      message: `Donne-moi l'\u00E9tat d\u00E9taill\u00E9 du service ${service}.`,
     });
   }
 
@@ -150,8 +151,8 @@ const massiveIncidentActions = (language: ChatLanguage): ChatbotSuggestedAction[
     : [
         {
           id: "prepare-global-ticket",
-          label: "Preparer un ticket global",
-          message: "Prepare un ticket global pour l'incident massif detecte.",
+          label: "Pr\u00E9parer un ticket global",
+          message: "Pr\u00E9pare un ticket global pour l'incident massif d\u00E9tect\u00E9.",
         },
       ];
 

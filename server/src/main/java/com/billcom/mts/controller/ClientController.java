@@ -10,6 +10,7 @@ import com.billcom.mts.dto.auth.RegisterRequest;
 import com.billcom.mts.dto.client.ClientResponse;
 import com.billcom.mts.dto.client.CreateClientAccountRequest;
 import com.billcom.mts.dto.client.UpdateClientRequest;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.Client;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.AuditAction;
@@ -18,6 +19,7 @@ import com.billcom.mts.repository.ClientRepository;
 import com.billcom.mts.repository.TicketRepository;
 import com.billcom.mts.service.AuditLogService;
 import com.billcom.mts.service.AuthService;
+import com.billcom.mts.service.SensitiveActionVerificationService;
 import com.billcom.mts.service.UserService;
 import com.billcom.mts.exception.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,6 +71,7 @@ public class ClientController {
     private final TicketRepository ticketRepository;
     private final AuditLogService auditLogService;
     private final AuthService authService;
+    private final SensitiveActionVerificationService sensitiveActionVerificationService;
     private final UserService userService;
 
     @GetMapping
@@ -257,21 +260,30 @@ public class ClientController {
     public ResponseEntity<java.util.Map<String, String>> hardDeleteClient(
             @PathVariable Long id,
             @AuthenticationPrincipal User admin,
+            @Valid @RequestBody AdminHardDeleteRequest deleteRequest,
             HttpServletRequest httpRequest) {
 
         Client client = clientRepository.findByIdWithUser(id)
                 .orElseThrow(() -> new RuntimeException("Client introuvable: " + id));
 
+        sensitiveActionVerificationService.verifyHardDeleteAuthorization(
+                admin,
+                client.getClientCode(),
+                deleteRequest,
+                "la suppression definitive du client " + client.getClientCode()
+        );
+
         long ticketCount = ticketRepository.countByClientId(client.getId());
         String oldValue = String.format(
-                "clientCode=%s, companyName=%s, email=%s, ticketCount=%d",
+                "clientCode=%s, companyName=%s, email=%s, ticketCount=%d, reauthMode=%s",
                 client.getClientCode(),
                 client.getCompanyName(),
                 client.getUser().getEmail(),
-                ticketCount
+                ticketCount,
+                sensitiveActionVerificationService.resolveReauthMode(admin)
         );
 
-        userService.hardDeleteClientAccountByAdmin(client.getUser().getId());
+        userService.hardDeleteClientAccountByAdmin(client.getUser().getId(), admin);
 
         auditLogService.log(
                 AuditAction.CLIENT_DELETED,
@@ -286,6 +298,34 @@ public class ClientController {
         );
 
         return ResponseEntity.ok(java.util.Map.of("message", "Client supprime definitivement"));
+    }
+
+    @PostMapping("/{id}/hard-delete/challenge")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<java.util.Map<String, String>> issueHardDeleteChallenge(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User admin,
+            HttpServletRequest httpRequest) {
+
+        Client client = clientRepository.findByIdWithUser(id)
+                .orElseThrow(() -> new RuntimeException("Client introuvable: " + id));
+
+        sensitiveActionVerificationService.issueHardDeleteVerificationCode(
+                admin,
+                "la suppression definitive du client " + client.getClientCode()
+        );
+
+        auditLogService.log(
+                AuditAction.CLIENT_UPDATED,
+                "Client",
+                client.getId(),
+                client.getDisplayName(),
+                "Challenge de verification emis avant suppression definitive du client " + client.getClientCode(),
+                admin,
+                httpRequest
+        );
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Code de verification envoye"));
     }
 
     private ClientResponse toResponse(Client client) {

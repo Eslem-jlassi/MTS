@@ -7,6 +7,9 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.defense.example
+!.env.production.example
+!.env.prod.example
 client/.env
 client/.env.local
 client/.env.development.local
@@ -19,6 +22,9 @@ client/.env.test.local
 node_modules/
 dist/
 build/
+coverage/
+.coverage
+.cache/
 
 # Java / Maven
 target/
@@ -29,19 +35,50 @@ server/.m2/
 # Logs
 logs/
 *.log
+*.status
+startup-check*.log
+chatbot-startup.log
+startup_ai_chatbot.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.stackdump
 
 # Uploads / generated files
+server/uploads/avatars/*
+!server/uploads/avatars/.gitkeep
+server/uploads/tickets/*
+!server/uploads/tickets/.gitkeep
 server/uploads/reports/*
 !server/uploads/reports/.gitkeep
 
+# QA / evidence artifacts that must not live at repo root
+qa_*
+*.cookies
+sprint4_p0_*
+docker_info_check.txt
+manual_*.json
+manual_*.txt
+screenshots/
+artifacts/
+
 # IDE / OS
+.sixth/
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
 # Python env
 **/venv/
+**/.venv/
 sentiment-service/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/*.pyc
+**/*.pyo
 
 # Maven cache / nested server
 server/server/

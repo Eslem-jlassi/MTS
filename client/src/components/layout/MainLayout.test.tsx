@@ -10,6 +10,11 @@ import { UserResponse, UserRole } from "../../types";
 jest.mock("../chatbot", () => ({
   ChatbotWidget: () => <div data-testid="chatbot-widget">Chatbot</div>,
 }));
+jest.mock("../manager-copilot", () => ({
+  ManagerCopilotWidget: ({ role }: { role?: UserRole }) => (
+    <div data-testid="manager-copilot-widget">{role}</div>
+  ),
+}));
 
 jest.mock("./Breadcrumb", () => () => <div data-testid="breadcrumb">Breadcrumb</div>);
 jest.mock("../command/CommandPalette", () => () => <div data-testid="command-palette" />);
@@ -81,6 +86,23 @@ describe("MainLayout chatbot visibility", () => {
       renderMainLayout(role);
 
       expect(screen.queryByTestId("chatbot-widget")).not.toBeInTheDocument();
+    },
+  );
+});
+
+describe("MainLayout manager copilot visibility", () => {
+  it("renders the manager copilot widget for MANAGER only", () => {
+    renderMainLayout(UserRole.MANAGER);
+
+    expect(screen.getByTestId("manager-copilot-widget")).toBeInTheDocument();
+  });
+
+  it.each([UserRole.CLIENT, UserRole.AGENT, UserRole.ADMIN])(
+    "does not render the manager copilot widget for %s",
+    (role) => {
+      renderMainLayout(role);
+
+      expect(screen.queryByTestId("manager-copilot-widget")).not.toBeInTheDocument();
     },
   );
 });

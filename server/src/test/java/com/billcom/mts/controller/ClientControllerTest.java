@@ -1,6 +1,7 @@
 package com.billcom.mts.controller;
 
 import com.billcom.mts.dto.auth.AuthResponse;
+import com.billcom.mts.dto.security.AdminHardDeleteRequest;
 import com.billcom.mts.entity.Client;
 import com.billcom.mts.entity.User;
 import com.billcom.mts.enums.UserRole;
@@ -9,6 +10,7 @@ import com.billcom.mts.repository.TicketRepository;
 import com.billcom.mts.security.JwtService;
 import com.billcom.mts.service.AuditLogService;
 import com.billcom.mts.service.AuthService;
+import com.billcom.mts.service.SensitiveActionVerificationService;
 import com.billcom.mts.service.UserService;
 import com.billcom.mts.dto.user.UserResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +29,9 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -56,6 +61,9 @@ class ClientControllerTest {
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private SensitiveActionVerificationService sensitiveActionVerificationService;
 
     @MockBean
     private JwtService jwtService;
@@ -186,11 +194,79 @@ class ClientControllerTest {
 
         when(clientRepository.findByIdWithUser(44L)).thenReturn(Optional.of(client));
         when(ticketRepository.countByClientId(44L)).thenReturn(0L);
+        when(sensitiveActionVerificationService.resolveReauthMode(any())).thenReturn("PASSWORD");
 
-        mockMvc.perform(delete("/api/clients/44/hard-delete"))
+        mockMvc.perform(delete("/api/clients/44/hard-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "confirmationKeyword": "SUPPRIMER",
+                                  "confirmationTargetId": "CLI-2026-00044",
+                                  "currentPassword": "Password1!"
+                                }
+                                """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Client supprime definitivement"));
 
-        verify(userService).hardDeleteClientAccountByAdmin(31L);
+        verify(sensitiveActionVerificationService).verifyHardDeleteAuthorization(
+                isNull(),
+                eq("CLI-2026-00044"),
+                any(AdminHardDeleteRequest.class),
+                contains("CLI-2026-00044")
+        );
+        verify(userService).hardDeleteClientAccountByAdmin(eq(31L), any());
+        verify(auditLogService).log(
+                eq(com.billcom.mts.enums.AuditAction.CLIENT_DELETED),
+                eq("Client"),
+                eq(44L),
+                contains("Telco Plus"),
+                contains("Suppression definitive du client"),
+                contains("ticketCount=0"),
+                eq(null),
+                isNull(),
+                any()
+        );
+    }
+
+    @Test
+    @DisplayName("POST /api/clients/{id}/hard-delete/challenge emet un challenge de verification")
+    @WithMockUser(roles = "ADMIN")
+    void issueHardDeleteChallenge_success() throws Exception {
+        User clientUser = User.builder()
+                .id(31L)
+                .email("client2@mts-telecom.tn")
+                .firstName("Nadia")
+                .lastName("Client")
+                .role(UserRole.CLIENT)
+                .isActive(false)
+                .build();
+
+        Client client = Client.builder()
+                .id(44L)
+                .clientCode("CLI-2026-00044")
+                .companyName("Telco Plus")
+                .address("Tunis")
+                .user(clientUser)
+                .build();
+
+        when(clientRepository.findByIdWithUser(44L)).thenReturn(Optional.of(client));
+
+        mockMvc.perform(post("/api/clients/44/hard-delete/challenge"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Code de verification envoye"));
+
+        verify(sensitiveActionVerificationService).issueHardDeleteVerificationCode(
+                isNull(),
+                contains("CLI-2026-00044")
+        );
+        verify(auditLogService).log(
+                eq(com.billcom.mts.enums.AuditAction.CLIENT_UPDATED),
+                eq("Client"),
+                eq(44L),
+                contains("Telco Plus"),
+                contains("Challenge de verification"),
+                isNull(),
+                any()
+        );
     }
 }

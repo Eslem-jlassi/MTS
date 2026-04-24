@@ -58,6 +58,7 @@
     "eject": "react-scripts eject",
     "lint": "eslint src/ --ext .ts,.tsx --max-warnings 0",
     "lint:fix": "eslint src/ --ext .ts,.tsx --fix",
+    "check:encoding": "powershell -ExecutionPolicy Bypass -File ../scripts/quality/check-mojibake.ps1",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\""
   },

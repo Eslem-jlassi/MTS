@@ -35,7 +35,7 @@ interface AgentDashboardProps {
   stats: DashboardStats;
   recentTickets: TicketType[];
   assignedToMeCount?: number;
-  slaAtRiskCount?: number;
+  slaBreachedCount?: number;
   lastUpdated?: string;
   onRefresh: () => void;
   isLoadingRefresh: boolean;
@@ -69,7 +69,7 @@ const AgentKpi: React.FC<{
 }> = ({ icon, iconBg, label, value, suffix, alert }) => (
   <motion.div variants={fadeUp}>
     <Card
-      className={`relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300 ${alert ? "ring-2 ring-error/30" : ""}`}
+      className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover ${alert ? "ring-2 ring-error/30" : ""}`}
     >
       <div className="flex items-center gap-4">
         <div
@@ -100,7 +100,9 @@ const KpiSkeletonRow: React.FC = () => (
 );
 
 /** Quick actions panel */
-const QuickActionsPanel: React.FC<{ newTicketsCount: number }> = ({ newTicketsCount }) => (
+const QuickActionsPanel: React.FC<{ availableTicketsCount: number }> = ({
+  availableTicketsCount,
+}) => (
   <motion.div variants={fadeUp}>
     <Card padding="none" className="overflow-hidden">
       <div className="px-5 py-4 border-b border-ds-border">
@@ -108,14 +110,14 @@ const QuickActionsPanel: React.FC<{ newTicketsCount: number }> = ({ newTicketsCo
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-ds-border">
         <Link
-          to="/tickets?status=NEW"
+          to="/tickets"
           className="flex flex-col items-center gap-2.5 py-6 px-4 hover:bg-primary-50 dark:hover:bg-primary-900/10 transition-colors group"
         >
           <div className="relative p-3 rounded-2xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 group-hover:scale-110 transition-transform">
             <UserPlus size={22} />
-            {newTicketsCount > 0 && (
+            {availableTicketsCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[10px] font-bold text-white bg-error rounded-full">
-                {newTicketsCount}
+                {availableTicketsCount}
               </span>
             )}
           </div>
@@ -183,7 +185,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
   stats,
   recentTickets,
   assignedToMeCount = 0,
-  slaAtRiskCount = 0,
+  slaBreachedCount = 0,
   lastUpdated,
   onRefresh,
   isLoadingRefresh,
@@ -195,7 +197,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
   );
 
   const avgResolution = stats.averageResolutionTimeHours ?? 0;
-  const newTickets = (stats.ticketsByStatus ?? {})[TicketStatus.NEW] ?? 0;
+  const availableTickets = stats.unassignedCount ?? 0;
 
   // Sort tickets: CRITICAL > HIGH > MEDIUM > LOW
   const sortedTickets = useMemo(() => {
@@ -218,32 +220,36 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
 
   return (
     <motion.div className="space-y-6" variants={stagger} initial="hidden" animate="show">
-      {/* Header + refresh */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-ds-primary tracking-tight">Espace Agent</h1>
-          <p className="text-sm text-ds-muted mt-0.5">
-            Vue d'ensemble de vos tickets et performances
-          </p>
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="max-w-2xl">
+            <span className="ds-kicker">Espace agent</span>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-ds-primary">
+              Pilotage opérationnel
+            </h1>
+            <p className="mt-1.5 text-sm leading-6 text-ds-muted">
+              Priorisez vos tickets assignés, surveillez le risque SLA et gardez une vue claire sur vos actions immédiates.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {lastUpdated && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-3 py-1.5 text-xs font-medium text-ds-secondary">
+                <CalendarClock size={13} />
+                Mise à jour {formatTime(lastUpdated)}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isLoadingRefresh}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-ds-border bg-ds-card px-3 py-1.5 text-xs font-semibold text-ds-secondary transition-colors hover:bg-ds-elevated disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isLoadingRefresh ? "animate-spin" : ""} />
+              Actualiser
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs text-ds-muted font-medium hidden sm:inline">
-              <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ {formatTime(lastUpdated)}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isLoadingRefresh}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-ds-border bg-ds-card hover:bg-ds-elevated text-ds-secondary transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={isLoadingRefresh ? "animate-spin" : ""} />
-            Actualiser
-          </button>
-        </div>
-      </div>
+      </Card>
 
       {/* KPI row */}
       <motion.div
@@ -259,9 +265,9 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
         <AgentKpi
           icon={<AlertTriangle size={22} className="text-error-600 dark:text-error-400" />}
           iconBg="bg-error-50 dark:bg-error-900/30"
-          label="SLA à risque"
-          value={slaAtRiskCount}
-          alert={slaAtRiskCount > 0}
+          label="SLA dépassé"
+          value={slaBreachedCount}
+          alert={slaBreachedCount > 0}
         />
         <AgentKpi
           icon={<Clock size={22} className="text-warning-600 dark:text-warning-400" />}
@@ -273,12 +279,12 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
           icon={<Timer size={22} className="text-success-600 dark:text-success-400" />}
           iconBg="bg-success-50 dark:bg-success-900/30"
           label="Résolution moy."
-          value={avgResolution > 0 ? formatHours(avgResolution) : "--"}
+          value={avgResolution > 0 ? formatHours(avgResolution) : "—"}
         />
       </motion.div>
 
       {/* Quick actions panel */}
-      <QuickActionsPanel newTicketsCount={newTickets} />
+      <QuickActionsPanel availableTicketsCount={availableTickets} />
 
       {/* Assigned tickets table — sorted by priority/SLA */}
       <motion.div variants={fadeUp}>
@@ -309,7 +315,7 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
                 description="Prenez un ticket non assigné pour commencer à travailler."
                 action={
                   <Link
-                    to="/tickets?status=NEW"
+                    to="/tickets"
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-xl transition-colors"
                   >
                     <UserPlus size={16} /> Prendre un ticket

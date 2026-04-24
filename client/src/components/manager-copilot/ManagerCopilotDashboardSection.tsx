@@ -2,8 +2,10 @@ import React, { useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, RefreshCw, ShieldAlert, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import { Badge, Button, Card, EmptyState, Skeleton } from "../ui";
 import type { DashboardFilters } from "../../api/dashboardService";
+import { RootState } from "../../redux/store";
 import type {
   ManagerCopilotAssignmentSignal,
   ManagerCopilotQuickAction,
@@ -25,6 +27,7 @@ import {
   MANAGER_COPILOT_DASHBOARD_SUBTITLE,
   MANAGER_COPILOT_PRODUCT_LABEL,
   MANAGER_COPILOT_TITLE,
+  isManagerCopilotAllowedRole,
   modeLabels,
   toneLabels,
   toneToBadgeVariant,
@@ -54,7 +57,7 @@ function getRecommendedAction(snapshot: ManagerCopilotSnapshot): RecommendedActi
 
   if (primarySignal) {
     return {
-      label: primarySignal.ctaLabel || "Ouvrir le dossier recommande",
+      label: primarySignal.ctaLabel || "Ouvrir le dossier recommandé",
       description: primarySignal.recommendation || primarySignal.description,
       href: primarySignal.href,
       tone: primarySignal.tone,
@@ -205,7 +208,7 @@ const CompactCopilotOverview: React.FC<{
           {recommendedAction && (
             <div className="manager-copilot-compact-recommendation rounded-2xl p-4">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ds-muted">
-                Action recommandee
+                Action recommandée
               </span>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <Badge
@@ -315,12 +318,19 @@ export const ManagerCopilotDashboardSection: React.FC<ManagerCopilotDashboardSec
   filters,
 }) => {
   const navigate = useNavigate();
+  const userRole = useSelector((state: RootState) => state.auth.user?.role);
+  const isManagerContext = isManagerCopilotAllowedRole(userRole);
   const detailRef = useRef<HTMLElement | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const { snapshot, isLoading, isRefreshing, error, refresh } = useManagerCopilot({
-    enabled: true,
+    enabled: isManagerContext,
     filters,
+    role: userRole,
   });
+
+  if (!isManagerContext) {
+    return null;
+  }
 
   const handleNavigate = (href: string, options?: { state?: unknown }) =>
     navigate(href, options?.state ? { state: options.state } : undefined);

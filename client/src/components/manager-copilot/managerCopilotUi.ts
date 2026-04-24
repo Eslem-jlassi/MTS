@@ -1,3 +1,4 @@
+import { UserRole } from "../../types";
 import type {
   ManagerCopilotAssignmentSignal,
   ManagerCopilotConfidence,
@@ -7,17 +8,27 @@ import type {
   ManagerCopilotTone,
 } from "./types";
 
-export type ManagerCopilotBadgeVariant = "danger" | "warning" | "success" | "info" | "neutral";
+export type ManagerCopilotBadgeVariant =
+  | "danger"
+  | "warning"
+  | "success"
+  | "info"
+  | "neutral"
+  | "ai";
 
 export const MANAGER_COPILOT_NAME = "ALLIE";
 export const MANAGER_COPILOT_PRODUCT_LABEL = "Assistant IA Manager";
 export const MANAGER_COPILOT_TITLE = MANAGER_COPILOT_NAME;
-export const MANAGER_COPILOT_SUBTITLE = "Copilote decisionnel de supervision";
+export const MANAGER_COPILOT_SUBTITLE = "Copilote de supervision assistee";
 export const MANAGER_COPILOT_FULL_LABEL = `${MANAGER_COPILOT_NAME}, ${MANAGER_COPILOT_PRODUCT_LABEL}`;
 
 export const MANAGER_COPILOT_WIDGET_SUBTITLE = MANAGER_COPILOT_SUBTITLE;
 
 export const MANAGER_COPILOT_DASHBOARD_SUBTITLE = MANAGER_COPILOT_SUBTITLE;
+
+export function isManagerCopilotAllowedRole(role?: UserRole | null): role is UserRole.MANAGER {
+  return role === UserRole.MANAGER;
+}
 
 export interface ManagerCopilotMoment {
   title: string;
@@ -44,6 +55,14 @@ export const modeLabels: Record<ManagerCopilotMode, string> = {
   degraded: "Mode degrade",
 };
 
+const predictedActionLabels: Record<string, string> = {
+  ESCALATE: "Escalader",
+  REASSIGN: "Reassigner",
+  OPEN_INCIDENT: "Ouvrir un incident",
+  MONITOR: "Surveiller",
+  PREPARE_SUMMARY: "Preparer une synthese",
+};
+
 export function toneToBadgeVariant(tone: ManagerCopilotTone): ManagerCopilotBadgeVariant {
   switch (tone) {
     case "critical":
@@ -53,7 +72,7 @@ export function toneToBadgeVariant(tone: ManagerCopilotTone): ManagerCopilotBadg
     case "success":
       return "success";
     case "info":
-      return "info";
+      return "ai";
     default:
       return "neutral";
   }
@@ -70,6 +89,35 @@ export function confidenceToBadgeVariant(
     default:
       return "neutral";
   }
+}
+
+export function formatManagerCopilotDecisionAction(value?: string | null): string {
+  const normalized = (value || "").trim().toUpperCase();
+  return predictedActionLabels[normalized] || "Validation manager";
+}
+
+export function formatManagerCopilotConfidenceScore(value?: number | null): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "n/d";
+  }
+
+  return new Intl.NumberFormat("fr-FR", {
+    style: "percent",
+    maximumFractionDigits: value >= 0.1 ? 0 : 1,
+  }).format(value);
+}
+
+export function getManagerCopilotInferenceModeLabel(value?: string | null): string {
+  const normalized = (value || "").trim().toLowerCase();
+
+  if (normalized === "knn") {
+    return "Recommandation supervisee KNN";
+  }
+  if (normalized === "degraded_rules") {
+    return "Fallback deterministe";
+  }
+
+  return "Assistance supervisee";
 }
 
 export function formatManagerCopilotUpdatedAt(value?: string): string {

@@ -7,6 +7,7 @@ import com.billcom.mts.enums.ReportType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -63,6 +64,8 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
      * @return Page de rapports de l'auteur
      */
     Page<Report> findByCreatedByOrderByCreatedAtDesc(User createdBy, Pageable pageable);
+
+    List<Report> findByCreatedBy(User createdBy);
 
     /**
      * Récupère les rapports publiés par un utilisateur.
@@ -191,6 +194,10 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
      * @return Nombre de rapports
      */
     long countByCreatedBy(User createdBy);
+
+    @Modifying
+    @Query("UPDATE Report r SET r.createdBy = :replacementUser WHERE r.createdBy.id = :userId")
+    int reassignCreatedBy(@Param("userId") Long userId, @Param("replacementUser") User replacementUser);
 
     /**
      * Compte les rapports par type.

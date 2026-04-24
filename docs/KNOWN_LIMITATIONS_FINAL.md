@@ -18,12 +18,12 @@ Aucun blocage critique n'a ete observe sur le chemin de demonstration valide :
 - impact soutenance : faible
 - impact release engineering : eleve
 
-### 2. Google OAuth non revalide end-to-end
+### 2. Google OAuth depend de credentials reels
 
-- le code et les tests unitaires existent
-- aucune verification finale en conditions reelles n'a ete faite sans credentials Google actifs
-- impact soutenance : faible si non montre
-- impact production : eleve si OAuth doit faire partie du scope de livraison immediat
+- le flux frontend/backend est teste (succes, echec, no-config)
+- une validation finale reste conditionnee a des credentials Google OAuth reels actifs
+- impact soutenance : faible si OAuth n'est pas montre en live
+- impact production : modere tant que les variables OAuth ne sont pas renseignees correctement
 
 ## Criticite moyenne
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MessageSquare, Minimize2, Trash2, X } from "lucide-react";
+import { AlertTriangle, MessageSquare, Minimize2, RefreshCw, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
@@ -27,6 +27,19 @@ import { resolveChatLanguage } from "./chatbotLanguage";
 import ChatbotMascot from "./ChatbotMascot";
 import "./ChatbotStyles.css";
 
+const confidenceNarrativeLabels = {
+  fr: {
+    high: "élevée",
+    medium: "moyenne",
+    low: "à confirmer",
+  },
+  en: {
+    high: "high",
+    medium: "medium",
+    low: "needs confirmation",
+  },
+} as const;
+
 const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [draftTicket, setDraftTicket] = useState<ChatbotTicketDraft | null>(null);
@@ -46,6 +59,8 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
     messages,
     isLoading,
     errorMessage,
+    errorTone,
+    canRetryLastMessage,
     isWelcomeState,
     currentLanguage,
     loadingMessage,
@@ -180,10 +195,15 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
           : lastKnownService
             ? `Service : ${lastKnownService}. `
             : "";
+      const normalizedConfidence = (latestAssistantMessage?.confidence || "").toLowerCase();
+      const localizedConfidence =
+        confidenceNarrativeLabels[currentLanguage][
+          normalizedConfidence as keyof (typeof confidenceNarrativeLabels)[typeof currentLanguage]
+        ] || latestAssistantMessage?.confidence;
       const confidence = latestAssistantMessage?.confidence
         ? currentLanguage === "en"
-          ? `Current confidence: ${latestAssistantMessage.confidence}. `
-          : `Confiance actuelle : ${latestAssistantMessage.confidence}. `
+          ? `Current confidence: ${localizedConfidence}. `
+          : `Confiance actuelle : ${localizedConfidence}. `
         : "";
       sendMessage(`${service}${confidence}${copy.checkSlaPrompt}`);
       return;
@@ -258,7 +278,7 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
           : `Impact estime (IA) : ${draftTicket.impact.trim()}`
         : currentLanguage === "en"
           ? "Estimated impact (AI): To be confirmed"
-          : "Impact estime (IA) : A confirmer",
+          : "Impact estimé (IA) : À confirmer",
       draftTicket.probableCause.trim()
         ? currentLanguage === "en"
           ? `Probable cause (AI): ${draftTicket.probableCause.trim()}`
@@ -420,18 +440,27 @@ const ChatbotWidgetContent: React.FC<{ authUser: UserResponse }> = ({ authUser }
               )}
 
               {errorMessage && (
-                <div className="chatbot-error-banner" role="alert">
-                  <span>
-                    {copy.connectionIssueLabel}: {errorMessage}
-                  </span>
-                  <button
-                    type="button"
-                    className="chatbot-retry-button"
-                    onClick={retryLastMessage}
-                    disabled={isLoading}
-                  >
-                    {copy.retryLabel}
-                  </button>
+                <div
+                  className={`chatbot-error-banner ${errorTone === "warning" ? "chatbot-warning-banner" : ""}`}
+                  role="alert"
+                >
+                  <div className="chatbot-error-banner-content">
+                    <AlertTriangle size={14} className="chatbot-error-icon" />
+                    <span className="chatbot-error-text">
+                      {errorMessage}
+                    </span>
+                  </div>
+                  {canRetryLastMessage && (
+                    <button
+                      type="button"
+                      className="chatbot-retry-button"
+                      onClick={retryLastMessage}
+                      disabled={isLoading}
+                    >
+                      <RefreshCw size={13} />
+                      Reessayer
+                    </button>
+                  )}
                 </div>
               )}
               <ChatInput onSend={sendMessage} disabled={isLoading} language={currentLanguage} />

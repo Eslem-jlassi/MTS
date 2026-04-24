@@ -34,3 +34,6 @@ build/
 
 ### Output files ###
 *_output*.txt
+*.log
+*.status
+.m2/

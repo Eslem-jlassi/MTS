@@ -102,4 +102,63 @@ describe("createAssistantMessageFromResponse", () => {
     expect(message.results).toHaveLength(1);
     expect(message.results?.[0]?.docId).toBe("doc-2");
   });
+
+  it("renders a clean unavailable assistant error message when backend marks response unavailable", () => {
+    const message = createAssistantMessageFromResponse({
+      available: false,
+      answer: "Le chatbot IA est indisponible pour le moment.",
+      confidence: "low",
+      serviceDetected: "N/A",
+      fallbackMode: "service_unavailable",
+      results: [],
+    });
+
+    expect(message.isError).toBe(true);
+    expect(message.content).toBe(
+      "Assistant temporairement indisponible. Reessayez dans quelques instants.",
+    );
+  });
+
+  it("keeps partial useful payload even when availability flag is false", () => {
+    const message = createAssistantMessageFromResponse({
+      available: false,
+      answer: "Resume : Le diagnostic reste prudent.",
+      confidence: "low",
+      serviceDetected: "N/A",
+      analysis: {
+        summary: "Le diagnostic reste prudent.",
+        impact: "Impact non confirme.",
+        nextAction: "Completer le contexte.",
+        clarificationNeeded: true,
+        missingInformation: ["service impacte"],
+      },
+      results: [],
+    });
+
+    expect(message.isError).not.toBe(true);
+    expect(message.analysis?.summary).toBe("Le diagnostic reste prudent.");
+  });
+
+  it("does not expose technical backend fallback text as business summary", () => {
+    const message = createAssistantMessageFromResponse({
+      available: false,
+      answer: "java.net.ConnectException: Connection refused http://127.0.0.1:8002",
+      confidence: "medium",
+      serviceDetected: "Fibre FTTH",
+      analysis: {
+        summary: "Analyse partielle disponible sur le service FTTH.",
+        impact: "Impact localise a confirmer.",
+        nextAction: "Verifier incidents similaires et OLT.",
+        clarificationNeeded: true,
+        missingInformation: ["heure de debut"],
+      },
+      results: [],
+      fallbackMode: "service_unavailable",
+    });
+
+    expect(message.isError).not.toBe(true);
+    expect(message.content).toContain("Analyse partielle disponible");
+    expect(message.content).not.toContain("ConnectException");
+    expect(message.content).not.toContain("Connection refused");
+  });
 });

@@ -78,6 +78,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 )}
                 <p className="chatbot-message-content">{message.content}</p>
               </>
+            ) : message.isError ? (
+              <p className="chatbot-message-content">{message.content}</p>
             ) : (
               <ChatbotResponseSections
                 message={message}

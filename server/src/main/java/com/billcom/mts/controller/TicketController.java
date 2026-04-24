@@ -424,6 +424,21 @@ public class TicketController {
     }
 
     /**
+     * POST /api/tickets/{id}/take - Permet a un agent de prendre un ticket non assigne.
+     */
+    @PostMapping("/{id}/take")
+    @PreAuthorize("hasRole('AGENT')")
+    @Operation(summary = "Permet a l'agent connecte de prendre un ticket non assigne")
+    public ResponseEntity<TicketResponse> takeTicket(
+            @PathVariable Long id,
+            @AuthenticationPrincipal User user,
+            HttpServletRequest httpRequest) {
+
+        String ipAddress = getClientIpAddress(httpRequest);
+        return ResponseEntity.ok(ticketService.takeTicket(id, user, ipAddress));
+    }
+
+    /**
      * DELETE /api/tickets/{id}/assign - Désassigne un ticket.
      * 
      * Retire l'agent actuellement assigné au ticket.

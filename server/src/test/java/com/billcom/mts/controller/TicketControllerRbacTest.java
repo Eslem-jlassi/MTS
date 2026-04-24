@@ -46,6 +46,14 @@ class TicketControllerRbacTest {
     @MockBean private JwtService jwtService;
     @MockBean private UserDetailsService userDetailsService;
 
+                private static final String HARD_DELETE_PAYLOAD = """
+                                                {
+                                                        "confirmationKeyword": "SUPPRIMER",
+                                                        "confirmationTargetId": "TKT-2026-00001",
+                                                        "currentPassword": "Password1!"
+                                                }
+                                                """;
+
     // =========================================================================
     // CLIENT role tests
     // =========================================================================
@@ -136,7 +144,9 @@ class TicketControllerRbacTest {
     @WithMockUser(roles = "CLIENT")
     @DisplayName("CLIENT ne peut pas supprimer definitivement un ticket")
     void clientCannotHardDeleteTicket() throws Exception {
-        mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+        mockMvc.perform(delete("/api/tickets/1/hard-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(HARD_DELETE_PAYLOAD))
                 .andExpect(status().isForbidden());
     }
 
@@ -211,6 +221,16 @@ class TicketControllerRbacTest {
 
         @Test
         @WithMockUser(roles = "AGENT")
+        @DisplayName("AGENT peut prendre un ticket non assigne")
+        void agentCanTakeTicket() throws Exception {
+            mockMvc.perform(post("/api/tickets/1/take"))
+                    .andExpect(result ->
+                            assertNotEquals(403, result.getResponse().getStatus(),
+                                    "AGENT devrait pouvoir atteindre /take (pas 403)"));
+        }
+
+        @Test
+        @WithMockUser(roles = "AGENT")
         @DisplayName("AGENT peut exporter en CSV (non bloqué par RBAC)")
         void agentCanExportCsv() throws Exception {
             mockMvc.perform(get("/api/tickets/export/csv"))
@@ -240,7 +260,9 @@ class TicketControllerRbacTest {
     @WithMockUser(roles = "AGENT")
     @DisplayName("AGENT ne peut pas supprimer definitivement un ticket")
     void agentCannotHardDeleteTicket() throws Exception {
-        mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+        mockMvc.perform(delete("/api/tickets/1/hard-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(HARD_DELETE_PAYLOAD))
                 .andExpect(status().isForbidden());
     }
 
@@ -285,9 +307,19 @@ class TicketControllerRbacTest {
 
         @Test
         @WithMockUser(roles = "MANAGER")
+        @DisplayName("MANAGER ne peut pas utiliser la prise en charge agent")
+        void managerCannotTakeTicket() throws Exception {
+            mockMvc.perform(post("/api/tickets/1/take"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @WithMockUser(roles = "MANAGER")
         @DisplayName("MANAGER ne peut pas supprimer definitivement un ticket")
         void managerCannotHardDeleteTicket() throws Exception {
-            mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+                        mockMvc.perform(delete("/api/tickets/1/hard-delete")
+                                                        .contentType(MediaType.APPLICATION_JSON)
+                                                        .content(HARD_DELETE_PAYLOAD))
                     .andExpect(status().isForbidden());
         }
     }
@@ -336,7 +368,9 @@ class TicketControllerRbacTest {
     @WithMockUser(roles = "ADMIN")
     @DisplayName("ADMIN peut supprimer definitivement un ticket (non bloque par RBAC)")
     void adminCanHardDeleteTicket() throws Exception {
-        mockMvc.perform(delete("/api/tickets/1/hard-delete"))
+        mockMvc.perform(delete("/api/tickets/1/hard-delete")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(HARD_DELETE_PAYLOAD))
                 .andExpect(result ->
                         assertNotEquals(403, result.getResponse().getStatus(),
                                 "ADMIN devrait pouvoir supprimer definitivement un ticket (pas 403)"));

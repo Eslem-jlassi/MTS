@@ -75,7 +75,7 @@ const KpiStat: React.FC<{
   value: number;
 }> = ({ icon, iconBg, label, value }) => (
   <motion.div variants={fadeUp}>
-    <Card className="relative overflow-hidden group hover:shadow-card-hover transition-shadow duration-300">
+    <Card className="group relative h-full overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover">
       <div className="flex items-center gap-4">
         <div
           className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}
@@ -330,32 +330,36 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
 
   return (
     <motion.div className="space-y-6" variants={stagger} initial="hidden" animate="show">
-      {/* Header + refresh */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-extrabold text-ds-primary tracking-tight">
-            Mon tableau de bord
-          </h1>
-          <p className="text-sm text-ds-muted mt-0.5">Vue d'ensemble de vos tickets et services</p>
+      <Card className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="max-w-2xl">
+            <span className="ds-kicker">Espace client</span>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-ds-primary">
+              Mon tableau de bord
+            </h1>
+            <p className="mt-1.5 text-sm leading-6 text-ds-muted">
+              Vue d'ensemble de vos tickets, de vos services suivis et des actions rapides utiles en démonstration.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            {lastUpdated && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-3 py-1.5 text-xs font-medium text-ds-secondary">
+                <CalendarClock size={13} />
+                Mise à jour {formatTime(lastUpdated)}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isLoadingRefresh}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-ds-border bg-ds-card px-3 py-1.5 text-xs font-semibold text-ds-secondary transition-colors hover:bg-ds-elevated disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isLoadingRefresh ? "animate-spin" : ""} />
+              Actualiser
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <span className="text-xs text-ds-muted font-medium hidden sm:inline">
-              <CalendarClock size={13} className="inline mr-1 -mt-px" />
-              MAJ {formatTime(lastUpdated)}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={onRefresh}
-            disabled={isLoadingRefresh}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-ds-border bg-ds-card hover:bg-ds-elevated text-ds-secondary transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={isLoadingRefresh ? "animate-spin" : ""} />
-            Actualiser
-          </button>
-        </div>
-      </div>
+      </Card>
 
       {/* KPI row */}
       <motion.div className="grid grid-cols-1 sm:grid-cols-3 gap-4" variants={stagger}>

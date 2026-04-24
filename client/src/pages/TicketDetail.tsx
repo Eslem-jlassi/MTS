@@ -47,6 +47,17 @@ import {
   formatSlaRemaining as formatSlaRemainingValue,
 } from "../utils/formatters";
 import {
+  getSlaTone,
+  roleVisuals,
+  ticketPriorityVisuals,
+  ticketStatusVisuals,
+  toneBadgeVariant,
+  toneDotClass,
+  toneSolidClass,
+  toneSoftPanelClass,
+  toneTextClass,
+} from "../utils/uiSemantics";
+import {
   Ticket,
   TicketStatus,
   TicketComment as TicketCommentType,
@@ -57,6 +68,7 @@ import {
   CategoryLabels,
 } from "../types";
 import Toast, { ToastMessage } from "../components/tickets/Toast";
+import { Badge } from "../components/ui";
 import {
   ArrowLeft,
   Clock,
@@ -77,30 +89,9 @@ import {
 // CONFIGURATION DES BADGES (priorité et statut)
 // =============================================================================
 
-const priorityConfig: Record<string, { bg: string; text: string; label: string }> = {
-  CRITICAL: {
-    bg: "bg-red-100 dark:bg-red-900/30",
-    text: "text-red-800 dark:text-red-200",
-    label: "Critique",
-  },
-  HIGH: {
-    bg: "bg-orange-100 dark:bg-orange-900/30",
-    text: "text-orange-800 dark:text-orange-200",
-    label: "Haute",
-  },
-  MEDIUM: {
-    bg: "bg-yellow-100 dark:bg-yellow-900/30",
-    text: "text-yellow-800 dark:text-yellow-200",
-    label: "Moyenne",
-  },
-  LOW: {
-    bg: "bg-green-100 dark:bg-green-900/30",
-    text: "text-green-800 dark:text-green-200",
-    label: "Basse",
-  },
-};
+const priorityConfig = ticketPriorityVisuals;
 
-const statusConfig: Record<string, { bg: string; text: string; label: string; icon: string }> = {
+const legacyStatusConfig: Record<string, { bg: string; text: string; label: string; icon: string }> = {
   NEW: {
     bg: "bg-primary-100 dark:bg-primary-900/30",
     text: "text-primary-800 dark:text-primary-200",
@@ -152,7 +143,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string; ic
   },
 };
 
-const roleConfig: Record<string, { label: string; color: string }> = {
+const legacyRoleConfig: Record<string, { label: string; color: string }> = {
   CLIENT: {
     label: "Client",
     color: "bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300",
@@ -167,6 +158,15 @@ const roleConfig: Record<string, { label: string; color: string }> = {
   },
   ADMIN: { label: "Admin", color: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300" },
 };
+
+const statusConfig = (ticketStatusVisuals || legacyStatusConfig) as Record<
+  string,
+  (typeof ticketStatusVisuals)[TicketStatus]
+>;
+const roleConfig = (roleVisuals || legacyRoleConfig) as Record<
+  string,
+  (typeof roleVisuals)[UserRole]
+>;
 
 // =============================================================================
 // COMPOSANT PRINCIPAL
@@ -212,6 +212,7 @@ const TicketDetail: React.FC = () => {
   const isStaff = userRole && ["ADMIN", "MANAGER", "AGENT"].includes(userRole);
   const canAssign = userRole && ["ADMIN", "MANAGER"].includes(userRole);
   const canChangeStatus = isStaff;
+  const canTakeOwnership = Boolean(userRole === UserRole.AGENT && ticket?.canTakeOwnership);
 
   const resetStatusForm = useCallback(() => {
     setShowStatusModal(false);
@@ -388,6 +389,23 @@ const TicketDetail: React.FC = () => {
    * 2. Envoie DELETE /api/tickets/{id}/assign
    * 3. Le ticket revient dans le pool non assigné
    */
+  const handleTakeOwnership = async () => {
+    if (!ticket) return;
+    setSubmitting(true);
+    try {
+      await ticketService.takeTicket(ticket.id);
+      setToast({ message: "Ticket pris en charge", type: "success" });
+      await loadTicket();
+    } catch (err: any) {
+      setToast({
+        message: err.response?.data?.message || "Erreur lors de la prise en charge",
+        type: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleUnassign = async () => {
     if (!ticket) return;
     setSubmitting(true);
@@ -410,17 +428,11 @@ const TicketDetail: React.FC = () => {
   // ==========================================================================
 
   const getSlaColor = () => {
-    if (!ticket) return "text-ds-muted";
-    if (ticket.overdue || ticket.breachedSla) return "text-red-600 dark:text-red-400";
-    if (ticket.slaWarning) return "text-orange-500 dark:text-orange-400";
-    return "text-green-600 dark:text-green-400";
+    return toneTextClass(getSlaTone(ticket));
   };
 
   const getSlaBarColor = () => {
-    if (!ticket) return "bg-gray-300";
-    if (ticket.breachedSla || ticket.overdue) return "bg-red-500";
-    if (ticket.slaWarning) return "bg-orange-500";
-    return "bg-green-500";
+    return toneDotClass(getSlaTone(ticket));
   };
 
   // ==========================================================================
@@ -489,12 +501,12 @@ const TicketDetail: React.FC = () => {
           <h2 className="text-lg text-ds-primary mt-1">{ticket.title}</h2>
         </div>
         <div className="flex gap-2 items-center flex-shrink-0">
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${pCfg.bg} ${pCfg.text}`}>
+          <Badge variant={toneBadgeVariant(pCfg.tone)} size="md">
             {pCfg.label}
-          </span>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${sCfg.bg} ${sCfg.text}`}>
+          </Badge>
+          <Badge variant={toneBadgeVariant(sCfg.tone)} size="md">
             {sCfg.label}
-          </span>
+          </Badge>
         </div>
       </div>
 
@@ -514,17 +526,19 @@ const TicketDetail: React.FC = () => {
             </p>
             {ticket.resolution &&
               [TicketStatus.RESOLVED, TicketStatus.CLOSED].includes(ticket.status) && (
-                <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <div className={`mt-4 rounded-lg border p-4 ${toneSoftPanelClass("success")}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle size={16} className="text-green-600" />
-                    <h4 className="font-semibold text-green-800 dark:text-green-300">Résolution</h4>
+                    <CheckCircle size={16} className={toneTextClass("success")} />
+                    <h4 className={`font-semibold ${toneTextClass("success")}`}>Résolution</h4>
                   </div>
-                  <p className="text-green-700 dark:text-green-400 text-sm">{ticket.resolution}</p>
+                  <p className={`text-sm ${toneTextClass("success")}`}>{ticket.resolution}</p>
                   {(ticket.rootCause ||
                     ticket.finalCategory ||
                     ticket.timeSpentMinutes !== undefined ||
                     ticket.impact) && (
-                    <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-green-700 dark:text-green-300">
+                    <div
+                      className={`mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2 ${toneTextClass("success")}`}
+                    >
                       {ticket.rootCause && (
                         <span>
                           <strong>Cause racine :</strong> {ticket.rootCause}
@@ -573,10 +587,8 @@ const TicketDetail: React.FC = () => {
                   .map((c: TicketCommentType) => (
                     <div
                       key={c.id}
-                      className={`p-4 rounded-lg border ${
-                        c.isInternal
-                          ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
-                          : "bg-ds-page border-ds-border"
+                      className={`rounded-lg border p-4 ${
+                        c.isInternal ? toneSoftPanelClass("warning") : "bg-ds-page border-ds-border"
                       }`}
                     >
                       <div className="flex justify-between items-center mb-2">
@@ -587,13 +599,15 @@ const TicketDetail: React.FC = () => {
                           {/* Badge de rôle */}
                           {c.authorRole && roleConfig[c.authorRole] && (
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${roleConfig[c.authorRole].color}`}
+                              className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold ${roleConfig[c.authorRole].bg} ${roleConfig[c.authorRole].text} ${roleConfig[c.authorRole].border}`}
                             >
                               {roleConfig[c.authorRole].label}
                             </span>
                           )}
                           {c.isInternal && (
-                            <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-1.5 py-0.5 rounded">
+                            <span
+                              className={`flex items-center gap-1 rounded px-1.5 py-0.5 text-xs ${toneSoftPanelClass("warning")}`}
+                            >
                               <Shield size={10} />
                               Note interne
                             </span>
@@ -676,7 +690,7 @@ const TicketDetail: React.FC = () => {
                         <p className="text-ds-muted text-xs mt-0.5">
                           <span className="line-through text-red-400">{h.oldValue}</span>
                           {" → "}
-                          <span className="text-green-600 dark:text-green-400 font-medium">
+                          <span className="font-medium text-success-600 dark:text-success-400">
                             {h.newValue}
                           </span>
                         </p>
@@ -796,24 +810,28 @@ const TicketDetail: React.FC = () => {
             </div>
           )}
 
-          {/* --- Carte Assignation (MANAGER/ADMIN uniquement) --- */}
-          {canAssign && (
+          {/* --- Carte Assignation / Prise en charge --- */}
+          {(canAssign || canTakeOwnership) && (
             <div className="bg-ds-card rounded-xl shadow-sm border border-ds-border p-5">
               <div className="flex items-center gap-2 mb-3">
                 <UserPlus size={16} className="text-ds-muted" />
-                <h3 className="font-semibold text-ds-primary">Assignation</h3>
+                <h3 className="font-semibold text-ds-primary">
+                  {canAssign ? "Assignation" : "Prise en charge"}
+                </h3>
               </div>
 
-              {ticket.assignedToName ? (
+              {canAssign && ticket.assignedToName ? (
                 // Ticket déjà assigné → afficher agent + bouton désassigner
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                  <div className={`flex items-center gap-2 rounded-lg border p-3 ${toneSoftPanelClass("success")}`}>
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${toneSolidClass("success")}`}
+                    >
                       {ticket.assignedToName.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-ds-primary">{ticket.assignedToName}</p>
-                      <p className="text-xs text-green-600 dark:text-green-400">Agent assigné</p>
+                      <p className={`text-xs ${toneTextClass("success")}`}>Agent assigné</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -843,10 +861,12 @@ const TicketDetail: React.FC = () => {
                     </p>
                   )}
                 </div>
-              ) : (
+              ) : canAssign ? (
                 // Ticket non assigné → bouton assigner
                 <div className="space-y-3">
-                  <p className="text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg text-center">
+                  <p
+                    className={`rounded-lg border p-2 text-center text-sm ${toneSoftPanelClass("warning")}`}
+                  >
                     Ce ticket n'est pas encore assigné
                   </p>
                   <button
@@ -866,6 +886,22 @@ const TicketDetail: React.FC = () => {
                     </p>
                   )}
                 </div>
+              ) : (
+                <div className="space-y-3">
+                  <p
+                    className={`rounded-lg border p-2 text-center text-sm ${toneSoftPanelClass("warning")}`}
+                  >
+                    Ce ticket est disponible dans le pool non assignÃ©
+                  </p>
+                  <button
+                    onClick={handleTakeOwnership}
+                    disabled={submitting || isAssignmentLocked}
+                    className="w-full px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <UserPlus size={16} />
+                    {submitting ? "Prise en charge..." : "Prendre le ticket"}
+                  </button>
+                </div>
               )}
             </div>
           )}
@@ -881,10 +917,14 @@ const TicketDetail: React.FC = () => {
             <h3 className="text-lg font-bold text-ds-primary mb-4">Changer le statut</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-ds-primary mb-1">
+                <label
+                  htmlFor="ticket-status-select"
+                  className="block text-sm font-medium text-ds-primary mb-1"
+                >
                   Nouveau statut *
                 </label>
                 <select
+                  id="ticket-status-select"
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as TicketStatus)}
                   className="w-full px-3 py-2 border border-ds-border rounded-lg bg-ds-elevated text-ds-primary focus:ring-2 focus:ring-primary-500"
@@ -900,10 +940,14 @@ const TicketDetail: React.FC = () => {
 
               {newStatus === "RESOLVED" && (
                 <div>
-                  <label className="block text-sm font-medium text-ds-primary mb-1">
+                  <label
+                    htmlFor="ticket-resolution-input"
+                    className="block text-sm font-medium text-ds-primary mb-1"
+                  >
                     Résolution *
                   </label>
                   <textarea
+                    id="ticket-resolution-input"
                     value={resolution}
                     onChange={(e) => setResolution(e.target.value)}
                     rows={3}
@@ -1045,7 +1089,7 @@ const TicketDetail: React.FC = () => {
                     ))}
                   </select>
                   {agents.length === 0 && (
-                    <p className="text-xs text-red-500 mt-1">Aucun agent disponible</p>
+                    <p className={`mt-1 text-xs ${toneTextClass("danger")}`}>Aucun agent disponible</p>
                   )}
                 </div>
 

@@ -4,13 +4,15 @@ import { incidentService } from "../../api/incidentService";
 import { managerCopilotService } from "../../api/managerCopilotService";
 import { telecomServiceService } from "../../api/telecomServiceService";
 import { ticketService } from "../../api/ticketService";
-import type { DashboardStats, Incident, TelecomService, Ticket } from "../../types";
+import { UserRole, type DashboardStats, type Incident, type TelecomService, type Ticket } from "../../types";
 import { buildManagerCopilotSnapshot } from "./managerCopilotModel";
+import { isManagerCopilotAllowedRole } from "./managerCopilotUi";
 import type { ManagerCopilotSnapshot } from "./types";
 
 interface UseManagerCopilotOptions {
   enabled?: boolean;
   filters?: DashboardFilters;
+  role?: UserRole | null;
 }
 
 const EMPTY_STATS: DashboardStats = {
@@ -58,15 +60,21 @@ function filterServicesById(services: TelecomService[], serviceId?: number): Tel
   return services.filter((service) => service.id === serviceId);
 }
 
-export function useManagerCopilot({ enabled = true, filters }: UseManagerCopilotOptions = {}) {
+export function useManagerCopilot({
+  enabled = true,
+  filters,
+  role,
+}: UseManagerCopilotOptions = {}) {
+  const isAllowedRole = isManagerCopilotAllowedRole(role);
+  const canUseCopilot = enabled && isAllowedRole;
   const [snapshot, setSnapshot] = useState<ManagerCopilotSnapshot | null>(null);
-  const [isLoading, setIsLoading] = useState(Boolean(enabled));
+  const [isLoading, setIsLoading] = useState(Boolean(canUseCopilot));
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadSnapshot = useCallback(
     async (isBackgroundRefresh = false) => {
-      if (!enabled) {
+      if (!canUseCopilot) {
         return;
       }
 
@@ -129,11 +137,11 @@ export function useManagerCopilot({ enabled = true, filters }: UseManagerCopilot
 
       finishLoad(fallbackSnapshot, fulfilledCount === 0 ? FALLBACK_ERROR_MESSAGE : null);
     },
-    [enabled, filters],
+    [canUseCopilot, filters],
   );
 
   useEffect(() => {
-    if (!enabled) {
+    if (!canUseCopilot) {
       setSnapshot(null);
       setIsLoading(false);
       setIsRefreshing(false);
@@ -150,7 +158,7 @@ export function useManagerCopilot({ enabled = true, filters }: UseManagerCopilot
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [enabled, loadSnapshot]);
+  }, [canUseCopilot, loadSnapshot]);
 
   return {
     snapshot,
