@@ -1,0 +1,7 @@
+# Lightweight Docker demo profile: rely on the TF-IDF fallback instead of
+# downloading SentenceTransformers and torch weights during image build.
+fastapi==0.115.0
+uvicorn==0.30.6
+pydantic==2.8.2
+numpy==1.26.4
+scikit-learn==1.5.1

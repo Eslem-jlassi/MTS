@@ -5,9 +5,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1
 
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.docker.txt ./requirements.docker.txt
+RUN pip install --no-cache-dir --prefer-binary --retries 10 --timeout 120 -r requirements.docker.txt
 
 COPY app.py ./
 COPY chat_response_builder.py ./

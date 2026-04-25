@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 import csv
 
-import numpy as np
+try:
+    import numpy as np
+except Exception:  # pragma: no cover - optional lightweight Docker mode
+    np = None
 
 DATASET_FILE = Path(__file__).resolve().parent / "data" / "tickets_dataset_rag.csv"
 
@@ -169,6 +172,9 @@ def detect_massive_incident_candidates(
     5) Extract connected components as incident clusters.
     6) Convert large enough clusters into candidate massive incidents.
     """
+    if np is None:
+        raise RuntimeError("numpy is required for massive incident detection in full runtime mode")
+
     if not all_tickets:
         return []
 

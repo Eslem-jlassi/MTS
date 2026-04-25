@@ -5,10 +5,8 @@ from typing import List, Optional
 import time
 import threading
 
-import faiss
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
-from sentence_transformers import SentenceTransformer
 from chat_response_builder import (
     build_answer_from_analysis,
     build_structured_analysis,
@@ -28,6 +26,16 @@ from manager_copilot_knn import (
     load_or_train_artifact,
     score_cases_payload,
 )
+
+try:
+    import faiss  # type: ignore
+except Exception:  # pragma: no cover - optional lightweight Docker mode
+    faiss = None
+
+try:
+    from sentence_transformers import SentenceTransformer
+except Exception:  # pragma: no cover - optional lightweight Docker mode
+    SentenceTransformer = None
 
 BASE_DIR = Path(__file__).resolve().parent
 INDEX_DIR = BASE_DIR / "index"
@@ -51,6 +59,26 @@ manager_copilot_artifact = None
 manager_copilot_error: Optional[str] = None
 
 
+def _resolve_runtime_dependency_error() -> Optional[str]:
+    missing_dependencies: list[str] = []
+
+    # The Docker demo profile intentionally skips heavy NLP packages and
+    # lets the service boot in fallback mode instead of failing to start.
+    if faiss is None:
+        missing_dependencies.append("faiss-cpu")
+    if SentenceTransformer is None:
+        missing_dependencies.append("sentence-transformers")
+
+    if not missing_dependencies:
+        return None
+
+    return (
+        "Optional AI runtime dependencies unavailable: "
+        + ", ".join(missing_dependencies)
+        + ". The service stays online in lightweight fallback mode."
+    )
+
+
 def initialize_runtime() -> None:
     global startup_error, index, metadata, model, ticket_records, runtime_loading, runtime_loaded
     global manager_copilot_artifact, manager_copilot_error
@@ -62,6 +90,9 @@ def initialize_runtime() -> None:
 
     try:
         manager_copilot_artifact = load_or_train_artifact()
+        dependency_error = _resolve_runtime_dependency_error()
+        if dependency_error:
+            raise RuntimeError(dependency_error)
 
         print("Chargement de l'index FAISS...")
         loaded_index = faiss.read_index(str(INDEX_FILE))

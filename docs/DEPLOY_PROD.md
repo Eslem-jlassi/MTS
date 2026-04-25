@@ -142,6 +142,12 @@ docker pull nginx:1.27
 docker compose --env-file .env.prod -f docker-compose.prod.yml build --no-cache frontend
 ```
 
+Note sur les microservices IA en Docker de demo :
+
+- `ai-chatbot`, `duplicate-service` et `sentiment-service` utilisent des `requirements.docker.txt` alleges pour eviter le telechargement de dependances lourdes (`sentence-transformers`, `torch`, `transformers`) pendant le build.
+- en mode Docker demo, `duplicate-service` demarre en fallback TF-IDF si SentenceTransformers n'est pas precharge, `sentiment-service` demarre en mode `rules_only`, et `ai-chatbot` reste disponible en mode degrade tout en conservant la brique ALLIE/KNN.
+- pour activer le mode complet BERT / SentenceTransformer / RAG, utilisez les `requirements.txt` complets et pretelechargez les modeles dans l'environnement cible.
+
 Ou via helper :
 
 ```bash

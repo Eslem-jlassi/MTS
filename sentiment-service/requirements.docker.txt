@@ -1,0 +1,5 @@
+# Lightweight Docker demo profile: start the service in rules-only mode
+# without pulling transformers / torch during the image build.
+fastapi==0.115.0
+uvicorn==0.30.6
+pydantic==2.8.2
