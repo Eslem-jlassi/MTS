@@ -19,6 +19,7 @@ jest.mock("../../config/googleOAuthConfig", () => ({
   googleOAuthConfig: {
     isEnabled: true,
     reason: "enabled",
+    currentOrigin: "http://localhost",
     technicalHint: null,
   },
 }));
@@ -28,6 +29,7 @@ type MutableGoogleOAuthConfig = {
   reason: string;
   message: string | null;
   technicalHint: string | null;
+  currentOrigin?: string | null;
 };
 
 const mockedApi = api as jest.Mocked<typeof api>;
@@ -40,6 +42,7 @@ describe("GoogleAuthSection", () => {
     mockedGoogleOAuthConfig.reason = "enabled";
     mockedGoogleOAuthConfig.message = null;
     mockedGoogleOAuthConfig.technicalHint = null;
+    mockedGoogleOAuthConfig.currentOrigin = "http://localhost";
   });
 
   it("renders Google button when frontend and backend are configured", async () => {
@@ -54,6 +57,9 @@ describe("GoogleAuthSection", () => {
 
     expect(await screen.findByTestId("google-login-button")).toBeInTheDocument();
     expect(mockedApi.get).toHaveBeenCalledWith("/auth/google/config", { timeout: 5000 });
+    expect(
+      screen.getByText(/Google Cloud Console > Authorized JavaScript origins/i),
+    ).toBeInTheDocument();
   });
 
   it("shows configuration message when backend Google OAuth is missing", async () => {
@@ -91,9 +97,19 @@ describe("GoogleAuthSection", () => {
 
     render(<GoogleAuthSection mode="signin" onSuccess={jest.fn()} onError={jest.fn()} />);
 
-    expect(
-      await screen.findByText("La connexion Google est desactivee pour cet environnement."),
-    ).toBeInTheDocument();
+    expect(screen.queryByText("ou continuer avec")).not.toBeInTheDocument();
+    expect(mockedApi.get).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("google-login-button")).not.toBeInTheDocument();
+  });
+
+  it("hides the section when the frontend origin is not allowed", async () => {
+    mockedGoogleOAuthConfig.isEnabled = false;
+    mockedGoogleOAuthConfig.reason = "origin-not-allowed";
+    mockedGoogleOAuthConfig.currentOrigin = "http://localhost";
+
+    render(<GoogleAuthSection mode="signin" onSuccess={jest.fn()} onError={jest.fn()} />);
+
+    expect(screen.queryByText("ou continuer avec")).not.toBeInTheDocument();
     expect(mockedApi.get).not.toHaveBeenCalled();
     expect(screen.queryByTestId("google-login-button")).not.toBeInTheDocument();
   });

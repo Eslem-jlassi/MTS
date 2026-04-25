@@ -177,7 +177,7 @@ services:
     ports:
       - "${COMPOSE_FRONTEND_PORT:-80}:80"
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
+      test: ["CMD-SHELL", "test -s /usr/share/nginx/html/index.html"]
       interval: 30s
       timeout: 5s
       retries: 3

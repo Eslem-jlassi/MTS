@@ -81,6 +81,7 @@ Variables importantes :
 - `COMPOSE_REACT_APP_DEMO_MODE=false`
 - `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true` dans l'exemple prod ; gardez-le si SMTP est configure
 - `COMPOSE_AI_SENTIMENT_BASE_URL`, `COMPOSE_AI_DUPLICATE_BASE_URL`, `COMPOSE_AI_CHATBOT_BASE_URL` sont deja parametrables
+- si vous activez la verification email reelle, renseignez aussi `COMPOSE_MAIL_HOST`, `COMPOSE_MAIL_PORT`, `COMPOSE_MAIL_USERNAME`, `COMPOSE_MAIL_PASSWORD`, `COMPOSE_MAIL_FROM` et `COMPOSE_MAIL_FROM_NAME`
 - pour une validation locale sur poste de dev, l'exemple `.env.prod.example` est deja preconfigure sur `COMPOSE_FRONTEND_PORT=80`, `COMPOSE_BACKEND_PORT=8085`, `COMPOSE_FRONTEND_BASE_URL=http://localhost`, `COMPOSE_CORS_ALLOWED_ORIGINS=http://localhost`, `COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=http://localhost`, `COMPOSE_REACT_APP_API_URL=http://localhost:8085/api`, `COMPOSE_COOKIE_SECURE=false`, `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false` et `COMPOSE_MAIL_ENABLED=false`
 - la validation authentifiee la plus fidele se fait derriere HTTPS ou un reverse proxy TLS, car `COMPOSE_COOKIE_SECURE=true` reste volontairement impose en production
 
@@ -138,10 +139,19 @@ Pour la demo locale stable, precompilez d'abord le frontend hors Docker :
 ```bash
 cd client
 npm install --legacy-peer-deps
-npm run build
+npm run build:demo
 cd ..
 docker compose --env-file .env.prod -f docker-compose.prod.yml up --build
 ```
+
+`npm run build:demo` injecte l'URL API locale `http://localhost:8085/api`, garde `REACT_APP_DEMO_MODE=false` et masque Google OAuth tant qu'aucun `REACT_APP_GOOGLE_OAUTH_CLIENT_ID` n'est fourni. Si vous renseignez un Client ID avant le build, Google OAuth reste disponible sur `http://localhost`.
+
+Pour un test Google OAuth local complet :
+
+- definir `REACT_APP_GOOGLE_OAUTH_CLIENT_ID`
+- definir `REACT_APP_GOOGLE_OAUTH_ENABLED=true`
+- definir `GOOGLE_CLIENT_ID` cote backend avec le meme Client ID
+- ajouter `http://localhost` dans Google Cloud Console > `Authorized JavaScript origins`
 
 Le `client/Dockerfile.demo` embarque uniquement `nginx` et le contenu de `client/build`, ce qui evite les timeouts `npm` dans Docker. Le `client/Dockerfile` standard reste utilisable pour une vraie CI/CD avec reseau stable.
 

@@ -4,7 +4,7 @@ import { DEMO_MODE_ACTIVE, DEMO_MODE_SOURCE } from "./demoConfig";
 /**
  * Bandeau d'indication du mode demo.
  *
- * Le message reste volontairement explicite pour la soutenance :
+ * Le message reste volontairement explicite :
  * l'utilisateur sait que le dataset est demonstratif et que seules les routes
  * explicitement simulees sont mockees.
  */
@@ -46,8 +46,8 @@ const DemoBanner: React.FC = () => {
       </span>
 
       <span>
-        Mode demonstration explicite active. Dataset telecom de soutenance charge et routes simulees
-        controlees.
+        Mode demonstration explicite active. Dataset telecom de presentation charge et routes
+        simulees controlees.
       </span>
 
       <span

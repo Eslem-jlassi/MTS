@@ -5,7 +5,7 @@
 // =============================================================================
 //
 // OBJECTIF:
-// Données réalistes pré-chargées pour le mode démo soutenance.
+// Données réalistes pré-chargées pour le mode démo de présentation.
 // Chaque dataset reflète un scénario Telecom crédible :
 // - Clients entreprise marocains
 // - Services FTTH / 4G / VoIP / Cloud

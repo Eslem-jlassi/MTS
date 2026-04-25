@@ -6,8 +6,8 @@ import { pushNotification } from "../redux/slices/notificationsSlice";
 import type { Notification } from "../types";
 
 function getWsBaseUrl(): string {
-  const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:8080/api";
-  return apiUrl.replace(/\/api\/?$/, "") || "http://localhost:8080";
+  const apiUrl = process.env.REACT_APP_API_URL || `${window.location.origin}/api`;
+  return apiUrl.replace(/\/api\/?$/, "") || window.location.origin;
 }
 
 export function useWebSocketNotifications(dispatch: AppDispatch, enabled: boolean): void {

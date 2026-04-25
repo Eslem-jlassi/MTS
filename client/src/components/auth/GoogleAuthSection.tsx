@@ -23,11 +23,13 @@ interface BackendGoogleConfig {
 
 export default function GoogleAuthSection({ mode, onSuccess, onError }: GoogleAuthSectionProps) {
   const [backendGoogleConfig, setBackendGoogleConfig] = useState<BackendGoogleConfig | null>(null);
+  const frontendConfigured = googleOAuthConfig.reason === "enabled";
+  const currentOrigin = googleOAuthConfig.currentOrigin || null;
 
   useEffect(() => {
     let mounted = true;
 
-    if (!googleOAuthConfig.isEnabled) {
+    if (!frontendConfigured) {
       setBackendGoogleConfig(null);
       return () => {
         mounted = false;
@@ -58,30 +60,35 @@ export default function GoogleAuthSection({ mode, onSuccess, onError }: GoogleAu
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [frontendConfigured]);
+
+  if (!frontendConfigured) {
+    return null;
+  }
 
   const separatorText = mode === "signin" ? "ou continuer avec" : "ou continuer avec";
-  const frontendReady = googleOAuthConfig.isEnabled;
+  const frontendReady = true;
   const backendReady = frontendReady && backendGoogleConfig?.enabled === true;
   const isCheckingBackend = frontendReady && backendGoogleConfig === null;
   const showGoogleButton = backendReady;
   const showUnavailableState = !showGoogleButton && !isCheckingBackend;
   const backendReason = backendGoogleConfig?.reason;
+  const showLocalOriginHint =
+    showGoogleButton &&
+    process.env.NODE_ENV !== "production" &&
+    Boolean(currentOrigin?.includes("localhost"));
 
-  const unavailableMessage = frontendReady
-    ? backendReason === "missing-client-id"
+  const unavailableMessage =
+    backendReason === "missing-client-id"
       ? "Connexion Google indisponible : configuration serveur manquante."
       : backendReason === "invalid-client-id"
         ? "Connexion Google indisponible : configuration serveur invalide."
-        : "Connexion Google temporairement indisponible."
-    : googleOAuthConfig.message || "Connexion Google indisponible pour cet environnement.";
+        : "Connexion Google temporairement indisponible.";
 
-  const technicalHint = frontendReady
-    ? backendReason === "missing-client-id" || backendReason === "invalid-client-id"
+  const technicalHint =
+    backendReason === "missing-client-id" || backendReason === "invalid-client-id"
       ? "Renseignez GOOGLE_CLIENT_ID cote backend avec le meme Client ID que le frontend, puis redemarrez le serveur."
-      : "Verifiez que le backend est lance et accessible depuis le frontend."
-    : googleOAuthConfig.technicalHint ||
-      "Verifiez les variables REACT_APP_GOOGLE_OAUTH_CLIENT_ID et REACT_APP_GOOGLE_OAUTH_ENABLED.";
+      : "Verifiez que le backend est lance et accessible depuis le frontend.";
 
   const showTechnicalHint = process.env.NODE_ENV !== "production" && Boolean(technicalHint);
 
@@ -92,15 +99,23 @@ export default function GoogleAuthSection({ mode, onSuccess, onError }: GoogleAu
       </div>
 
       {showGoogleButton && (
-        <div className="flex justify-center">
-          <GoogleLogin
-            onSuccess={onSuccess}
-            onError={onError}
-            text={mode === "signin" ? "signin_with" : "signup_with"}
-            shape="rectangular"
-            theme="outline"
-            size="large"
-          />
+        <div className="space-y-2">
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={onSuccess}
+              onError={onError}
+              text={mode === "signin" ? "signin_with" : "signup_with"}
+              shape="rectangular"
+              theme="outline"
+              size="large"
+            />
+          </div>
+          {showLocalOriginHint && (
+            <p className="text-center text-[11px] leading-relaxed text-ds-muted/75">
+              Pour un test local, ajoutez <span className="font-medium">{currentOrigin}</span> dans
+              Google Cloud Console &gt; Authorized JavaScript origins.
+            </p>
+          )}
         </div>
       )}
 

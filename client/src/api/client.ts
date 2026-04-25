@@ -4,7 +4,7 @@ import { authStorage } from "./authStorage";
 import { DEMO_MODE_ACTIVE } from "../demo/demoConfig";
 import { installDemoInterceptor } from "../demo/demoInterceptor";
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:8080/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,

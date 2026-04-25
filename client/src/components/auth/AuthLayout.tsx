@@ -185,8 +185,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.65 }}
           >
-            Supervision intelligente et support automatisé pour la continuité des opérations télécom
-            B2B pendant la période de soutenance.
+            Supervision intelligente et support automatisé pour la continuité des opérations
+            télécom B2B.
           </motion.p>
 
           <motion.div

@@ -26,6 +26,11 @@ from manager_copilot_knn import (
     load_or_train_artifact,
     score_cases_payload,
 )
+from lightweight_chat_fallback import (
+    infer_service_from_query,
+    load_lightweight_chat_cases,
+    search_lightweight_chat_cases,
+)
 
 try:
     import faiss  # type: ignore
@@ -57,6 +62,7 @@ runtime_loading = False
 runtime_loaded = False
 manager_copilot_artifact = None
 manager_copilot_error: Optional[str] = None
+lightweight_chat_cases = []
 
 
 def _resolve_runtime_dependency_error() -> Optional[str]:
@@ -82,13 +88,18 @@ def _resolve_runtime_dependency_error() -> Optional[str]:
 def initialize_runtime() -> None:
     global startup_error, index, metadata, model, ticket_records, runtime_loading, runtime_loaded
     global manager_copilot_artifact, manager_copilot_error
+    global lightweight_chat_cases
 
     runtime_loading = True
     runtime_loaded = False
     startup_error = None
     manager_copilot_error = None
+    loaded_ticket_records = []
+    loaded_lightweight_chat_cases = []
 
     try:
+        loaded_ticket_records = load_ticket_records()
+        loaded_lightweight_chat_cases = load_lightweight_chat_cases()
         manager_copilot_artifact = load_or_train_artifact()
         dependency_error = _resolve_runtime_dependency_error()
         if dependency_error:
@@ -103,12 +114,12 @@ def initialize_runtime() -> None:
 
         print("Chargement du modele d'embeddings...")
         loaded_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
-        loaded_ticket_records = load_ticket_records()
 
         index = loaded_index
         metadata = loaded_metadata
         model = loaded_model
         ticket_records = loaded_ticket_records
+        lightweight_chat_cases = loaded_lightweight_chat_cases
         runtime_loaded = True
     except Exception as error:  # pragma: no cover - startup fallback
         startup_error = f"{type(error).__name__}: {error}"
@@ -117,7 +128,8 @@ def initialize_runtime() -> None:
         index = None
         metadata = []
         model = None
-        ticket_records = []
+        ticket_records = loaded_ticket_records
+        lightweight_chat_cases = loaded_lightweight_chat_cases
     finally:
         runtime_loading = False
 
@@ -547,6 +559,136 @@ def _build_detection_sources(response_candidates: List[MassiveIncidentCandidateR
     return sources
 
 
+def _build_lightweight_runtime_reason(language: str) -> str:
+    if language == "en":
+        return (
+            "Lightweight chatbot mode active: lexical search and business keywords are used "
+            "while the full embeddings runtime remains unavailable."
+        )
+
+    return (
+        "Mode leger actif : recherche lexicale et mots-cles metier utilises "
+        "tant que le runtime embeddings complet reste indisponible."
+    )
+
+
+def _build_lightweight_chat_response(
+    request: ChatRequest,
+    response_language: str,
+    started_at: float,
+) -> Optional[ChatResponse]:
+    if not lightweight_chat_cases:
+        return None
+
+    raw_results = search_lightweight_chat_cases(
+        question=request.question,
+        cases=lightweight_chat_cases,
+        top_k=request.top_k,
+    )
+
+    inferred_service, inferred_service_confidence = infer_service_from_query(request.question)
+    if not raw_results and inferred_service == "N/A":
+        return None
+
+    top_score = float(raw_results[0]["score"]) if raw_results else 0.0
+    confidence = score_to_confidence(top_score) if raw_results else "low"
+
+    detected_service, service_detection_confidence = detect_service_context(raw_results, top_score)
+    if detected_service == "N/A" and inferred_service != "N/A":
+        detected_service = inferred_service
+        service_detection_confidence = inferred_service_confidence
+        if confidence == "low" and inferred_service_confidence == "high":
+            confidence = "medium"
+
+    analysis = build_structured_analysis(
+        question=request.question,
+        raw_results=raw_results,
+        confidence=confidence,
+        service_detected=detected_service,
+        language=response_language,
+    )
+    answer = build_answer_from_analysis(analysis, response_language)
+    fallback_mode = "lightweight_case_search"
+    reasoning_steps = [
+        (
+            "Aucun embedding FAISS disponible : recherche lexicale sur le dataset incidents/tickets."
+            if response_language == "fr"
+            else "No FAISS embeddings available: lexical search is used on the local incidents/tickets dataset."
+        ),
+        (
+            f"Service inferre={detected_service}, confiance service={service_detection_confidence}."
+            if response_language == "fr"
+            else f"Inferred service={detected_service}, service confidence={service_detection_confidence}."
+        ),
+        (
+            f"Score lexical top={top_score:.3f}, cas similaires={len(raw_results)}."
+            if response_language == "fr"
+            else f"Top lexical score={top_score:.3f}, similar cases={len(raw_results)}."
+        ),
+    ]
+    recommended_actions = _build_chat_recommended_actions(
+        analysis,
+        confidence,
+        detected_service,
+        None,
+        response_language,
+    )
+    risk_flags = _build_chat_risk_flags(
+        confidence,
+        service_detection_confidence,
+        analysis,
+        None,
+    )
+    if "LIGHTWEIGHT_FALLBACK" not in risk_flags:
+        risk_flags.append("LIGHTWEIGHT_FALLBACK")
+    sources = _build_chat_sources(raw_results) or ["lightweight-fallback"]
+    latency_ms = round((time.time() - started_at) * 1000, 1)
+    caution = analysis.caution or _build_lightweight_runtime_reason(response_language)
+
+    api_results = [
+        SearchResult(
+            doc_type=doc.get("doc_type", ""),
+            title=doc.get("title", ""),
+            service_name=doc.get("service_name", ""),
+            language=doc.get("language", ""),
+            score=float(doc.get("score", 0)),
+            doc_id=doc.get("doc_id", ""),
+        )
+        for doc in raw_results
+    ]
+
+    return ChatResponse(
+        answer=answer,
+        confidence=confidence,
+        top_score=top_score,
+        service_detected=detected_service,
+        service_detection_confidence=service_detection_confidence,
+        response_language=response_language,
+        analysis=ChatAnalysisResponse(
+            summary=analysis.summary,
+            probable_cause=analysis.probable_cause,
+            known_resolution=analysis.known_resolution,
+            workaround=analysis.workaround,
+            impact=analysis.impact,
+            next_action=analysis.next_action,
+            clarification_needed=analysis.clarification_needed,
+            missing_information=analysis.missing_information,
+            caution=caution,
+            draft_ticket_title=analysis.draft_ticket_title,
+        ),
+        results=api_results,
+        massive_incident_candidate=None,
+        model_version=CHATBOT_MODEL_VERSION,
+        fallback_mode=fallback_mode,
+        reasoning_steps=reasoning_steps,
+        recommended_actions=recommended_actions,
+        risk_flags=risk_flags,
+        missing_information=analysis.missing_information if analysis.missing_information else [],
+        sources=sources,
+        latency_ms=latency_ms,
+    )
+
+
 def _rank_and_filter_candidates(
     candidates,
     request: MassiveIncidentDetectionRequest,
@@ -761,6 +903,7 @@ def health():
         "status": status,
         "documents_indexed": len(metadata),
         "ticket_records_loaded": len(ticket_records),
+        "lightweight_cases_loaded": len(lightweight_chat_cases),
         "model_name": EMBEDDING_MODEL_NAME,
         "runtime_loading": runtime_loading,
         "runtime_loaded": runtime_loaded,
@@ -775,6 +918,14 @@ def chat(request: ChatRequest):
     runtime_unavailability_reason = _resolve_runtime_unavailability_reason(response_language)
 
     if runtime_unavailability_reason:
+        lightweight_response = _build_lightweight_chat_response(
+            request,
+            response_language,
+            start_time,
+        )
+        if lightweight_response is not None:
+            return lightweight_response
+
         return _build_runtime_fallback_chat_response(
             request,
             response_language,

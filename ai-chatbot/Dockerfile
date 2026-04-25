@@ -14,6 +14,7 @@ COPY app.py ./
 COPY chat_response_builder.py ./
 COPY massive_incident_detector.py ./
 COPY manager_copilot_knn.py ./
+COPY lightweight_chat_fallback.py ./
 COPY data ./data
 COPY index ./index
 COPY models ./models

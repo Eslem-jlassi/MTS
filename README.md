@@ -113,10 +113,19 @@ Le frontend de demo est maintenant compile hors Docker puis servi par `nginx` vi
 ```bash
 cd client
 npm install --legacy-peer-deps
-npm run build
+npm run build:demo
 cd ..
 docker compose --env-file .env.prod -f docker-compose.prod.yml up --build
 ```
+
+`npm run build:demo` force l'URL API locale `http://localhost:8085/api`, garde `REACT_APP_DEMO_MODE=false` et masque proprement Google OAuth tant qu'aucun `REACT_APP_GOOGLE_OAUTH_CLIENT_ID` n'est fourni. Si un Client ID est defini avant le build, Google OAuth reste disponible sur `http://localhost`.
+
+Pour un test Google OAuth local complet :
+
+- definir `REACT_APP_GOOGLE_OAUTH_CLIENT_ID`
+- definir `REACT_APP_GOOGLE_OAUTH_ENABLED=true`
+- definir `GOOGLE_CLIENT_ID` cote backend avec le meme Client ID
+- ajouter `http://localhost` dans Google Cloud Console > `Authorized JavaScript origins`
 
 Le `Dockerfile` standard du frontend reste disponible pour une CI/CD complete avec un reseau stable.
 
@@ -166,6 +175,15 @@ Pour l'activer :
 2. renseigner l'hote SMTP, l'identifiant et le mot de passe
 3. definir `FRONTEND_BASE_URL` ou `COMPOSE_FRONTEND_BASE_URL`
 4. passer `AUTH_REQUIRE_EMAIL_VERIFICATION=true` ou `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true`
+
+Variables SMTP minimales :
+
+- `MAIL_HOST` / `COMPOSE_MAIL_HOST`
+- `MAIL_PORT` / `COMPOSE_MAIL_PORT`
+- `MAIL_USERNAME` / `COMPOSE_MAIL_USERNAME`
+- `MAIL_PASSWORD` / `COMPOSE_MAIL_PASSWORD`
+- `MAIL_FROM` / `COMPOSE_MAIL_FROM`
+- `MAIL_FROM_NAME` / `COMPOSE_MAIL_FROM_NAME`
 
 ## URLs utiles
 

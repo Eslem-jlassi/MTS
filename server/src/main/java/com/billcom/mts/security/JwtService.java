@@ -7,6 +7,7 @@ package com.billcom.mts.security;
 import java.util.Date;                          // Pour gérer les dates d'expiration
 import java.util.HashMap;                       // Pour stocker les claims personnalisés
 import java.util.Map;                           // Interface Map
+import java.util.UUID;
 import java.util.function.Function;             // Pour les fonctions lambda (extractClaim)
 
 import com.billcom.mts.entity.User;             // Notre entité User
@@ -185,6 +186,7 @@ public class JwtService {
         return Jwts.builder()
                 .claims(extraClaims)                    // Ajoute nos claims personnalisés
                 .subject(userDetails.getUsername())     // Subject = email de l'utilisateur
+                .id(UUID.randomUUID().toString())       // JTI unique pour eviter les collisions
                 .issuedAt(new Date(now))                // Date de création
                 .expiration(willExpireAt)               // Date d'expiration
                 .signWith(getSigningKey(), Jwts.SIG.HS256)  // Signe avec HMAC-SHA256
