@@ -94,6 +94,25 @@ cp .env.prod.example .env.prod
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
 
+Pour une validation locale rapide de la variante prod, utilisez de preference :
+
+- `COMPOSE_FRONTEND_PORT=80`
+- `COMPOSE_BACKEND_PORT=8085`
+- `COMPOSE_FRONTEND_BASE_URL=http://localhost`
+- `COMPOSE_CORS_ALLOWED_ORIGINS=http://localhost`
+- `COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=http://localhost`
+- `COMPOSE_REACT_APP_API_URL=http://localhost:8085/api`
+- `COMPOSE_COOKIE_SECURE=false`
+- `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false`
+- `COMPOSE_MAIL_ENABLED=false`
+
+Si Docker Hub est lent ou retourne un `TLS handshake timeout` sur le frontend, prechargez manuellement les images de base :
+
+```bash
+docker pull node:20-bookworm-slim
+docker pull nginx:1.27
+```
+
 Guide detaille :
 
 - [docs/DEPLOY_PROD.md](docs/DEPLOY_PROD.md)

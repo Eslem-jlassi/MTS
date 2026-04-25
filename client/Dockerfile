@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
 
@@ -17,7 +17,12 @@ ENV REACT_APP_DEMO_MODE=${REACT_APP_DEMO_MODE}
 ENV REACT_APP_CHATBOT_MASCOT_URL=${REACT_APP_CHATBOT_MASCOT_URL}
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm config set fetch-retries 5 \
+    && npm config set fetch-retry-factor 2 \
+    && npm config set fetch-retry-mintimeout 20000 \
+    && npm config set fetch-retry-maxtimeout 120000 \
+    && npm config set fetch-timeout 600000 \
+    && npm install --legacy-peer-deps --no-audit --no-fund
 
 COPY public ./public
 COPY src ./src
@@ -27,7 +32,7 @@ COPY tailwind.config.js ./
 
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.27
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/build /usr/share/nginx/html

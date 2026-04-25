@@ -11,7 +11,7 @@ services:
         max-file: "5"
     environment:
       MYSQL_ROOT_PASSWORD: ${COMPOSE_DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${COMPOSE_DB_NAME}
+      MYSQL_DATABASE: ${COMPOSE_DB_NAME:-mts_telecom_db}
       MYSQL_USER: ${COMPOSE_DB_USERNAME}
       MYSQL_PASSWORD: ${COMPOSE_DB_PASSWORD}
     command: >
@@ -114,7 +114,7 @@ services:
       ai-chatbot:
         condition: service_healthy
     environment:
-      DB_URL: jdbc:mysql://mysql:3306/${COMPOSE_DB_NAME}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=utf8
+      DB_URL: jdbc:mysql://mysql:3306/${COMPOSE_DB_NAME:-mts_telecom_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=utf8
       DB_USERNAME: ${COMPOSE_DB_USERNAME}
       DB_PASSWORD: ${COMPOSE_DB_PASSWORD}
       JWT_SECRET: ${COMPOSE_JWT_SECRET}
@@ -169,7 +169,7 @@ services:
         REACT_APP_API_URL: ${COMPOSE_REACT_APP_API_URL}
         REACT_APP_GOOGLE_OAUTH_CLIENT_ID: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_CLIENT_ID:-}
         REACT_APP_GOOGLE_OAUTH_ENABLED: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ENABLED:-false}
-        REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS}
+        REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS:-http://localhost}
         REACT_APP_DEMO_MODE: "false"
         REACT_APP_CHATBOT_MASCOT_URL: ${COMPOSE_REACT_APP_CHATBOT_MASCOT_URL:-}
     restart: unless-stopped

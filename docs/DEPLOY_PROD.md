@@ -81,7 +81,8 @@ Variables importantes :
 - `COMPOSE_REACT_APP_DEMO_MODE=false`
 - `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true` dans l'exemple prod ; gardez-le si SMTP est configure
 - `COMPOSE_AI_SENTIMENT_BASE_URL`, `COMPOSE_AI_DUPLICATE_BASE_URL`, `COMPOSE_AI_CHATBOT_BASE_URL` sont deja parametrables
-- pour une validation locale sur poste de dev, vous pouvez utiliser `COMPOSE_FRONTEND_PORT=3005` et `COMPOSE_BACKEND_PORT=8085`
+- pour une validation locale sur poste de dev, vous pouvez utiliser `COMPOSE_FRONTEND_PORT=80` et `COMPOSE_BACKEND_PORT=8085`
+- pour ce scenario local, utilisez aussi `COMPOSE_FRONTEND_BASE_URL=http://localhost`, `COMPOSE_CORS_ALLOWED_ORIGINS=http://localhost`, `COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=http://localhost`, `COMPOSE_REACT_APP_API_URL=http://localhost:8085/api`, `COMPOSE_COOKIE_SECURE=false`, `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false` et `COMPOSE_MAIL_ENABLED=false`
 - la validation authentifiee la plus fidele se fait derriere HTTPS ou un reverse proxy TLS, car `COMPOSE_COOKIE_SECURE=true` reste volontairement impose en production
 
 Exemple minimal :
@@ -106,12 +107,39 @@ COMPOSE_MAIL_USERNAME=no-reply@example.com
 COMPOSE_MAIL_PASSWORD=CHANGE_ME_SMTP_PASSWORD
 ```
 
+Exemple minimal pour validation locale :
+
+```dotenv
+COMPOSE_FRONTEND_PORT=80
+COMPOSE_BACKEND_PORT=8085
+COMPOSE_DB_NAME=mts_telecom_db
+COMPOSE_DB_USERNAME=mts_user
+COMPOSE_DB_PASSWORD=CHANGE_ME_DB_PASSWORD
+COMPOSE_DB_ROOT_PASSWORD=CHANGE_ME_DB_ROOT_PASSWORD
+COMPOSE_JWT_SECRET=CHANGE_ME_LONG_RANDOM_SECRET_MIN_64_CHARS
+COMPOSE_FRONTEND_BASE_URL=http://localhost
+COMPOSE_CORS_ALLOWED_ORIGINS=http://localhost
+COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=http://localhost
+COMPOSE_REACT_APP_API_URL=http://localhost:8085/api
+COMPOSE_COOKIE_SECURE=false
+COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false
+COMPOSE_MAIL_ENABLED=false
+```
+
 ## 4. Demarrer la stack production
 
 Commande directe :
 
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+```
+
+Si Docker Hub retourne un `TLS handshake timeout` lors du build frontend, le blocage est externe au repo. Prechargez alors les images de base puis relancez le build :
+
+```bash
+docker pull node:20-bookworm-slim
+docker pull nginx:1.27
+docker compose --env-file .env.prod -f docker-compose.prod.yml build --no-cache frontend
 ```
 
 Ou via helper :
