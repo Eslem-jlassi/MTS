@@ -164,14 +164,7 @@ services:
   frontend:
     build:
       context: ./client
-      dockerfile: Dockerfile
-      args:
-        REACT_APP_API_URL: ${COMPOSE_REACT_APP_API_URL}
-        REACT_APP_GOOGLE_OAUTH_CLIENT_ID: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_CLIENT_ID:-}
-        REACT_APP_GOOGLE_OAUTH_ENABLED: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ENABLED:-false}
-        REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS: ${COMPOSE_REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS:-http://localhost}
-        REACT_APP_DEMO_MODE: "false"
-        REACT_APP_CHATBOT_MASCOT_URL: ${COMPOSE_REACT_APP_CHATBOT_MASCOT_URL:-}
+      dockerfile: Dockerfile.demo
     restart: unless-stopped
     logging:
       driver: json-file

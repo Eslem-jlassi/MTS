@@ -81,11 +81,10 @@ Variables importantes :
 - `COMPOSE_REACT_APP_DEMO_MODE=false`
 - `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=true` dans l'exemple prod ; gardez-le si SMTP est configure
 - `COMPOSE_AI_SENTIMENT_BASE_URL`, `COMPOSE_AI_DUPLICATE_BASE_URL`, `COMPOSE_AI_CHATBOT_BASE_URL` sont deja parametrables
-- pour une validation locale sur poste de dev, vous pouvez utiliser `COMPOSE_FRONTEND_PORT=80` et `COMPOSE_BACKEND_PORT=8085`
-- pour ce scenario local, utilisez aussi `COMPOSE_FRONTEND_BASE_URL=http://localhost`, `COMPOSE_CORS_ALLOWED_ORIGINS=http://localhost`, `COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=http://localhost`, `COMPOSE_REACT_APP_API_URL=http://localhost:8085/api`, `COMPOSE_COOKIE_SECURE=false`, `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false` et `COMPOSE_MAIL_ENABLED=false`
+- pour une validation locale sur poste de dev, l'exemple `.env.prod.example` est deja preconfigure sur `COMPOSE_FRONTEND_PORT=80`, `COMPOSE_BACKEND_PORT=8085`, `COMPOSE_FRONTEND_BASE_URL=http://localhost`, `COMPOSE_CORS_ALLOWED_ORIGINS=http://localhost`, `COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=http://localhost`, `COMPOSE_REACT_APP_API_URL=http://localhost:8085/api`, `COMPOSE_COOKIE_SECURE=false`, `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false` et `COMPOSE_MAIL_ENABLED=false`
 - la validation authentifiee la plus fidele se fait derriere HTTPS ou un reverse proxy TLS, car `COMPOSE_COOKIE_SECURE=true` reste volontairement impose en production
 
-Exemple minimal :
+Exemple minimal de reference production :
 
 ```dotenv
 COMPOSE_FRONTEND_PORT=80
@@ -133,6 +132,18 @@ Commande directe :
 ```bash
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
+
+Pour la demo locale stable, precompilez d'abord le frontend hors Docker :
+
+```bash
+cd client
+npm install --legacy-peer-deps
+npm run build
+cd ..
+docker compose --env-file .env.prod -f docker-compose.prod.yml up --build
+```
+
+Le `client/Dockerfile.demo` embarque uniquement `nginx` et le contenu de `client/build`, ce qui evite les timeouts `npm` dans Docker. Le `client/Dockerfile` standard reste utilisable pour une vraie CI/CD avec reseau stable.
 
 Si Docker Hub retourne un `TLS handshake timeout` lors du build frontend, le blocage est externe au repo. Prechargez alors les images de base puis relancez le build :
 

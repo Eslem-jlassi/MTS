@@ -94,7 +94,7 @@ cp .env.prod.example .env.prod
 docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 ```
 
-Pour une validation locale rapide de la variante prod, utilisez de preference :
+Pour la demo locale stable, l'exemple `.env.prod.example` est deja aligne sur :
 
 - `COMPOSE_FRONTEND_PORT=80`
 - `COMPOSE_BACKEND_PORT=8085`
@@ -106,7 +106,21 @@ Pour une validation locale rapide de la variante prod, utilisez de preference :
 - `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false`
 - `COMPOSE_MAIL_ENABLED=false`
 
-Si Docker Hub est lent ou retourne un `TLS handshake timeout` sur le frontend, prechargez manuellement les images de base :
+### Demo locale stable
+
+Le frontend de demo est maintenant compile hors Docker puis servi par `nginx` via `client/Dockerfile.demo`. Cela evite les `npm install` instables pendant le build Docker.
+
+```bash
+cd client
+npm install --legacy-peer-deps
+npm run build
+cd ..
+docker compose --env-file .env.prod -f docker-compose.prod.yml up --build
+```
+
+Le `Dockerfile` standard du frontend reste disponible pour une CI/CD complete avec un reseau stable.
+
+Si Docker Hub est lent ou retourne un `TLS handshake timeout` sur le frontend standard, prechargez manuellement les images de base :
 
 ```bash
 docker pull node:20-bookworm-slim
