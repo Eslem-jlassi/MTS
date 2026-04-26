@@ -33,9 +33,15 @@ public class WebConfig {
                 .collect(Collectors.toList());
 
         config.setAllowedOrigins(origins.isEmpty() ? List.of("http://localhost:3000") : origins);
-        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setExposedHeaders(List.of("Set-Cookie"));
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-Requested-With",
+                "Accept",
+                "Origin"
+        ));
+        config.setExposedHeaders(List.of("Authorization", "Set-Cookie"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 

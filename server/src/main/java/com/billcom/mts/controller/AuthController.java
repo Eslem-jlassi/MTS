@@ -232,7 +232,7 @@ public class AuthController {
                     .maxAge(authResponse.getExpiresIn() / 1000)
                     .path("/")
                     .secure(cookieSecure)
-                    .sameSite("Lax")
+                    .sameSite(resolveSameSitePolicy())
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         } else {
@@ -245,7 +245,7 @@ public class AuthController {
                     .maxAge(7 * 24 * 60 * 60)
                     .path("/api/auth/refresh")
                     .secure(cookieSecure)
-                    .sameSite("Lax")
+                    .sameSite(resolveSameSitePolicy())
                     .build();
             response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
         } else {
@@ -259,10 +259,25 @@ public class AuthController {
     }
 
     private AuthResponse sanitizeBrowserResponse(AuthResponse authResponse) {
-        if (exposeTokensInBody) {
-            return authResponse;
+        if (authResponse == null) {
+            return null;
         }
-        return sanitizeNonSessionResponse(authResponse);
+
+        String accessToken = authResponse.getAccessToken();
+        String refreshToken = exposeTokensInBody ? authResponse.getRefreshToken() : null;
+        String tokenType = StringUtils.hasText(accessToken)
+                ? "Bearer"
+                : (StringUtils.hasText(authResponse.getTokenType()) ? authResponse.getTokenType() : "Cookie");
+
+        return AuthResponse.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .tokenType(tokenType)
+                .expiresIn(authResponse.getExpiresIn())
+                .user(authResponse.getUser())
+                .emailVerificationRequired(authResponse.getEmailVerificationRequired())
+                .emailVerificationSent(authResponse.getEmailVerificationSent())
+                .build();
     }
 
     private AuthResponse sanitizeNonSessionResponse(AuthResponse authResponse) {
@@ -317,7 +332,11 @@ public class AuthController {
                 .maxAge(0)
                 .path(path)
                 .secure(cookieSecure)
-                .sameSite("Lax")
+                .sameSite(resolveSameSitePolicy())
                 .build();
+    }
+
+    private String resolveSameSitePolicy() {
+        return cookieSecure ? "None" : "Lax";
     }
 }

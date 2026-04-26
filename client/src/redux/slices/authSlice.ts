@@ -1,4 +1,5 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import axios from "axios";
 import { authService } from "../../api";
 import { getErrorMessage } from "../../api/client";
 import { AuthResponse, LoginRequest, RegisterRequest, UserResponse } from "../../types";
@@ -13,12 +14,18 @@ interface AuthState {
   error: string | null;
 }
 
+interface AuthThunkError {
+  message: string;
+  shouldClearSession: boolean;
+}
+
 const initialUser = authService.getStoredUser();
+const initialToken = authService.getToken();
 
 const initialState: AuthState = {
   user: initialUser,
-  token: authService.getToken(),
-  isAuthenticated: initialUser !== null,
+  token: initialToken,
+  isAuthenticated: initialUser !== null || initialToken !== null,
   isInitialized: false,
   isLoading: false,
   error: null,
@@ -69,14 +76,23 @@ export const googleLogin = createAsyncThunk<AuthResponse, string, { rejectValue:
   },
 );
 
-export const fetchCurrentUser = createAsyncThunk<UserResponse, void, { rejectValue: string }>(
+export const fetchCurrentUser = createAsyncThunk<UserResponse, void, { rejectValue: AuthThunkError }>(
   "auth/fetchCurrentUser",
   async (_, { rejectWithValue }) => {
     try {
       return await authService.getCurrentUser();
     } catch (error: unknown) {
-      authService.clearLocalSession();
-      return rejectWithValue(extractErrorMessage(error, "Aucune session active"));
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+      const shouldClearSession = status === 401;
+
+      if (shouldClearSession) {
+        authService.clearLocalSession();
+      }
+
+      return rejectWithValue({
+        message: extractErrorMessage(error, "Aucune session active"),
+        shouldClearSession,
+      });
     }
   },
 );
@@ -174,13 +190,20 @@ export const authSlice = createSlice({
       state.isInitialized = true;
       state.error = null;
     });
-    builder.addCase(fetchCurrentUser.rejected, (state) => {
+    builder.addCase(fetchCurrentUser.rejected, (state, action) => {
       state.isLoading = false;
-      state.user = null;
-      state.token = null;
-      state.isAuthenticated = false;
       state.isInitialized = true;
       state.error = null;
+
+      const shouldClearSession = action.payload?.shouldClearSession === true;
+      if (shouldClearSession || (!state.user && !state.token)) {
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        return;
+      }
+
+      state.isAuthenticated = true;
     });
   },
 });

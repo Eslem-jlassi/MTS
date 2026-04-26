@@ -83,7 +83,7 @@ export const authService = {
   },
 
   isLoggedIn: (): boolean => {
-    return authStorage.getStoredUser() !== null;
+    return authStorage.getStoredUser() !== null || authStorage.getAccessToken() !== null;
   },
 
   getStoredUser: (): UserResponse | null => {

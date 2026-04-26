@@ -19,11 +19,11 @@ const parseStoredUser = (raw: string | null): UserResponse | null => {
 
 export const authStorage = {
   getAccessToken(): string | null {
-    return DEMO_MODE_ACTIVE ? localStorage.getItem(ACCESS_TOKEN_KEY) : null;
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
   },
 
   getRefreshToken(): string | null {
-    return DEMO_MODE_ACTIVE ? localStorage.getItem(REFRESH_TOKEN_KEY) : null;
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
   },
 
   getStoredUser(): UserResponse | null {
@@ -39,15 +39,15 @@ export const authStorage = {
   },
 
   saveTokens(accessToken?: string | null, refreshToken?: string | null): void {
-    if (!DEMO_MODE_ACTIVE) {
-      return;
-    }
-
     if (accessToken) {
       localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+    } else if (!DEMO_MODE_ACTIVE) {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
     }
     if (refreshToken) {
       localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    } else if (!DEMO_MODE_ACTIVE) {
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
   },
 

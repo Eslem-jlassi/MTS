@@ -1,4 +1,4 @@
-import { evaluateGoogleOAuthAvailability } from "./googleOAuthConfig";
+import { evaluateGoogleOAuthAvailability, resolveAllowedOrigins } from "./googleOAuthConfig";
 
 describe("evaluateGoogleOAuthAvailability", () => {
   it("active Google OAuth quand le flag, le client id et l'origine sont valides", () => {
@@ -37,5 +37,12 @@ describe("evaluateGoogleOAuthAvailability", () => {
     expect(availability.isEnabled).toBe(false);
     expect(availability.reason).toBe("origin-not-allowed");
     expect(availability.message).toContain("http://localhost:3001");
+  });
+
+  it("ajoute automatiquement l'origine courante quand aucune liste explicite n'est configuree", () => {
+    const allowedOrigins = resolveAllowedOrigins(undefined, "https://mts-frontend-production-a29f.up.railway.app");
+
+    expect(allowedOrigins).toContain("https://mts-frontend-production-a29f.up.railway.app");
+    expect(allowedOrigins).toContain("http://localhost");
   });
 });

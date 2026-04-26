@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -72,7 +73,9 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.tokenType").value("Cookie"));
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.accessToken").value("access-token"))
+                .andExpect(jsonPath("$.refreshToken").doesNotExist());
 
         verify(authRateLimitService).checkRegister("203.0.113.10");
         verify(authService).register(org.mockito.ArgumentMatchers.any(), eq("203.0.113.10"));
@@ -93,7 +96,8 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tokenType").value("Cookie"));
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.accessToken").value("access-token"));
 
         verify(authService).googleLogin("google-id-token", "203.0.113.50");
     }
@@ -169,7 +173,8 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tokenType").value("Cookie"));
+                .andExpect(jsonPath("$.tokenType").value("Bearer"))
+                .andExpect(jsonPath("$.accessToken").value("access-token"));
 
         verify(authRateLimitService).checkLogin("198.51.100.21");
         verify(authService).login(org.mockito.ArgumentMatchers.any(), eq("198.51.100.21"));
@@ -239,6 +244,29 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.success").value(true));
 
         verify(authService).verifyEmail("verify-token");
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/login utilise SameSite=None pour les cookies securises")
+    void login_setsSecureCrossSiteCookiesForProduction() throws Exception {
+        ReflectionTestUtils.setField(authController, "cookieSecure", true);
+        when(authService.login(org.mockito.ArgumentMatchers.any(), eq("198.51.100.22")))
+                .thenReturn(sampleAuthResponse());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .header("X-Forwarded-For", "198.51.100.22")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "email": "admin@test.tn",
+                                  "password": "Password1!"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(header().stringValues(
+                        "Set-Cookie",
+                        org.hamcrest.Matchers.hasItem(org.hamcrest.Matchers.containsString("SameSite=None"))
+                ));
     }
 
     private AuthResponse sampleAuthResponse() {

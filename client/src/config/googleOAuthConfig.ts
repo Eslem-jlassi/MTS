@@ -29,13 +29,29 @@ const DEFAULT_ALLOWED_ORIGINS = [
   "http://127.0.0.1:3000",
   "http://localhost:3001",
   "http://127.0.0.1:3001",
-].join(",");
+];
 
 export function parseAllowedOrigins(rawOrigins: string): string[] {
   return rawOrigins
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+}
+
+export function resolveAllowedOrigins(
+  rawOrigins: string | undefined,
+  currentOrigin: string | null,
+): string[] {
+  const configuredOrigins = parseAllowedOrigins(rawOrigins || "");
+  if (configuredOrigins.length > 0) {
+    return configuredOrigins;
+  }
+
+  if (!currentOrigin) {
+    return DEFAULT_ALLOWED_ORIGINS;
+  }
+
+  return Array.from(new Set([...DEFAULT_ALLOWED_ORIGINS, currentOrigin]));
 }
 
 export function evaluateGoogleOAuthAvailability({
@@ -110,11 +126,11 @@ export function evaluateGoogleOAuthAvailability({
 
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_OAUTH_CLIENT_ID || "";
 const GOOGLE_OAUTH_ENABLED_FLAG = process.env.REACT_APP_GOOGLE_OAUTH_ENABLED === "true";
-const GOOGLE_OAUTH_ALLOWED_ORIGINS = parseAllowedOrigins(
-  process.env.REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS || DEFAULT_ALLOWED_ORIGINS,
-);
-
 const CURRENT_ORIGIN = typeof window === "undefined" ? null : window.location.origin;
+const GOOGLE_OAUTH_ALLOWED_ORIGINS = resolveAllowedOrigins(
+  process.env.REACT_APP_GOOGLE_OAUTH_ALLOWED_ORIGINS,
+  CURRENT_ORIGIN,
+);
 
 export const googleOAuthConfig = evaluateGoogleOAuthAvailability({
   enabledFlag: GOOGLE_OAUTH_ENABLED_FLAG,

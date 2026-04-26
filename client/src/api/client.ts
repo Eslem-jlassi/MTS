@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
-import { ApiError, ProblemDetail } from "../types";
+import { ApiError, AuthResponse, ProblemDetail } from "../types";
 import { authStorage } from "./authStorage";
 import { DEMO_MODE_ACTIVE } from "../demo/demoConfig";
 import { installDemoInterceptor } from "../demo/demoInterceptor";
@@ -18,6 +18,14 @@ const api = axios.create({
 if (DEMO_MODE_ACTIVE) {
   installDemoInterceptor(api);
 }
+
+api.interceptors.request.use((config) => {
+  const accessToken = authStorage.getAccessToken();
+  if (accessToken && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
 
 let isRefreshing = false;
 let failedQueue: Array<{
@@ -63,10 +71,15 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await axios.post(`${API_BASE_URL}/auth/refresh`, null, {
+        const refreshResponse = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/refresh`, null, {
           headers: { "Content-Type": "application/json" },
           withCredentials: true,
         });
+
+        authStorage.saveTokens(
+          refreshResponse.data?.accessToken ?? null,
+          refreshResponse.data?.refreshToken ?? authStorage.getRefreshToken(),
+        );
 
         processQueue();
         return api(originalRequest);
