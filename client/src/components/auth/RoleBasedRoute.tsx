@@ -122,7 +122,7 @@ const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
     if (showError) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-ds-page">
-          <div className="bg-ds-card rounded-xl shadow-lg p-8 max-w-md text-center">
+          <div className="bg-ds-card rounded-xl shadow-md p-8 max-w-md text-center">
             {/* Icône d'erreur */}
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg

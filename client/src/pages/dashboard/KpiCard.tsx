@@ -26,7 +26,7 @@ const KpiCard: React.FC<KpiCardProps> = ({
     <Card className={`ds-panel-hover flex items-start gap-4 ${className}`}>
       {icon && (
         <div
-          className={`ds-icon-shell flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl ${color}`}
+          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl border border-slate-200 shadow-sm ${color}`}
         >
           {icon}
         </div>

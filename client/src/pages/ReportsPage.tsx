@@ -1134,9 +1134,9 @@ function UploadModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-ds-card rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-primary-200 dark:border-primary-800">
-        <div className="p-5 sm:p-6 border-b border-ds-border flex items-center justify-between bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-ds-card rounded-2xl shadow-md max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-ds-border">
+        <div className="p-5 sm:p-6 border-b border-ds-border flex items-center justify-between bg-ds-card">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary-600 rounded-lg">
               <Upload className="w-6 h-6 text-white" />
@@ -1156,7 +1156,7 @@ function UploadModal({
         </div>
         <form onSubmit={onSubmit} className="p-5 sm:p-6 space-y-5">
           {/* Fichier PDF - En premier pour attirer l'attention */}
-          <div className="border-2 border-dashed border-primary-300 dark:border-primary-700 rounded-xl p-6 bg-primary-50/50 dark:bg-primary-900/10 hover:bg-primary-100/50 dark:hover:bg-primary-900/20 transition-colors">
+          <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 bg-ds-surface hover:bg-ds-elevated transition-colors">
             <label className="block text-base font-semibold text-ds-primary mb-3 flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary-600" />
               Fichier PDF *
@@ -1257,7 +1257,7 @@ function UploadModal({
               type="submit"
               variant="primary"
               icon={<Upload className="w-4 h-4" />}
-              className="px-6 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 shadow-lg font-semibold"
+              className="px-6 font-semibold"
             >
               Importer le rapport
             </Button>
@@ -1285,9 +1285,9 @@ function ReuploadModal({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-ds-card rounded-2xl shadow-2xl max-w-lg w-full border border-green-200 dark:border-green-800">
-        <div className="p-5 sm:p-6 border-b border-ds-border flex items-center justify-between bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="bg-ds-card rounded-2xl shadow-md max-w-lg w-full border border-ds-border">
+        <div className="p-5 sm:p-6 border-b border-ds-border flex items-center justify-between bg-ds-card">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-600 rounded-lg">
               <Upload className="w-6 h-6 text-white" />
@@ -1321,7 +1321,7 @@ function ReuploadModal({
           </div>
 
           {/* Nouveau fichier */}
-          <div className="border-2 border-dashed border-green-300 dark:border-green-700 rounded-xl p-6 bg-green-50/50 dark:bg-green-900/10 hover:bg-green-100/50 dark:hover:bg-green-900/20 transition-colors">
+          <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 bg-ds-surface hover:bg-ds-elevated transition-colors">
             <label className="block text-base font-semibold text-ds-primary mb-3 flex items-center gap-2">
               <Upload className="w-5 h-5 text-green-600" />
               Nouveau Fichier PDF *
@@ -1366,7 +1366,7 @@ function ReuploadModal({
               type="submit"
               variant="primary"
               icon={<Upload className="w-4 h-4" />}
-              className="px-6 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg font-semibold"
+              className="px-6 font-semibold"
             >
               🔄 Remplacer le Fichier
             </Button>

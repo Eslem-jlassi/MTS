@@ -215,8 +215,8 @@ export default function NotificationsPage() {
               <p className="text-sm text-ds-muted">Total</p>
               <p className="text-2xl font-bold text-ds-primary mt-1">{stats.total}</p>
             </div>
-            <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <Inbox className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              <Inbox className="w-6 h-6" />
             </div>
           </div>
         </Card>
@@ -227,8 +227,8 @@ export default function NotificationsPage() {
               <p className="text-sm text-ds-muted">Non lues</p>
               <p className="text-2xl font-bold text-ds-primary mt-1">{stats.unread}</p>
             </div>
-            <div className="p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-              <Mail className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              <Mail className="w-6 h-6" />
             </div>
           </div>
         </Card>
@@ -239,8 +239,8 @@ export default function NotificationsPage() {
               <p className="text-sm text-ds-muted">Aujourd'hui</p>
               <p className="text-2xl font-bold text-ds-primary mt-1">{stats.today}</p>
             </div>
-            <div className="p-3 rounded-lg bg-green-100 dark:bg-green-900/30">
-              <Bell className="w-6 h-6 text-green-600 dark:text-green-400" />
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+              <Bell className="w-6 h-6" />
             </div>
           </div>
         </Card>

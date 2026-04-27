@@ -43,7 +43,7 @@ const FAQAccordion: React.FC<FAQAccordionProps> = ({ faq }) => {
   const panelId = `faq-panel-${faq.id}`;
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-ds-border/90 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+    <article className="group overflow-hidden rounded-2xl border border-ds-border/90 bg-ds-card shadow-sm transition-all duration-200 hover:shadow-md">
       <button
         type="button"
         onClick={() => setIsOpen((value) => !value)}
@@ -59,9 +59,7 @@ const FAQAccordion: React.FC<FAQAccordionProps> = ({ faq }) => {
           <p className="text-sm font-semibold leading-snug text-ds-primary sm:text-[0.96rem]">
             {faq.question}
           </p>
-          <p className="text-xs leading-relaxed text-ds-muted line-clamp-2">
-            {faq.answerText}
-          </p>
+          <p className="text-xs leading-relaxed text-ds-muted line-clamp-2">{faq.answerText}</p>
         </div>
         <ChevronDown
           size={18}
@@ -236,7 +234,7 @@ export default function KnowledgeBasePage() {
         icon={<Book size={20} />}
       />
 
-      <Card padding="lg" className="relative overflow-hidden border border-ds-border/80 shadow-card-hover">
+      <Card padding="lg" className="relative overflow-hidden border border-ds-border/80 shadow-sm">
         <div className="pointer-events-none absolute -top-20 right-0 h-56 w-56 rounded-full bg-primary/10 blur-3xl dark:bg-primary/25" />
         <div className="pointer-events-none absolute bottom-0 left-0 h-44 w-44 rounded-full bg-info-500/10 blur-3xl" />
         <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr]">
@@ -319,7 +317,9 @@ export default function KnowledgeBasePage() {
                 <Book size={17} className="text-primary" />
                 Guides rapides
               </h4>
-              <p className="mt-1 text-xs text-ds-muted">Procédures essentielles pour le support télécom.</p>
+              <p className="mt-1 text-xs text-ds-muted">
+                Procédures essentielles pour le support télécom.
+              </p>
             </div>
             <div className="mt-3 space-y-2">
               {QUICK_GUIDES.map((guide) => (
@@ -333,9 +333,14 @@ export default function KnowledgeBasePage() {
                   </span>
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-ds-primary">{guide.title}</span>
-                    <span className="mt-0.5 block text-xs leading-relaxed text-ds-muted">{guide.description}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-ds-muted">
+                      {guide.description}
+                    </span>
                   </span>
-                  <ArrowUpRight size={14} className="mt-1 shrink-0 text-ds-muted opacity-0 transition-opacity group-hover:opacity-100" />
+                  <ArrowUpRight
+                    size={14}
+                    className="mt-1 shrink-0 text-ds-muted opacity-0 transition-opacity group-hover:opacity-100"
+                  />
                 </button>
               ))}
             </div>
@@ -347,7 +352,9 @@ export default function KnowledgeBasePage() {
                 <Cloud size={17} className="text-info-500" />
                 Services couverts
               </h4>
-              <p className="mt-1 text-xs text-ds-muted">{COVERED_SERVICES.length} domaines pris en charge.</p>
+              <p className="mt-1 text-xs text-ds-muted">
+                {COVERED_SERVICES.length} domaines pris en charge.
+              </p>
             </div>
             <div className="mt-3 grid grid-cols-1 gap-2">
               {COVERED_SERVICES.map((service) => (

@@ -117,7 +117,7 @@ function DataTable<T>({
       </table>
 
       {totalPages > 1 && onPageChange && (
-        <div className="flex items-center justify-between gap-3 border-t border-ds-border bg-ds-elevated/35 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 border-t border-ds-border bg-ds-card px-4 py-3">
           <span className="text-xs font-medium uppercase tracking-[0.08em] text-ds-muted">
             {totalElements} element(s)
           </span>
@@ -127,7 +127,7 @@ function DataTable<T>({
               type="button"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 0}
-              className="rounded-xl border border-ds-border bg-ds-card/70 p-2 text-ds-primary transition-all duration-200 hover:border-primary-300/40 hover:bg-ds-surface disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-ds-border bg-ds-card p-2 text-ds-primary transition-all duration-200 hover:border-slate-300 hover:bg-ds-surface disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Page precedente"
             >
               <ChevronLeft size={18} />
@@ -141,7 +141,7 @@ function DataTable<T>({
               type="button"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1}
-              className="rounded-xl border border-ds-border bg-ds-card/70 p-2 text-ds-primary transition-all duration-200 hover:border-primary-300/40 hover:bg-ds-surface disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-ds-border bg-ds-card p-2 text-ds-primary transition-all duration-200 hover:border-slate-300 hover:bg-ds-surface disabled:cursor-not-allowed disabled:opacity-50"
               aria-label="Page suivante"
             >
               <ChevronRight size={18} />

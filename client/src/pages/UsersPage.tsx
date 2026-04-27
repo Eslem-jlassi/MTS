@@ -126,8 +126,7 @@ export default function UsersPage() {
   const isUserHardDeleteReauthValid = isOauthAdmin
     ? deleteVerificationCode.trim().length > 0
     : deletePassword.trim().length > 0;
-  const isUserHardDeleteFormInvalid =
-    !showHardDeleteConfirm || !isUserHardDeleteReauthValid;
+  const isUserHardDeleteFormInvalid = !showHardDeleteConfirm || !isUserHardDeleteReauthValid;
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -408,16 +407,16 @@ export default function UsersPage() {
             <Card
               key={role}
               padding="md"
-              className={`cursor-pointer transition-all duration-200 hover:shadow-md group ${
+              className={`cursor-pointer transition-all duration-200 hover:shadow-sm group ${
                 isSelected
-                  ? "ring-2 ring-primary-500 dark:ring-primary-400 shadow-md"
-                  : "hover:translate-y-[-2px]"
+                  ? "bg-ds-surface shadow-sm outline outline-2 outline-slate-300 dark:outline-slate-600"
+                  : ""
               }`}
               onClick={() => setFilterRole(isSelected ? "ALL" : role)}
             >
               <div className="flex items-center justify-between">
                 <div
-                  className={`p-2.5 rounded-xl ${cfg.bgColor} ${cfg.color} transition-transform group-hover:scale-110`}
+                  className={`p-2.5 rounded-xl ${cfg.bgColor} ${cfg.color} transition-transform group-hover:scale-[1.03]`}
                 >
                   {cfg.icon}
                 </div>
@@ -934,9 +933,7 @@ export default function UsersPage() {
         message={
           showHardDeleteConfirm ? (
             <>
-              <p>
-                Le compte {showHardDeleteConfirm.email} sera retire definitivement.
-              </p>
+              <p>Le compte {showHardDeleteConfirm.email} sera retire definitivement.</p>
               <p className="mt-2">
                 Le backend reaffectera ou nettoiera les references necessaires avant la suppression
                 finale pour eviter un etat incoherent.

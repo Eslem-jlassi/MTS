@@ -14,7 +14,6 @@ import {
   Activity,
   Trash2,
 } from "lucide-react";
-import { getErrorMessage } from "../api/client";
 import { incidentService } from "../api/incidentService";
 import { usePermissions } from "../hooks/usePermissions";
 import { useToast } from "../context/ToastContext";
@@ -74,8 +73,7 @@ export default function IncidentsPage() {
   const isIncidentHardDeleteReauthValid = isOauthAdmin
     ? deleteVerificationCode.trim().length > 0
     : deletePassword.trim().length > 0;
-  const isIncidentHardDeleteFormInvalid =
-    !incidentToDelete || !isIncidentHardDeleteReauthValid;
+  const isIncidentHardDeleteFormInvalid = !incidentToDelete || !isIncidentHardDeleteReauthValid;
 
   const handleDeleteConfirm = async () => {
     if (!incidentToDelete) return;
@@ -252,9 +250,9 @@ export default function IncidentsPage() {
                 <strong>{incidentToDelete.incidentNumber}</strong>.
               </p>
               <p className="mt-2 text-sm">
-                Cette action est <strong>irreversible</strong> et supprimera egalement les notes,
-                le suivi et les relations associees. Les tickets lies seront conserves mais
-                detaches proprement.
+                Cette action est <strong>irreversible</strong> et supprimera egalement les notes, le
+                suivi et les relations associees. Les tickets lies seront conserves mais detaches
+                proprement.
               </p>
               <div className="mt-3 space-y-3 rounded-xl border border-ds-border bg-ds-surface/70 p-3 text-left">
                 <p className="rounded-lg border border-ds-border bg-ds-card px-3 py-2 text-xs text-ds-secondary">
@@ -364,7 +362,10 @@ export default function IncidentsPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+        <Card
+          padding="md"
+          className="border border-ds-border/80 bg-ds-card shadow-sm transition-all duration-200 hover:shadow-md"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-red-500/20 text-red-600 dark:text-red-400">
               <Activity size={20} />
@@ -375,7 +376,10 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+        <Card
+          padding="md"
+          className="border border-ds-border/80 bg-ds-card shadow-sm transition-all duration-200 hover:shadow-md"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-orange-500/20 text-orange-600 dark:text-orange-400">
               <AlertTriangle size={20} />
@@ -386,7 +390,10 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+        <Card
+          padding="md"
+          className="border border-ds-border/80 bg-ds-card shadow-sm transition-all duration-200 hover:shadow-md"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-green-500/20 text-green-600 dark:text-green-400">
               <ChevronUp size={20} />
@@ -397,7 +404,10 @@ export default function IncidentsPage() {
             </div>
           </div>
         </Card>
-        <Card padding="md" className="border border-ds-border/80 bg-ds-card/95 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover">
+        <Card
+          padding="md"
+          className="border border-ds-border/80 bg-ds-card shadow-sm transition-all duration-200 hover:shadow-md"
+        >
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400">
               <Shield size={20} />

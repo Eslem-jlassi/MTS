@@ -273,7 +273,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, userRole
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-[100] bg-black/35 p-4"
         onClick={onClose}
       >
         <motion.div
@@ -281,7 +281,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onClose, userRole
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.98 }}
           transition={{ duration: 0.18 }}
-          className="mx-auto mt-[10vh] max-w-2xl overflow-hidden rounded-2xl border border-ds-border bg-ds-card shadow-2xl"
+          className="mx-auto mt-[10vh] max-w-2xl overflow-hidden rounded-2xl border border-ds-border bg-ds-card shadow-md"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-3 border-b border-ds-border px-4 py-3">

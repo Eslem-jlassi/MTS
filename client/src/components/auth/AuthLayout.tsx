@@ -51,15 +51,15 @@ const ChatBubble: React.FC<{
   style: React.CSSProperties;
 }> = React.memo(({ text, delay, rotate, style }) => (
   <motion.div
-    className="absolute z-20 rounded-2xl border border-white/20 bg-white/[0.12] px-4 py-2.5 text-xs font-medium text-white/95 shadow-xl backdrop-blur-lg select-none pointer-events-none"
+    className="absolute z-20 rounded-2xl border border-white/15 bg-white/[0.08] px-4 py-2.5 text-xs font-medium text-white/95 shadow-sm select-none pointer-events-none"
     style={style}
     initial={{ opacity: 0, y: 20, rotate: 0 }}
     animate={{ opacity: 1, y: 0, rotate }}
     transition={{ delay, duration: 0.7, type: "spring", stiffness: 80 }}
   >
     <div className="flex items-center gap-2">
-      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-orange-400/25">
-        <MessageCircle size={11} className="text-orange-300" />
+      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-white/10">
+        <MessageCircle size={11} className="text-slate-200" />
       </span>
       <span>{text}</span>
     </div>
@@ -74,33 +74,27 @@ const RobotIllustration: React.FC = React.memo(() => (
     animate={{ scale: 1, opacity: 1 }}
     transition={{ delay: 0.3, type: "spring", stiffness: 100, damping: 14 }}
   >
-    {/* Deep orange halo layers */}
-    <div className="pointer-events-none absolute h-80 w-80 rounded-full bg-orange-500/30 blur-[80px]" />
-    <div className="pointer-events-none absolute h-60 w-60 rounded-full bg-amber-400/28 blur-[60px] animate-pulse" />
-    <div className="pointer-events-none absolute h-48 w-48 rounded-full bg-orange-300/15 blur-2xl" />
-    {/* Decorative ring */}
     <div className="pointer-events-none absolute h-48 w-48 rounded-full border border-orange-300/20" />
-    <div className="pointer-events-none absolute h-56 w-56 rounded-full border border-orange-200/10" />
 
     <motion.div
-      className="relative z-10 flex h-40 w-40 items-center justify-center rounded-full border-2 border-orange-300/25 bg-gradient-to-br from-white/15 to-white/5 shadow-2xl shadow-orange-500/30 backdrop-blur-xl"
+      className="relative z-10 flex h-40 w-40 items-center justify-center rounded-full border border-white/15 bg-white/[0.08] shadow-md"
       whileHover={{ scale: 1.06, rotate: 3 }}
       transition={{ type: "spring", stiffness: 260, damping: 20 }}
     >
-      <Bot size={64} className="text-amber-200 drop-shadow-[0_0_24px_rgba(251,191,36,0.4)]" />
+      <Bot size={64} className="text-slate-100" />
       <motion.div
         className="absolute -right-1 -top-1"
         animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
         transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut" }}
       >
-        <Sparkles size={20} className="text-indigo-200 drop-shadow-lg" />
+        <Sparkles size={20} className="text-slate-200" />
       </motion.div>
       <motion.div
         className="absolute -left-2 bottom-2"
         animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.8, 0.4] }}
         transition={{ repeat: Infinity, duration: 3.2, ease: "easeInOut", delay: 0.8 }}
       >
-        <Sparkles size={14} className="text-orange-200" />
+        <Sparkles size={14} className="text-slate-300" />
       </motion.div>
     </motion.div>
   </motion.div>
@@ -130,23 +124,15 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
     <div className="auth-shell min-h-screen flex flex-col lg:flex-row">
       <motion.div
         className="relative hidden min-h-screen overflow-hidden lg:flex lg:w-[47%] xl:w-[44%]"
-        style={{ background: "linear-gradient(168deg, #020617 0%, #0c1529 35%, #0f172a 60%, #131c31 100%)" }}
+        style={{ background: "#0f172a" }}
         initial={{ opacity: 0, x: -40 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.6 }}
       >
-        {/* Deep ambient gradients */}
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "radial-gradient(ellipse at 46% 36%, rgba(249,115,22,0.22) 0%, transparent 52%), radial-gradient(circle at 78% 18%, rgba(37,99,235,0.18) 0%, transparent 26%), radial-gradient(ellipse at 20% 82%, rgba(79,70,229,0.12) 0%, transparent 36%)",
-          }}
-        />
         <div
           className="pointer-events-none absolute inset-0 opacity-[0.065]"
           style={{
-            backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.6) 1px, transparent 1px)",
+            backgroundImage: "none",
             backgroundSize: "28px 28px",
           }}
         />
@@ -168,12 +154,12 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
           </motion.h1>
 
           <motion.div
-            className="mt-3.5 inline-flex items-center gap-2 rounded-full border border-orange-300/25 bg-gradient-to-r from-orange-400/15 to-amber-300/10 px-4 py-1.5 shadow-lg shadow-orange-500/10"
+            className="mt-3.5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.08] px-4 py-1.5 shadow-sm"
             initial={{ y: 15, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.55 }}
           >
-            <Zap size={14} className="text-orange-300" />
+            <Zap size={14} className="text-slate-200" />
             <span className="text-xs font-semibold uppercase tracking-widest text-amber-100">
               Plateforme pilotée par l'IA
             </span>
@@ -185,8 +171,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.65 }}
           >
-            Supervision intelligente et support automatisé pour la continuité des opérations
-            télécom B2B.
+            Supervision intelligente et support automatisé pour la continuité des opérations télécom
+            B2B.
           </motion.p>
 
           <motion.div
@@ -198,9 +184,9 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
             {LEFT_BADGES.map((badge) => (
               <div
                 key={badge.value}
-                className="rounded-2xl border border-white/[0.12] bg-white/[0.07] px-3.5 py-3.5 backdrop-blur-md transition-colors duration-300 hover:bg-white/[0.1]"
+                className="rounded-2xl border border-white/[0.12] bg-white/[0.07] px-3.5 py-3.5 transition-colors duration-300 hover:bg-white/[0.1]"
               >
-                <div className="mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-orange-300/15 bg-orange-400/10 text-orange-200">
+                <div className="mb-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg border border-white/15 bg-white/[0.08] text-slate-200">
                   <badge.icon size={15} />
                 </div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-200/90">
@@ -228,7 +214,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.15 }}
       >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.10),transparent_22%),radial-gradient(circle_at_top_left,rgba(59,130,246,0.08),transparent_26%)] dark:bg-[radial-gradient(circle_at_top_right,rgba(251,146,60,0.12),transparent_22%),radial-gradient(circle_at_top_left,rgba(59,130,246,0.14),transparent_28%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-transparent" />
 
         <div className="relative z-10 flex items-center justify-end gap-3 p-4 min-[900px]:p-6">
           <button

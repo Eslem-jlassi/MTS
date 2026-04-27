@@ -347,7 +347,7 @@ export default function ServicesPage() {
           <Card
             key={card.key}
             padding="md"
-            className="border border-ds-border/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover"
+            className="border border-ds-border/80 transition-all duration-200 hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
@@ -530,7 +530,7 @@ export default function ServicesPage() {
               <Card
                 key={service.id}
                 padding="md"
-                className={`flex h-full flex-col border border-ds-border/80 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-card-hover ${
+                className={`flex h-full flex-col border border-ds-border/80 transition-all duration-200 hover:shadow-md ${
                   !service.isActive ? "opacity-80" : ""
                 }`}
               >

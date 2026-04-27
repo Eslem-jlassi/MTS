@@ -196,10 +196,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* Utilisateurs */}
           <Link to="/users">
-            <Card
-              padding="md"
-              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
-            >
+            <Card padding="md" className="h-full transition-all hover:shadow-md group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -220,10 +217,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Roles */}
           <Link to="/users?tab=roles">
-            <Card
-              padding="md"
-              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
-            >
+            <Card padding="md" className="h-full transition-all hover:shadow-md group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -244,10 +238,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Services */}
           <Link to="/services">
-            <Card
-              padding="md"
-              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
-            >
+            <Card padding="md" className="h-full transition-all hover:shadow-md group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -268,10 +259,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* SLA Policies */}
           <Link to="/sla-policies">
-            <Card
-              padding="md"
-              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
-            >
+            <Card padding="md" className="h-full transition-all hover:shadow-md group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -292,10 +280,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Categories */}
           <Link to="/categories">
-            <Card
-              padding="md"
-              className="h-full border-primary/20 hover:shadow-card-hover transition-all group"
-            >
+            <Card padding="md" className="h-full transition-all hover:shadow-md group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -316,10 +301,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {/* Settings */}
           <Link to="/settings">
-            <Card
-              padding="md"
-              className="h-full border-ds-border hover:shadow-card-hover transition-all group"
-            >
+            <Card padding="md" className="h-full transition-all hover:shadow-md group">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-ds-elevated text-ds-secondary">

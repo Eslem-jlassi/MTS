@@ -136,7 +136,9 @@ const KPICardWithSparkline: React.FC<KPICardWithSparklineProps> = ({
                 title={status}
               />
             )}
-            <div className={`p-3 rounded-xl ${iconBg}`}>{icon}</div>
+            <div className={`rounded-2xl border border-slate-200 p-3 shadow-sm ${iconBg}`}>
+              {icon}
+            </div>
           </div>
         </div>
       </Card>

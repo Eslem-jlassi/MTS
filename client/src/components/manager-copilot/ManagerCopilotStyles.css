@@ -3210,8 +3210,7 @@
 .manager-copilot-cockpit-focus-card-critical,
 .manager-copilot-cockpit-signal-critical {
   border-color: rgb(var(--color-error) / 0.22);
-  background:
-    linear-gradient(180deg, rgb(var(--color-error) / 0.08), rgb(var(--ds-surface)));
+  background: linear-gradient(180deg, rgb(var(--color-error) / 0.08), rgb(var(--ds-surface)));
   color: rgb(var(--color-error));
 }
 
@@ -3220,8 +3219,7 @@
 .manager-copilot-cockpit-focus-card-warning,
 .manager-copilot-cockpit-signal-warning {
   border-color: rgb(var(--color-warning) / 0.22);
-  background:
-    linear-gradient(180deg, rgb(var(--color-warning) / 0.08), rgb(var(--ds-surface)));
+  background: linear-gradient(180deg, rgb(var(--color-warning) / 0.08), rgb(var(--ds-surface)));
   color: rgb(var(--color-warning));
 }
 
@@ -3230,8 +3228,7 @@
 .manager-copilot-cockpit-focus-card-info,
 .manager-copilot-cockpit-signal-info {
   border-color: rgb(var(--color-info) / 0.22);
-  background:
-    linear-gradient(180deg, rgb(var(--color-info) / 0.08), rgb(var(--ds-surface)));
+  background: linear-gradient(180deg, rgb(var(--color-info) / 0.08), rgb(var(--ds-surface)));
   color: rgb(var(--color-info));
 }
 
@@ -3240,15 +3237,13 @@
 .manager-copilot-cockpit-focus-card-success,
 .manager-copilot-cockpit-signal-success {
   border-color: rgb(var(--color-success) / 0.22);
-  background:
-    linear-gradient(180deg, rgb(var(--color-success) / 0.08), rgb(var(--ds-surface)));
+  background: linear-gradient(180deg, rgb(var(--color-success) / 0.08), rgb(var(--ds-surface)));
   color: rgb(var(--color-success));
 }
 
 .manager-copilot-panel-footer {
   border-color: rgb(var(--ds-border) / 0.92);
-  background:
-    linear-gradient(180deg, rgb(var(--ds-card)), rgb(var(--ds-surface)));
+  background: linear-gradient(180deg, rgb(var(--ds-card)), rgb(var(--ds-surface)));
   box-shadow: var(--ds-shadow-card);
 }
 
@@ -3257,8 +3252,7 @@
 .manager-copilot-cockpit-focus-knn {
   border: 1px solid rgb(var(--color-ai) / 0.18);
   border-radius: 0.95rem;
-  background:
-    linear-gradient(180deg, rgb(var(--color-ai) / 0.08), rgb(var(--ds-surface)));
+  background: linear-gradient(180deg, rgb(var(--color-ai) / 0.08), rgb(var(--ds-surface)));
   padding: 0.7rem 0.78rem;
 }
 
@@ -3377,4 +3371,67 @@
   .manager-copilot-cockpit-focus-knn-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Defense polish: final overrides keep ALLIE visually quiet without changing behavior. */
+.manager-copilot-panel,
+.manager-copilot-launcher,
+.manager-copilot-fab {
+  border-color: rgb(var(--ds-border));
+  background: rgb(var(--ds-card));
+  box-shadow: var(--ds-shadow-card);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.manager-copilot-panel {
+  box-shadow: var(--ds-shadow-overlay);
+}
+
+.manager-copilot-panel-body {
+  background: rgb(var(--ds-page));
+}
+
+.manager-copilot-header,
+.manager-copilot-panel-footer,
+.manager-copilot-summary-card,
+.manager-copilot-section-cluster,
+.manager-copilot-section,
+.manager-copilot-signal-card,
+.manager-copilot-action-card,
+.manager-copilot-decision-card,
+.manager-copilot-why-card,
+.manager-copilot-focus-card,
+.manager-copilot-header-status-card,
+.manager-copilot-cockpit-block,
+.manager-copilot-cockpit-focus-card,
+.manager-copilot-cockpit-signal,
+.manager-copilot-ticket-card,
+.manager-copilot-knn-trace,
+.manager-copilot-cockpit-knn-strip,
+.manager-copilot-cockpit-focus-knn {
+  border-color: rgb(var(--ds-border));
+  background: rgb(var(--ds-card));
+  box-shadow: var(--ds-shadow-card);
+}
+
+.manager-copilot-header-avatar-shell,
+.manager-copilot-compact-avatar-shell,
+.manager-copilot-launcher-icon,
+.manager-copilot-fab-core,
+.manager-copilot-section-icon,
+.manager-copilot-decision-icon,
+.manager-copilot-why-icon {
+  border-color: rgb(var(--ds-border));
+  background: rgb(var(--ds-surface));
+  color: rgb(var(--ds-secondary));
+  box-shadow: var(--ds-shadow-card);
+}
+
+.manager-copilot-fab-glow,
+.manager-copilot-header-backdrop,
+.manager-copilot-summary-card::before,
+.manager-copilot-summary-card::after,
+.manager-copilot-focus-card::after {
+  display: none;
 }

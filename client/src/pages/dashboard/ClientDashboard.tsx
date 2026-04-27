@@ -75,10 +75,10 @@ const KpiStat: React.FC<{
   value: number;
 }> = ({ icon, iconBg, label, value }) => (
   <motion.div variants={fadeUp}>
-    <Card className="group relative h-full overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover">
+    <Card className="group relative h-full overflow-hidden transition-all duration-300 hover:shadow-md">
       <div className="flex items-center gap-4">
         <div
-          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}
+          className={`flex-shrink-0 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center ${iconBg}`}
         >
           {icon}
         </div>
@@ -87,7 +87,6 @@ const KpiStat: React.FC<{
           <p className="text-3xl font-extrabold text-ds-primary tabular-nums mt-0.5">{value}</p>
         </div>
       </div>
-      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500 bg-gradient-to-br from-primary-500 to-accent-500" />
     </Card>
   </motion.div>
 );
@@ -338,7 +337,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({
               Mon tableau de bord
             </h1>
             <p className="mt-1.5 text-sm leading-6 text-ds-muted">
-              Vue d'ensemble de vos tickets, de vos services suivis et des actions rapides utiles en démonstration.
+              Vue d'ensemble de vos tickets, de vos services suivis et des actions rapides utiles en
+              démonstration.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

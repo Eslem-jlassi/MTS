@@ -289,7 +289,7 @@ export default function SettingsPage() {
                       className="w-20 h-20 rounded-full object-cover border border-ds-border"
                     />
                   ) : (
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white text-2xl font-bold">
+                    <div className="w-20 h-20 rounded-full bg-primary-600 flex items-center justify-center text-white text-2xl font-bold shadow-sm">
                       {profileForm.fullName.charAt(0).toUpperCase() || "U"}
                     </div>
                   )}

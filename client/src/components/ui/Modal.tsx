@@ -55,7 +55,7 @@ const Modal: React.FC<ModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-950/35"
             onClick={onClose}
             aria-hidden
           />
@@ -71,7 +71,7 @@ const Modal: React.FC<ModalProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             {title && (
-              <div className="border-b border-ds-border/80 bg-ds-card/85 px-5 py-4 backdrop-blur-sm">
+              <div className="border-b border-ds-border bg-ds-card px-5 py-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
                     <h2
@@ -90,7 +90,7 @@ const Modal: React.FC<ModalProps> = ({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="rounded-xl border border-ds-border bg-ds-card/75 p-2 text-ds-muted transition-all duration-200 hover:border-primary-300/35 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="rounded-xl border border-ds-border bg-ds-card p-2 text-ds-muted transition-all duration-200 hover:border-slate-300 hover:bg-ds-surface hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       aria-label="Fermer"
                     >
                       <svg

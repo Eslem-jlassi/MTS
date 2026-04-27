@@ -107,7 +107,7 @@ const SectionLead: React.FC<{
     </div>
     <div className="flex items-center gap-3">
       {supporting}
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-info-500/15 bg-gradient-to-br from-info-500/12 to-ai-500/10 text-info-500 shadow-sm">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
         {icon}
       </div>
     </div>
@@ -239,8 +239,8 @@ const KpiCard: React.FC<{
 }> = ({ icon, iconBg, label, value, suffix, alert, to }) => {
   const inner = (
     <Card
-      className={`h-full min-h-[6.9rem] overflow-hidden border border-ds-border/80 bg-ds-card group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover
-      ${alert ? "ring-1 ring-error/30" : ""} ${to ? "cursor-pointer" : ""}
+      className={`h-full min-h-[6.9rem] overflow-hidden group transition-all duration-300 hover:shadow-md
+      ${alert ? "outline outline-2 outline-error-200 dark:outline-error-500/40" : ""} ${to ? "cursor-pointer" : ""}
     `}
     >
       <div className="flex items-center gap-4">

@@ -69,11 +69,11 @@ const AgentKpi: React.FC<{
 }> = ({ icon, iconBg, label, value, suffix, alert }) => (
   <motion.div variants={fadeUp}>
     <Card
-      className={`group relative overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover ${alert ? "ring-2 ring-error/30" : ""}`}
+      className={`group relative overflow-hidden transition-all duration-300 hover:shadow-md ${alert ? "outline outline-2 outline-error-200 dark:outline-error-500/40" : ""}`}
     >
       <div className="flex items-center gap-4">
         <div
-          className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${iconBg}`}
+          className={`flex-shrink-0 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center ${iconBg}`}
         >
           {icon}
         </div>
@@ -85,7 +85,6 @@ const AgentKpi: React.FC<{
           </p>
         </div>
       </div>
-      <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500 bg-gradient-to-br from-primary-500 to-accent-500" />
     </Card>
   </motion.div>
 );
@@ -228,7 +227,8 @@ export const AgentDashboard: React.FC<AgentDashboardProps> = ({
               Pilotage opérationnel
             </h1>
             <p className="mt-1.5 text-sm leading-6 text-ds-muted">
-              Priorisez vos tickets assignés, surveillez le risque SLA et gardez une vue claire sur vos actions immédiates.
+              Priorisez vos tickets assignés, surveillez le risque SLA et gardez une vue claire sur
+              vos actions immédiates.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">

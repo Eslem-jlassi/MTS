@@ -59,7 +59,7 @@ const Drawer: React.FC<DrawerProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+            className="absolute inset-0 bg-slate-950/35"
             onClick={onClose}
             aria-hidden
           />
@@ -76,7 +76,7 @@ const Drawer: React.FC<DrawerProps> = ({
             aria-labelledby={title ? "drawer-title" : undefined}
           >
             {title && (
-              <div className="flex flex-shrink-0 items-center justify-between border-b border-ds-border/80 bg-ds-card/85 px-5 py-4 backdrop-blur-sm">
+              <div className="flex flex-shrink-0 items-center justify-between border-b border-ds-border bg-ds-card px-5 py-4">
                 <h2
                   id="drawer-title"
                   className="text-lg font-semibold tracking-tight text-ds-primary"
@@ -86,7 +86,7 @@ const Drawer: React.FC<DrawerProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="rounded-xl border border-ds-border bg-ds-card/70 p-2 text-ds-muted transition-all duration-200 hover:border-primary-300/35 hover:bg-ds-elevated hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="rounded-xl border border-ds-border bg-ds-card p-2 text-ds-muted transition-all duration-200 hover:border-slate-300 hover:bg-ds-surface hover:text-ds-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   aria-label="Fermer"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

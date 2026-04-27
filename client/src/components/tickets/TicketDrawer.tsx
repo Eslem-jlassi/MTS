@@ -144,62 +144,63 @@ const legacyPriorityConfig: Record<string, { bg: string; text: string; label: st
   },
 };
 
-const legacyStatusConfig: Record<string, { bg: string; text: string; label: string; dot: string }> = {
-  NEW: {
-    bg: "bg-blue-100 dark:bg-blue-900/30",
-    text: "text-blue-800 dark:text-blue-200",
-    label: "Nouveau",
-    dot: "bg-blue-500",
-  },
-  ASSIGNED: {
-    bg: "bg-indigo-100 dark:bg-indigo-900/30",
-    text: "text-indigo-800 dark:text-indigo-200",
-    label: "Assigné",
-    dot: "bg-indigo-500",
-  },
-  IN_PROGRESS: {
-    bg: "bg-primary-100 dark:bg-primary-900/30",
-    text: "text-primary-800 dark:text-primary-200",
-    label: "En cours",
-    dot: "bg-primary-500",
-  },
-  PENDING: {
-    bg: "bg-yellow-100 dark:bg-yellow-900/30",
-    text: "text-yellow-800 dark:text-yellow-200",
-    label: "En attente client",
-    dot: "bg-yellow-500",
-  },
-  PENDING_THIRD_PARTY: {
-    bg: "bg-amber-100 dark:bg-amber-900/30",
-    text: "text-amber-800 dark:text-amber-200",
-    label: "En attente tiers",
-    dot: "bg-amber-500",
-  },
-  ESCALATED: {
-    bg: "bg-purple-100 dark:bg-purple-900/30",
-    text: "text-purple-800 dark:text-purple-200",
-    label: "Escaladé",
-    dot: "bg-purple-500",
-  },
-  RESOLVED: {
-    bg: "bg-green-100 dark:bg-green-900/30",
-    text: "text-green-800 dark:text-green-200",
-    label: "Résolu",
-    dot: "bg-green-500",
-  },
-  CLOSED: {
-    bg: "bg-gray-100 dark:bg-gray-700/30",
-    text: "text-gray-800 dark:text-gray-200",
-    label: "Fermé",
-    dot: "bg-gray-500",
-  },
-  CANCELLED: {
-    bg: "bg-red-100 dark:bg-red-900/30",
-    text: "text-red-600 dark:text-red-300",
-    label: "Annulé",
-    dot: "bg-red-400",
-  },
-};
+const legacyStatusConfig: Record<string, { bg: string; text: string; label: string; dot: string }> =
+  {
+    NEW: {
+      bg: "bg-blue-100 dark:bg-blue-900/30",
+      text: "text-blue-800 dark:text-blue-200",
+      label: "Nouveau",
+      dot: "bg-blue-500",
+    },
+    ASSIGNED: {
+      bg: "bg-indigo-100 dark:bg-indigo-900/30",
+      text: "text-indigo-800 dark:text-indigo-200",
+      label: "Assigné",
+      dot: "bg-indigo-500",
+    },
+    IN_PROGRESS: {
+      bg: "bg-primary-100 dark:bg-primary-900/30",
+      text: "text-primary-800 dark:text-primary-200",
+      label: "En cours",
+      dot: "bg-primary-500",
+    },
+    PENDING: {
+      bg: "bg-yellow-100 dark:bg-yellow-900/30",
+      text: "text-yellow-800 dark:text-yellow-200",
+      label: "En attente client",
+      dot: "bg-yellow-500",
+    },
+    PENDING_THIRD_PARTY: {
+      bg: "bg-amber-100 dark:bg-amber-900/30",
+      text: "text-amber-800 dark:text-amber-200",
+      label: "En attente tiers",
+      dot: "bg-amber-500",
+    },
+    ESCALATED: {
+      bg: "bg-purple-100 dark:bg-purple-900/30",
+      text: "text-purple-800 dark:text-purple-200",
+      label: "Escaladé",
+      dot: "bg-purple-500",
+    },
+    RESOLVED: {
+      bg: "bg-green-100 dark:bg-green-900/30",
+      text: "text-green-800 dark:text-green-200",
+      label: "Résolu",
+      dot: "bg-green-500",
+    },
+    CLOSED: {
+      bg: "bg-gray-100 dark:bg-gray-700/30",
+      text: "text-gray-800 dark:text-gray-200",
+      label: "Fermé",
+      dot: "bg-gray-500",
+    },
+    CANCELLED: {
+      bg: "bg-red-100 dark:bg-red-900/30",
+      text: "text-red-600 dark:text-red-300",
+      label: "Annulé",
+      dot: "bg-red-400",
+    },
+  };
 
 const legacyRoleConfig: Record<string, { label: string; color: string }> = {
   CLIENT: {
@@ -1429,7 +1430,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                     <ChevronDown size={14} />
                   </button>
                   {showStatusDropdown && (
-                    <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-ds-border bg-ds-card shadow-lg">
+                    <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-ds-border bg-ds-card shadow-md">
                       {ticket.allowedTransitions.map((s) => {
                         const cfg = statusConfig[s] || statusConfig.NEW;
                         return (
@@ -1669,11 +1670,11 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         >
           {/* Loading state */}
           {sentimentLoading && !sentiment && (
-            <div className={`flex items-center gap-3 rounded-xl border p-4 ${toneSoftPanelClass("ai")}`}>
+            <div
+              className={`flex items-center gap-3 rounded-xl border p-4 ${toneSoftPanelClass("ai")}`}
+            >
               <Loader2 size={16} className={`animate-spin ${toneTextClass("ai")}`} />
-              <span className={`text-sm ${toneTextClass("ai")}`}>
-                Analyse IA en cours...
-              </span>
+              <span className={`text-sm ${toneTextClass("ai")}`}>Analyse IA en cours...</span>
             </div>
           )}
 
@@ -1691,7 +1692,11 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             >
               {/* Alerte criticité */}
               {sentiment.criticality === "HIGH" && (
-                <Badge variant={toneBadgeVariant("danger")} size="sm" icon={<AlertTriangle size={12} />}>
+                <Badge
+                  variant={toneBadgeVariant("danger")}
+                  size="sm"
+                  icon={<AlertTriangle size={12} />}
+                >
                   Criticité haute
                 </Badge>
               )}
@@ -1706,7 +1711,9 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   ) : (
                     <Meh size={18} className={toneTextClass("warning")} />
                   )}
-                  <span className={`text-sm font-bold ${toneTextClass(getSentimentTone(sentiment.sentiment))}`}>
+                  <span
+                    className={`text-sm font-bold ${toneTextClass(getSentimentTone(sentiment.sentiment))}`}
+                  >
                     Sentiment : {sentiment.sentiment}
                   </span>
                 </div>
@@ -1728,7 +1735,10 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
                   Service : {sentiment.service}
                 </Badge>
                 <Badge
-                  variant={toneBadgeVariant(ticketPriorityTone[sentiment.priority as keyof typeof ticketPriorityTone] || "neutral")}
+                  variant={toneBadgeVariant(
+                    ticketPriorityTone[sentiment.priority as keyof typeof ticketPriorityTone] ||
+                      "neutral",
+                  )}
                   size="sm"
                 >
                   Priorité : {sentiment.priority}
@@ -1829,11 +1839,11 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
         >
           {/* Loading */}
           {duplicatesLoading && (
-            <div className={`flex items-center gap-3 rounded-xl border p-4 ${toneSoftPanelClass("ai")}`}>
+            <div
+              className={`flex items-center gap-3 rounded-xl border p-4 ${toneSoftPanelClass("ai")}`}
+            >
               <Loader2 size={16} className={`animate-spin ${toneTextClass("ai")}`} />
-              <span className={`text-sm ${toneTextClass("ai")}`}>
-                Recherche de doublons...
-              </span>
+              <span className={`text-sm ${toneTextClass("ai")}`}>Recherche de doublons...</span>
             </div>
           )}
 
@@ -1853,7 +1863,11 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             >
               {/* Alerte incident de masse */}
               {duplicates.possible_mass_incident && (
-                <Badge variant={toneBadgeVariant("warning")} size="sm" icon={<AlertTriangle size={12} />}>
+                <Badge
+                  variant={toneBadgeVariant("warning")}
+                  size="sm"
+                  icon={<AlertTriangle size={12} />}
+                >
                   Incident de masse probable
                 </Badge>
               )}
@@ -1868,7 +1882,11 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
               {/* Badge résumé */}
               <div className="flex items-center gap-2">
                 {duplicates.matched_tickets.length === 0 ? (
-                  <Badge variant={toneBadgeVariant("success")} size="sm" icon={<CheckCircle size={10} />}>
+                  <Badge
+                    variant={toneBadgeVariant("success")}
+                    size="sm"
+                    icon={<CheckCircle size={10} />}
+                  >
                     Aucun doublon
                   </Badge>
                 ) : (
@@ -2742,7 +2760,7 @@ const TicketDrawer: React.FC<TicketDrawerProps> = ({
             )}
 
             {/* ---- Sticky header ---- */}
-            <div className="px-5 pt-4 pb-4 border-b border-ds-border flex-shrink-0 bg-gradient-to-b from-primary-50/60 via-ds-card to-ds-card dark:from-primary-950/10 dark:via-ds-card dark:to-ds-card">
+            <div className="px-5 pt-4 pb-4 border-b border-ds-border flex-shrink-0 bg-ds-card">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-2">

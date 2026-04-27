@@ -4,14 +4,7 @@
 
 import React from "react";
 
-export type BadgeVariant =
-  | "default"
-  | "neutral"
-  | "success"
-  | "warning"
-  | "danger"
-  | "info"
-  | "ai";
+export type BadgeVariant = "default" | "neutral" | "success" | "warning" | "danger" | "info" | "ai";
 
 interface BadgeProps {
   variant?: BadgeVariant;
@@ -50,7 +43,7 @@ const Badge: React.FC<BadgeProps> = ({
 }) => {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-semibold tracking-[0.01em] shadow-[inset_0_1px_0_rgb(255_255_255_/_0.22)] whitespace-nowrap ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full font-semibold tracking-[0.01em] whitespace-nowrap ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
     >
       {icon && <span className="flex-shrink-0 opacity-80">{icon}</span>}
       <span className="truncate">{children}</span>

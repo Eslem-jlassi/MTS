@@ -17,15 +17,15 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "border border-primary-600 bg-primary-600 text-white shadow-soft hover:border-primary-700 hover:bg-primary-700 hover:shadow-card-hover active:bg-primary-800 focus:ring-primary-400/30 dark:border-primary-500 dark:bg-primary-500 dark:hover:border-primary-400 dark:hover:bg-primary-400",
+    "border border-primary-600 bg-primary-600 text-white shadow-sm hover:border-primary-700 hover:bg-primary-700 hover:shadow-md active:bg-primary-800 focus:ring-primary-400/30 dark:border-primary-500 dark:bg-primary-500 dark:hover:border-primary-400 dark:hover:bg-primary-400",
   secondary:
-    "border border-ds-border bg-ds-elevated/80 text-ds-secondary shadow-soft hover:border-primary-300/40 hover:bg-ds-surface hover:text-ds-primary focus:ring-primary-400/20",
+    "border border-ds-border bg-ds-card text-ds-secondary shadow-sm hover:border-slate-300 hover:bg-ds-surface hover:text-ds-primary focus:ring-primary-400/20",
   danger:
-    "border border-error-500 bg-error-500 text-white shadow-soft hover:border-error-600 hover:bg-error-600 active:bg-error-700 focus:ring-error-500/30",
+    "border border-error-500 bg-error-500 text-white shadow-sm hover:border-error-600 hover:bg-error-600 active:bg-error-700 focus:ring-error-500/30",
   ghost:
-    "border border-transparent bg-transparent text-ds-secondary hover:bg-ds-elevated/70 hover:text-ds-primary focus:ring-primary-400/20",
+    "border border-transparent bg-transparent text-ds-secondary hover:bg-ds-surface hover:text-ds-primary focus:ring-primary-400/20",
   outline:
-    "border border-ds-border bg-ds-card/70 text-ds-secondary shadow-soft hover:border-primary-300/50 hover:bg-ds-elevated/65 hover:text-ds-primary focus:ring-primary-400/20",
+    "border border-ds-border bg-ds-card text-ds-secondary shadow-sm hover:border-slate-300 hover:bg-ds-surface hover:text-ds-primary focus:ring-primary-400/20",
 };
 
 const sizeClasses = {
