@@ -89,12 +89,6 @@ const LoginPage: React.FC = () => {
 
   return (
     <AuthLayout>
-      <div className="mb-6 flex flex-col items-center lg:hidden">
-        <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <Bot size={28} className="text-primary-500" />
-        </div>
-        <h1 className="text-xl font-bold text-slate-900 dark:text-white">MTS Telecom</h1>
-      </div>
       <motion.div
         className="auth-panel auth-panel-wide"
         initial={{ opacity: 0, y: 12, scale: 0.98 }}

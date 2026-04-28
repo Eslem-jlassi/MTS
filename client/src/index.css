@@ -865,20 +865,21 @@ code {
 }
 
 /* =============================================================================
-   AUTH PAGES – Enterprise SaaS
-   All accent / primary colours via CSS custom properties → auto dark-mode.
+   AUTH PAGES - Premium telecom AI identity
    ============================================================================= */
 
 .auth-input {
   width: 100%;
-  background: rgb(var(--ds-card));
-  border: 1px solid rgb(var(--ds-border) / 0.9);
-  border-radius: 16px;
+  background: linear-gradient(180deg, rgb(var(--ds-card) / 0.98), rgb(var(--ds-surface) / 0.78));
+  border: 1px solid rgb(var(--ds-border) / 0.86);
+  border-radius: 14px;
   color: rgb(var(--ds-primary));
   padding: 0.92rem 1rem 0.92rem 2.75rem;
   font-size: 0.875rem;
   line-height: 1.4;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.48);
   transition: all 0.2s ease;
   outline: none;
 }
@@ -886,11 +887,13 @@ code {
   color: rgb(var(--ds-muted));
 }
 .auth-input:hover {
-  border-color: rgb(var(--color-primary) / 0.38);
+  border-color: rgb(var(--color-primary) / 0.44);
 }
 .auth-input:focus {
   border-color: rgb(var(--color-primary));
-  box-shadow: 0 0 0 3px rgb(var(--color-primary) / 0.14);
+  box-shadow:
+    0 0 0 3px rgb(var(--color-primary) / 0.13),
+    0 12px 28px -24px rgb(var(--color-warm) / 0.58);
   background: rgb(var(--ds-card));
 }
 .auth-input:disabled {
@@ -922,13 +925,16 @@ code {
   width: 100%;
   min-height: 3rem;
   padding: 0.84rem 1.5rem;
-  background:
-    linear-gradient(135deg, rgb(var(--color-primary-hover)), rgb(var(--color-accent))),
-    linear-gradient(135deg, rgb(var(--color-primary)), rgb(var(--color-primary-hover)));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-primary)),
+    rgb(var(--color-accent-600)) 58%,
+    rgb(var(--color-ai))
+  );
   color: #fff;
   font-weight: 600;
   font-size: 0.9375rem;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid rgb(var(--color-primary) / 0.24);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -938,14 +944,38 @@ code {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  box-shadow: 0 8px 18px -14px rgb(var(--color-primary) / 0.48);
+  box-shadow:
+    0 16px 32px -24px rgb(var(--color-primary) / 0.78),
+    0 10px 28px -26px rgb(var(--color-warm) / 0.82);
+}
+.auth-btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgb(var(--color-warm) / 0.28) 48%,
+    transparent 100%
+  );
+  transform: translateX(-112%);
+  transition: transform 0.75s ease;
+  pointer-events: none;
 }
 .auth-btn-primary:hover:not(:disabled) {
-  background:
-    linear-gradient(135deg, rgb(var(--color-primary)), rgb(var(--color-accent-600))),
-    linear-gradient(135deg, rgb(var(--color-primary)), rgb(var(--color-primary-hover)));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-primary-hover)),
+    rgb(var(--color-accent)) 60%,
+    rgb(var(--color-ai-hover))
+  );
   transform: translateY(-1.5px);
-  box-shadow: 0 10px 22px -16px rgb(var(--color-primary) / 0.5);
+  box-shadow:
+    0 18px 36px -25px rgb(var(--color-primary) / 0.82),
+    0 12px 32px -26px rgb(var(--color-warm) / 0.9);
+}
+.auth-btn-primary:hover:not(:disabled)::before {
+  transform: translateX(112%);
 }
 .auth-btn-primary:focus-visible {
   outline: none;
@@ -967,7 +997,7 @@ code {
   width: 100%;
   min-height: 3rem;
   padding: 0.84rem 1.5rem;
-  background: rgb(var(--ds-card) / 0.7);
+  background: linear-gradient(180deg, rgb(var(--ds-card) / 0.92), rgb(var(--ds-surface) / 0.72));
   color: rgb(var(--color-primary));
   font-weight: 600;
   font-size: 0.9375rem;
@@ -981,8 +1011,9 @@ code {
   gap: 0.5rem;
 }
 .auth-btn-secondary:hover:not(:disabled) {
-  border-color: rgb(var(--color-primary) / 0.7);
-  background: rgb(var(--color-primary) / 0.08);
+  border-color: rgb(var(--color-warm) / 0.48);
+  background: rgb(var(--color-warm) / 0.08);
+  color: rgb(var(--color-primary-hover));
 }
 .auth-btn-secondary:focus-visible {
   outline: none;
@@ -1003,19 +1034,46 @@ code {
   text-decoration: none;
 }
 .auth-link:hover {
-  color: rgb(var(--color-primary-hover));
+  color: rgb(var(--color-warm-hover));
 }
 
 .auth-shell {
   background: rgb(var(--ds-page));
 }
 
+.auth-form-side {
+  background:
+    linear-gradient(152deg, rgb(var(--color-warm) / 0.1) 0%, transparent 24%),
+    linear-gradient(180deg, rgb(255 255 255 / 0.98), rgb(248 250 252 / 0.96));
+}
+
+.auth-form-side::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(120deg, transparent 0%, rgb(var(--color-primary) / 0.055) 42%, transparent 76%),
+    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size:
+    auto,
+    34px 34px,
+    34px 34px;
+  pointer-events: none;
+}
+
 .auth-panel,
 .auth-glass {
-  background: rgb(var(--ds-card));
-  border: 1px solid rgb(var(--ds-border) / 0.82);
+  background:
+    linear-gradient(180deg, rgb(var(--ds-card) / 0.98), rgb(var(--ds-card) / 0.92)),
+    linear-gradient(135deg, rgb(var(--color-warm) / 0.07), transparent 48%);
+  border: 1px solid rgb(var(--ds-border) / 0.8);
   border-radius: 16px;
-  box-shadow: var(--ds-shadow-card);
+  box-shadow:
+    0 22px 54px -42px rgb(15 23 42 / 0.34),
+    0 12px 36px -34px rgb(var(--color-warm) / 0.58),
+    inset 0 1px 0 rgb(255 255 255 / 0.74);
+  backdrop-filter: blur(14px);
 }
 
 .auth-panel {
@@ -1080,21 +1138,26 @@ code {
   align-items: center;
   gap: 0.4rem;
   border-radius: 9999px;
-  border: 1px solid rgb(var(--color-primary) / 0.14);
-  background: rgb(var(--color-primary) / 0.08);
-  padding: 0.4rem 0.75rem;
-  color: rgb(var(--color-primary));
+  border: 1px solid rgb(var(--color-warm) / 0.2);
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-warm) / 0.12),
+    rgb(var(--color-primary) / 0.06)
+  );
+  padding: 0.42rem 0.78rem;
+  color: rgb(var(--color-warm-hover));
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
+  box-shadow: 0 10px 26px -24px rgb(var(--color-warm) / 0.9);
 }
 
 .auth-title {
   color: rgb(var(--ds-primary));
   font-size: clamp(1.8rem, 2vw, 2.25rem);
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .auth-subtitle {
@@ -1104,10 +1167,23 @@ code {
 }
 
 .auth-meta-strip {
-  border: 1px solid rgb(var(--ds-border));
+  border: 1px solid rgb(var(--ds-border) / 0.82);
   border-radius: 0.9rem;
-  background: rgb(var(--ds-card));
-  box-shadow: var(--ds-shadow-card);
+  background:
+    linear-gradient(135deg, rgb(var(--color-primary) / 0.055), transparent 54%),
+    linear-gradient(180deg, rgb(var(--ds-card) / 0.88), rgb(var(--ds-surface) / 0.58));
+  box-shadow: 0 14px 32px -30px rgb(var(--color-primary) / 0.42);
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.auth-meta-strip:hover {
+  border-color: rgb(var(--color-warm) / 0.26);
+  transform: translateY(-1px);
+  box-shadow:
+    0 18px 38px -34px rgb(var(--color-primary) / 0.46),
+    0 14px 28px -28px rgb(var(--color-warm) / 0.5);
 }
 
 .auth-separator {
@@ -1130,6 +1206,43 @@ code {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.03),
     0 8px 40px rgba(0, 0, 0, 0.3);
+}
+
+.dark .auth-form-side {
+  background:
+    linear-gradient(152deg, rgb(var(--color-warm) / 0.1) 0%, transparent 25%),
+    linear-gradient(180deg, rgb(8 15 28), rgb(15 23 42));
+}
+
+.dark .auth-form-side::before {
+  background:
+    linear-gradient(120deg, transparent 0%, rgb(var(--color-primary) / 0.08) 42%, transparent 76%),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size:
+    auto,
+    34px 34px,
+    34px 34px;
+}
+
+.dark .auth-panel,
+.dark .auth-glass {
+  background:
+    linear-gradient(180deg, rgb(var(--ds-card) / 0.98), rgb(var(--ds-surface) / 0.92)),
+    linear-gradient(135deg, rgb(var(--color-warm) / 0.08), transparent 48%);
+  border-color: rgb(255 255 255 / 0.08);
+  box-shadow:
+    0 28px 62px -40px rgb(0 0 0 / 0.72),
+    0 12px 36px -32px rgb(var(--color-warm) / 0.36),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+.dark .auth-input {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+}
+
+.dark .auth-kicker {
+  color: rgb(253 186 116);
 }
 
 .dark .auth-alert-warning {
