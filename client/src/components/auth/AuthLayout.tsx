@@ -153,11 +153,11 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
         transition={{ duration: 0.6 }}
       >
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.14]"
+          className="pointer-events-none absolute inset-0 opacity-[0.18]"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.13) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.13) 1px, transparent 1px), linear-gradient(135deg, transparent 0 45%, rgba(251,146,60,0.42) 45% 46%, transparent 46% 100%)",
-            backgroundSize: "36px 36px, 36px 36px, 220px 220px",
+              "radial-gradient(circle at 18% 22%, rgba(251,146,60,0.32), transparent 30%), radial-gradient(circle at 82% 68%, rgba(59,130,246,0.24), transparent 32%), linear-gradient(135deg, transparent 0 42%, rgba(251,146,60,0.22) 42% 43%, transparent 43% 100%)",
+            backgroundSize: "auto, auto, 320px 320px",
           }}
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-orange-950/25 to-transparent" />
@@ -258,7 +258,8 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, rightHeader }) => {
           </div>
           <h1 className="text-xl font-extrabold text-slate-950 dark:text-white">MTS Telecom</h1>
           <p className="mt-1 max-w-xs text-xs leading-relaxed text-ds-muted">
-            Supervision intelligente et support automatisé pour la continuité télécom B2B.
+            Supervision intelligente et support automatisé pour la continuité des opérations télécom
+            B2B.
           </p>
         </div>
 

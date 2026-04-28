@@ -43,16 +43,16 @@ const FAQAccordion: React.FC<FAQAccordionProps> = ({ faq }) => {
   const panelId = `faq-panel-${faq.id}`;
 
   return (
-    <article className="group overflow-hidden rounded-2xl border border-ds-border/90 bg-ds-card shadow-sm transition-all duration-200 hover:shadow-md">
+    <article className="group overflow-hidden rounded-xl border border-ds-border/90 bg-ds-card shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <button
         type="button"
         onClick={() => setIsOpen((value) => !value)}
-        className="flex w-full items-start justify-between gap-4 px-5 py-4 text-left focus:outline-none focus:ring-2 focus:ring-primary/25"
+        className="flex w-full items-start justify-between gap-4 px-4 py-3.5 text-left focus:outline-none focus:ring-2 focus:ring-primary/25"
         aria-expanded={isOpen}
         aria-controls={panelId}
       >
         <div className="min-w-0 space-y-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200/80 bg-primary-50/90 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/15 dark:text-primary-200">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200/80 bg-primary-50/90 px-2.5 py-0.5 text-[11px] font-semibold uppercase text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/15 dark:text-primary-200">
             <FileText size={11} className="opacity-70" />
             {faq.category}
           </span>
@@ -68,7 +68,7 @@ const FAQAccordion: React.FC<FAQAccordionProps> = ({ faq }) => {
         />
       </button>
       {isOpen && (
-        <div id={panelId} className="border-t border-ds-border bg-ds-surface/35 px-5 pb-5 pt-4">
+        <div id={panelId} className="border-t border-ds-border bg-ds-surface/35 px-4 pb-4 pt-3">
           <div className="prose-sm text-sm leading-relaxed text-ds-secondary">{faq.answer}</div>
         </div>
       )}
@@ -210,41 +210,46 @@ const normalizeSearch = (value: string): string => value.trim().toLowerCase();
 
 export default function KnowledgeBasePage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("Tous");
 
   const filteredFaqs = useMemo(() => {
     const query = normalizeSearch(searchQuery);
-    if (!query) {
-      return FAQS;
-    }
+    const category = activeCategory === "Tous" ? "" : activeCategory;
 
-    return FAQS.filter((faq) =>
-      [faq.category, faq.question, faq.searchText, faq.answerText].some((value) =>
-        value.toLowerCase().includes(query),
-      ),
-    );
-  }, [searchQuery]);
+    return FAQS.filter((faq) => {
+      const matchesCategory = !category || faq.category === category;
+      const matchesSearch =
+        !query ||
+        [faq.category, faq.question, faq.searchText, faq.answerText].some((value) =>
+          value.toLowerCase().includes(query),
+        );
 
-  const faqCategoryCount = useMemo(() => new Set(FAQS.map((faq) => faq.category)).size, []);
+      return matchesCategory && matchesSearch;
+    });
+  }, [activeCategory, searchQuery]);
+
+  const faqCategories = useMemo(
+    () => ["Tous", ...Array.from(new Set(FAQS.map((faq) => faq.category)))],
+    [],
+  );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 pb-12">
+    <div className="mx-auto max-w-6xl space-y-5 pb-12">
       <PageHeader
         title="Base de connaissances"
         description="FAQ, guides rapides et procédures de résolution pour les opérations télécom."
         icon={<Book size={20} />}
       />
 
-      <Card padding="lg" className="relative overflow-hidden border border-ds-border/80 shadow-sm">
-        <div className="pointer-events-none absolute -top-20 right-0 h-56 w-56 rounded-full bg-primary/10 blur-3xl dark:bg-primary/25" />
-        <div className="pointer-events-none absolute bottom-0 left-0 h-44 w-44 rounded-full bg-info-500/10 blur-3xl" />
-        <div className="relative grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+      <Card padding="md" className="border border-ds-border/90 shadow-sm">
+        <div className="grid gap-5 lg:grid-cols-[1.45fr_1fr]">
           <div className="space-y-4">
-            <span className="inline-flex items-center gap-2 rounded-full border border-ds-border bg-ds-elevated/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ds-secondary">
+            <span className="inline-flex items-center gap-2 rounded-full border border-ds-border bg-ds-elevated/80 px-3 py-1 text-xs font-semibold uppercase text-ds-secondary">
               <Book size={14} />
               Support opérationnel
             </span>
             <div className="space-y-2">
-              <h2 className="text-2xl font-semibold tracking-tight text-ds-primary">
+              <h2 className="text-2xl font-semibold text-ds-primary">
                 Trouver rapidement la bonne procédure
               </h2>
               <p className="max-w-2xl text-sm text-ds-secondary">
@@ -273,7 +278,7 @@ export default function KnowledgeBasePage() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-ds-border bg-ds-surface px-2.5 py-1 font-medium text-ds-secondary">
                 <Book size={12} className="text-info-500 opacity-60" />
-                {faqCategoryCount} catégories
+                {faqCategories.length - 1} catégories
               </span>
               {searchQuery && (
                 <button
@@ -285,17 +290,36 @@ export default function KnowledgeBasePage() {
                 </button>
               )}
             </div>
+            <div className="flex flex-wrap gap-2">
+              {faqCategories.map((category) => {
+                const isActive = activeCategory === category;
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setActiveCategory(category)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      isActive
+                        ? "border-primary-300 bg-primary-50 text-primary-700 dark:border-primary-500/30 dark:bg-primary-500/15 dark:text-primary-200"
+                        : "border-ds-border bg-ds-card text-ds-secondary hover:bg-ds-surface hover:text-ds-primary"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          <div className="rounded-2xl border border-ds-border/90 bg-ds-surface/60 p-5 shadow-sm">
+          <div className="rounded-xl border border-ds-border/90 bg-ds-surface/65 p-4 shadow-sm">
             <h3 className="text-sm font-semibold text-ds-primary">Parcours fréquents</h3>
             <p className="mt-1 text-xs text-ds-muted">
               Entrées les plus utilisées pendant le triage des incidents.
             </p>
-            <div className="mt-4 space-y-2">
+            <div className="mt-3 space-y-2">
               {QUICK_GUIDES.slice(0, 3).map((guide) => (
                 <div
                   key={guide.title}
-                  className="flex items-start justify-between gap-3 rounded-xl border border-ds-border bg-ds-card px-3 py-3 transition-colors hover:bg-ds-elevated/55"
+                  className="flex items-start justify-between gap-3 rounded-xl border border-ds-border bg-ds-card px-3 py-2.5 transition-colors hover:bg-ds-elevated/55"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-ds-primary">{guide.title}</p>
@@ -383,7 +407,9 @@ export default function KnowledgeBasePage() {
                 FAQ et résolutions
               </h3>
               <span className="rounded-full border border-ds-border bg-ds-surface px-2.5 py-1 text-xs font-medium text-ds-secondary">
-                {searchQuery ? `${filteredFaqs.length} résultat(s)` : `${FAQS.length} entrée(s)`}
+                {searchQuery || activeCategory !== "Tous"
+                  ? `${filteredFaqs.length} résultat(s)`
+                  : `${FAQS.length} entrée(s)`}
               </span>
             </div>
             <p className="mt-2 text-sm text-ds-secondary">
@@ -406,10 +432,13 @@ export default function KnowledgeBasePage() {
               </p>
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory("Tous");
+                }}
                 className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-100 dark:border-primary-500/30 dark:bg-primary-500/12 dark:text-primary-200"
               >
-                Effacer la recherche
+                Réinitialiser les filtres
               </button>
             </Card>
           )}

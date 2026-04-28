@@ -182,7 +182,8 @@ const ManagerCopilotSummaryPrepModal: React.FC<{
         </div>
 
         <p className="manager-copilot-summary-draft-note">
-          Cette synthèse assemble les signaux déjà consolidés par ALLIE pour un point manager rapide.
+          Cette synthèse assemble les signaux déjà consolidés par ALLIE pour un point manager
+          rapide.
         </p>
       </div>
     </Modal>
@@ -346,7 +347,7 @@ function renderSnapshotKnnSummary(snapshot: ManagerCopilotSnapshot) {
   return (
     <div className="manager-copilot-cockpit-knn-strip">
       <div className="manager-copilot-cockpit-knn-metric">
-        <span>Recommandation supervisee</span>
+        <span>Copilote KNN</span>
         <strong>{getManagerCopilotInferenceModeLabel(snapshot.inferenceMode)}</strong>
       </div>
       <div className="manager-copilot-cockpit-knn-metric">
@@ -446,6 +447,10 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
           </div>
 
           <p className="manager-copilot-cockpit-summary-text">{snapshot.summary}</p>
+          <p className="manager-copilot-cockpit-helper-text">
+            ALLIE consolide les signaux de supervision et rapproche chaque situation d'exemples
+            similaires via une recommandation KNN.
+          </p>
           {renderSnapshotKnnSummary(snapshot)}
 
           <div className="manager-copilot-cockpit-metric-row">
@@ -524,9 +529,7 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
                       </strong>
                     </div>
                     <div>
-                      <span className="manager-copilot-cockpit-focus-knn-label">
-                        Confiance KNN
-                      </span>
+                      <span className="manager-copilot-cockpit-focus-knn-label">Confiance KNN</span>
                       <strong className="manager-copilot-cockpit-focus-knn-value">
                         {formatManagerCopilotConfidenceScore(focusSignal.confidenceScore)}
                       </strong>
@@ -755,12 +758,7 @@ export const ManagerCopilotPanel: React.FC<ManagerCopilotPanelProps> = ({
               Ouvrir le reporting
             </Button>
             {onClose && (
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<Minimize2 size={14} />}
-                onClick={onClose}
-              >
+              <Button variant="outline" size="sm" icon={<Minimize2 size={14} />} onClick={onClose}>
                 Fermer
               </Button>
             )}

@@ -87,7 +87,7 @@
 .manager-copilot-fab-label strong {
   font-size: 0.84rem;
   line-height: 1.2;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .manager-copilot-fab-label small {
@@ -177,7 +177,7 @@
   color: rgb(var(--ds-primary));
   font-size: 1rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .manager-copilot-subtitle {
@@ -317,7 +317,7 @@
   color: rgb(var(--ds-primary));
   font-size: 1.24rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .manager-copilot-summary-text {
@@ -1210,7 +1210,7 @@
 
 .manager-copilot-title {
   font-size: 1.05rem;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .manager-copilot-subtitle {
@@ -2736,7 +2736,7 @@
   }
 }
 
-/* Soutenance refinement: clearer cockpit hierarchy and quieter launcher */
+/* ALLIE refinement: clearer cockpit hierarchy and quieter launcher */
 
 .manager-copilot-launcher {
   position: relative;
@@ -3373,7 +3373,7 @@
   }
 }
 
-/* Defense polish: final overrides keep ALLIE visually quiet without changing behavior. */
+/* Final ALLIE polish: compact cards, readable KNN traces, unchanged behavior. */
 .manager-copilot-panel,
 .manager-copilot-launcher,
 .manager-copilot-fab {
@@ -3434,4 +3434,54 @@
 .manager-copilot-summary-card::after,
 .manager-copilot-focus-card::after {
   display: none;
+}
+
+.manager-copilot-title,
+.manager-copilot-header-kicker,
+.manager-copilot-cockpit-kicker,
+.manager-copilot-header-status-label,
+.manager-copilot-knn-label,
+.manager-copilot-cockpit-focus-knn-label,
+.manager-copilot-cockpit-knn-metric span,
+.manager-copilot-badge {
+  letter-spacing: 0;
+}
+
+.manager-copilot-panel-body {
+  gap: 0.86rem;
+}
+
+.manager-copilot-cockpit-block {
+  border-color: #e2e8f0;
+  border-radius: 0.86rem;
+  padding: 0.95rem;
+}
+
+.dark .manager-copilot-cockpit-block {
+  border-color: rgb(var(--ds-border));
+}
+
+.manager-copilot-cockpit-helper-text {
+  margin: -0.12rem 0 0;
+  color: rgb(var(--ds-muted));
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.manager-copilot-cockpit-knn-strip,
+.manager-copilot-cockpit-focus-knn,
+.manager-copilot-knn-trace {
+  border-color: rgb(var(--color-ai) / 0.22);
+  background: linear-gradient(180deg, rgb(var(--color-ai) / 0.075), rgb(var(--ds-card)));
+}
+
+.manager-copilot-cockpit-focus-card,
+.manager-copilot-cockpit-signal,
+.manager-copilot-section-summary-card {
+  border-radius: 0.78rem;
+}
+
+.manager-copilot-badge {
+  border-color: rgb(var(--ds-border) / 0.92);
+  box-shadow: none;
 }

@@ -265,9 +265,7 @@ public class AuthController {
 
         String accessToken = authResponse.getAccessToken();
         String refreshToken = exposeTokensInBody ? authResponse.getRefreshToken() : null;
-        String tokenType = StringUtils.hasText(accessToken)
-                ? "Bearer"
-                : (StringUtils.hasText(authResponse.getTokenType()) ? authResponse.getTokenType() : "Cookie");
+        String tokenType = StringUtils.hasText(accessToken) ? "Bearer" : "Cookie";
 
         return AuthResponse.builder()
                 .accessToken(accessToken)

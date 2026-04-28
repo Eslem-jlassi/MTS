@@ -18,9 +18,9 @@ export type ManagerCopilotBadgeVariant =
 
 export const MANAGER_COPILOT_NAME = "ALLIE";
 export const MANAGER_COPILOT_PRODUCT_LABEL = "Assistant IA Manager";
-export const MANAGER_COPILOT_TITLE = MANAGER_COPILOT_NAME;
-export const MANAGER_COPILOT_SUBTITLE = "Copilote de supervision assistee";
-export const MANAGER_COPILOT_FULL_LABEL = `${MANAGER_COPILOT_NAME}, ${MANAGER_COPILOT_PRODUCT_LABEL}`;
+export const MANAGER_COPILOT_TITLE = `${MANAGER_COPILOT_NAME} — ${MANAGER_COPILOT_PRODUCT_LABEL}`;
+export const MANAGER_COPILOT_SUBTITLE = "Copilote de supervision basé sur une recommandation KNN";
+export const MANAGER_COPILOT_FULL_LABEL = MANAGER_COPILOT_TITLE;
 
 export const MANAGER_COPILOT_WIDGET_SUBTITLE = MANAGER_COPILOT_SUBTITLE;
 
@@ -111,7 +111,7 @@ export function getManagerCopilotInferenceModeLabel(value?: string | null): stri
   const normalized = (value || "").trim().toLowerCase();
 
   if (normalized === "knn") {
-    return "Recommandation supervisee KNN";
+    return "Recommandation KNN supervisee";
   }
   if (normalized === "degraded_rules") {
     return "Fallback deterministe";

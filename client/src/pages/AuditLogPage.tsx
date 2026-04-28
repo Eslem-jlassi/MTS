@@ -58,6 +58,45 @@ const formatValue = (value?: string | null): string => {
   }
 };
 
+const LOCAL_IP_VALUES = new Set([
+  "::1",
+  "0:0:0:0:0:0:0:1",
+  "::0:0:0:0:0:0:0:1",
+  "127.0.0.1",
+  "localhost",
+]);
+
+const formatIpAddress = (value?: string | null): string => {
+  const normalized = value?.trim();
+  if (!normalized) {
+    return "N/A";
+  }
+
+  const lowerValue = normalized.toLowerCase();
+  if (LOCAL_IP_VALUES.has(lowerValue) || lowerValue.startsWith("::ffff:127.")) {
+    return "Localhost";
+  }
+
+  return normalized;
+};
+
+const getAuditDescription = (log: AuditLog): string =>
+  log.description || log.actionLabel || log.action || "Aucune description";
+
+const truncateDescription = (value: string, maxLength = 132): string => {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return `${value.slice(0, maxLength).trimEnd()}...`;
+};
+
+const hasAuditSnapshot = (log: AuditLog): boolean =>
+  Boolean(log.oldValue || log.newValue || log.userAgent);
+
+const shouldShowAuditDetails = (log: AuditLog, description: string): boolean =>
+  description.length > 132 || hasAuditSnapshot(log);
+
 const getActionBadgeVariant = (action: string): BadgeVariant => {
   const normalized = action.toUpperCase();
 
@@ -256,9 +295,7 @@ const AuditLogPage: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-ds-muted" />
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-ds-primary">
-              Filtres
-            </h2>
+            <h2 className="text-sm font-semibold uppercase text-ds-primary">Filtres</h2>
             <span className="rounded-full border border-ds-border bg-ds-surface px-2 py-0.5 text-xs font-medium text-ds-muted">
               {activeFiltersCount} actif{activeFiltersCount > 1 ? "s" : ""}
             </span>
@@ -273,7 +310,7 @@ const AuditLogPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             Type d'entite
             <select
               className={`${selectClass} mt-1.5`}
@@ -290,7 +327,7 @@ const AuditLogPage: React.FC = () => {
             </select>
           </label>
 
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             Action
             <input
               type="text"
@@ -301,7 +338,7 @@ const AuditLogPage: React.FC = () => {
             />
           </label>
 
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             Date début
             <input
               type="datetime-local"
@@ -311,7 +348,7 @@ const AuditLogPage: React.FC = () => {
             />
           </label>
 
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             Date fin
             <input
               type="datetime-local"
@@ -321,7 +358,7 @@ const AuditLogPage: React.FC = () => {
             />
           </label>
 
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             Adresse IP
             <input
               type="text"
@@ -332,7 +369,7 @@ const AuditLogPage: React.FC = () => {
             />
           </label>
 
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             ID utilisateur
             <input
               type="number"
@@ -348,7 +385,7 @@ const AuditLogPage: React.FC = () => {
             />
           </label>
 
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             ID entite
             <input
               type="number"
@@ -364,7 +401,7 @@ const AuditLogPage: React.FC = () => {
             />
           </label>
 
-          <label className="block text-xs font-semibold uppercase tracking-wide text-ds-muted">
+          <label className="block text-xs font-semibold uppercase text-ds-muted">
             Lignes par page
             <select
               className={`${selectClass} mt-1.5`}
@@ -393,31 +430,31 @@ const AuditLogPage: React.FC = () => {
           <table className="ds-table-raw w-full min-w-[1024px]">
             <thead className="bg-ds-elevated/70">
               <tr className="border-b border-ds-border">
-                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase text-ds-muted">
                   <div className="inline-flex items-center gap-1.5">
                     <Clock className="h-3.5 w-3.5" />
                     Date
                   </div>
                 </th>
-                <th className="w-52 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                <th className="w-52 px-4 py-3 text-left text-xs font-semibold uppercase text-ds-muted">
                   <div className="inline-flex items-center gap-1.5">
                     <User className="h-3.5 w-3.5" />
                     Utilisateur
                   </div>
                 </th>
-                <th className="w-52 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                <th className="w-52 px-4 py-3 text-left text-xs font-semibold uppercase text-ds-muted">
                   Action
                 </th>
-                <th className="w-56 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                <th className="w-56 px-4 py-3 text-left text-xs font-semibold uppercase text-ds-muted">
                   <div className="inline-flex items-center gap-1.5">
                     <FileText className="h-3.5 w-3.5" />
                     Entité
                   </div>
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-ds-muted">
                   Description
                 </th>
-                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-ds-muted">
+                <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase text-ds-muted">
                   <div className="inline-flex items-center gap-1.5">
                     <Globe className="h-3.5 w-3.5" />
                     IP
@@ -434,67 +471,88 @@ const AuditLogPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                auditLogs.map((log) => (
-                  <tr
-                    key={log.id}
-                    onClick={() => handleRowClick(log)}
-                    className="group cursor-pointer bg-ds-card/50 transition-colors hover:bg-ds-elevated/70"
-                  >
-                    <td className="px-4 py-2.5 align-top">
-                      <time
-                        dateTime={log.timestamp}
-                        className="block whitespace-nowrap text-xs font-medium text-ds-secondary"
-                      >
-                        {formatDateTime(log.timestamp)}
-                      </time>
-                    </td>
-                    <td className="px-4 py-2.5 align-top">
-                      {log.systemAction ? (
-                        <Badge variant="neutral" size="sm">
-                          SYSTEM
-                        </Badge>
-                      ) : (
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-ds-primary">
-                            {log.userName || "N/A"}
-                          </p>
-                          <p className="truncate text-xs text-ds-muted">{log.userEmail || "N/A"}</p>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 align-top">
-                      <Badge variant={getActionBadgeVariant(log.action)} size="sm">
-                        {log.actionLabel || log.action}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-2.5 align-top">
-                      <div className="space-y-1">
-                        <Badge variant="neutral" size="sm">
-                          {log.entityType}
-                        </Badge>
-                        <p className="text-xs text-ds-secondary">#{log.entityId}</p>
-                        {log.entityName && (
-                          <p className="truncate text-xs text-ds-muted" title={log.entityName}>
-                            {log.entityName}
-                          </p>
+                auditLogs.map((log) => {
+                  const description = getAuditDescription(log);
+                  const showDetails = shouldShowAuditDetails(log, description);
+
+                  return (
+                    <tr
+                      key={log.id}
+                      onClick={() => handleRowClick(log)}
+                      className="group cursor-pointer bg-ds-card/50 transition-colors hover:bg-ds-elevated/70"
+                    >
+                      <td className="px-4 py-2.5 align-top">
+                        <time
+                          dateTime={log.timestamp}
+                          className="block whitespace-nowrap text-xs font-medium text-ds-secondary"
+                        >
+                          {formatDateTime(log.timestamp)}
+                        </time>
+                      </td>
+                      <td className="px-4 py-2.5 align-top">
+                        {log.systemAction ? (
+                          <Badge variant="neutral" size="sm">
+                            SYSTEM
+                          </Badge>
+                        ) : (
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-ds-primary">
+                              {log.userName || "N/A"}
+                            </p>
+                            <p className="truncate text-xs text-ds-muted">
+                              {log.userEmail || "N/A"}
+                            </p>
+                          </div>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2.5 align-top">
-                      <p
-                        className="max-w-[30rem] break-words text-sm leading-5 text-ds-secondary"
-                        title={log.description}
-                      >
-                        {log.description}
-                      </p>
-                    </td>
-                    <td className="px-4 py-2.5 align-top">
-                      <code className="block break-all text-xs font-medium text-ds-muted">
-                        {log.ipAddress || "N/A"}
-                      </code>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-4 py-2.5 align-top">
+                        <Badge variant={getActionBadgeVariant(log.action)} size="sm">
+                          {log.actionLabel || log.action}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 align-top">
+                        <div className="space-y-1">
+                          <Badge variant="neutral" size="sm">
+                            {log.entityType}
+                          </Badge>
+                          <p className="text-xs text-ds-secondary">#{log.entityId}</p>
+                          {log.entityName && (
+                            <p className="truncate text-xs text-ds-muted" title={log.entityName}>
+                              {log.entityName}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 align-top">
+                        <div className="max-w-[32rem] space-y-1.5">
+                          <p
+                            className="break-words text-sm leading-5 text-ds-secondary"
+                            title={description}
+                          >
+                            {truncateDescription(description)}
+                          </p>
+                          {showDetails && (
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleRowClick(log);
+                              }}
+                              className="inline-flex items-center rounded-full border border-ds-border bg-ds-card px-2.5 py-1 text-xs font-semibold text-primary-600 transition-colors hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-primary-500/10"
+                            >
+                              Voir détails
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 align-top">
+                        <code className="block break-all text-xs font-medium text-ds-muted">
+                          {formatIpAddress(log.ipAddress)}
+                        </code>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -548,7 +606,7 @@ const AuditLogPage: React.FC = () => {
       <Modal
         isOpen={showDetailModal}
         onClose={handleCloseDetailModal}
-        title={selectedLog ? `Détail audit #${selectedLog.id}` : ""}
+        title={selectedLog ? `Détails audit #${selectedLog.id}` : ""}
         size="xl"
         contentClassName="max-h-[72vh] overflow-y-auto px-5 pb-5 pt-4"
       >
@@ -558,17 +616,13 @@ const AuditLogPage: React.FC = () => {
               <h3 className="text-sm font-semibold text-ds-primary">Evenement</h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                    Horodatage
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase text-ds-muted">Horodatage</p>
                   <p className="mt-1 text-sm text-ds-primary">
                     {formatDateTime(selectedLog.timestamp)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                    Utilisateur
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase text-ds-muted">Utilisateur</p>
                   {selectedLog.systemAction ? (
                     <div className="mt-1">
                       <Badge variant="neutral" size="sm">
@@ -585,9 +639,7 @@ const AuditLogPage: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                    Action
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase text-ds-muted">Action</p>
                   <div className="mt-1">
                     <Badge variant={getActionBadgeVariant(selectedLog.action)} size="sm">
                       {selectedLog.actionLabel || selectedLog.action}
@@ -595,9 +647,7 @@ const AuditLogPage: React.FC = () => {
                   </div>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                    Entité
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase text-ds-muted">Entité</p>
                   <p className="mt-1 text-sm font-medium text-ds-primary">
                     {selectedLog.entityType}{" "}
                     <span className="text-ds-muted">#{selectedLog.entityId}</span>
@@ -612,9 +662,7 @@ const AuditLogPage: React.FC = () => {
             </section>
 
             <section className="rounded-xl border border-ds-border bg-ds-surface/40 p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                Description
-              </p>
+              <p className="text-[11px] font-semibold uppercase text-ds-muted">Description</p>
               <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-ds-primary">
                 {selectedLog.description || "N/A"}
               </p>
@@ -622,17 +670,13 @@ const AuditLogPage: React.FC = () => {
 
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-2">
               <div className="rounded-xl border border-ds-border bg-ds-surface/35 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                  Ancienne valeur
-                </p>
+                <p className="text-[11px] font-semibold uppercase text-ds-muted">Ancienne valeur</p>
                 <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-ds-border bg-ds-card p-3 text-xs leading-5 text-ds-secondary whitespace-pre-wrap break-all">
                   {formatValue(selectedLog.oldValue)}
                 </pre>
               </div>
               <div className="rounded-xl border border-ds-border bg-ds-surface/35 p-4">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                  Nouvelle valeur
-                </p>
+                <p className="text-[11px] font-semibold uppercase text-ds-muted">Nouvelle valeur</p>
                 <pre className="mt-2 max-h-64 overflow-auto rounded-lg border border-ds-border bg-ds-card p-3 text-xs leading-5 text-ds-secondary whitespace-pre-wrap break-all">
                   {formatValue(selectedLog.newValue)}
                 </pre>
@@ -643,17 +687,13 @@ const AuditLogPage: React.FC = () => {
               <h3 className="text-sm font-semibold text-ds-primary">Contexte technique</h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                    Adresse IP
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase text-ds-muted">Adresse IP</p>
                   <code className="mt-1 block break-all text-xs text-ds-primary">
-                    {selectedLog.ipAddress || "N/A"}
+                    {formatIpAddress(selectedLog.ipAddress)}
                   </code>
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-ds-muted">
-                    User-Agent
-                  </p>
+                  <p className="text-[11px] font-semibold uppercase text-ds-muted">User-Agent</p>
                   <p className="mt-1 whitespace-pre-wrap break-all text-xs leading-5 text-ds-secondary">
                     {selectedLog.userAgent || "N/A"}
                   </p>

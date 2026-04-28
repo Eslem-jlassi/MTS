@@ -13,15 +13,15 @@
   --ds-card: 255 255 255;
   --ds-surface: 248 250 252;
   --ds-elevated: 241 245 249;
-  --ds-border: 229 231 235;
+  --ds-border: 226 232 240;
 
   --ds-radius-sm: 0.5rem;
   --ds-radius-md: 0.75rem;
   --ds-radius-lg: 1rem;
   --ds-radius-xl: 1rem;
 
-  --ds-shadow-card: 0 1px 2px rgb(15 23 42 / 0.06);
-  --ds-shadow-card-hover: 0 8px 22px -18px rgb(15 23 42 / 0.22), 0 1px 3px rgb(15 23 42 / 0.08);
+  --ds-shadow-card: 0 1px 2px rgb(15 23 42 / 0.06), 0 12px 30px -28px rgb(15 23 42 / 0.26);
+  --ds-shadow-card-hover: 0 14px 32px -24px rgb(15 23 42 / 0.24), 0 1px 3px rgb(15 23 42 / 0.08);
   --ds-shadow-overlay: 0 20px 48px -24px rgb(15 23 42 / 0.28), 0 1px 2px rgb(15 23 42 / 0.06);
 
   --ds-primary: 15 23 42;
@@ -211,7 +211,7 @@ body {
   font-size: 0.96rem;
   font-weight: 800;
   line-height: 1.1;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .app-sidebar-brand-subtitle {
@@ -541,11 +541,16 @@ body {
 
 .ds-panel {
   position: relative;
-  border: 1px solid rgb(var(--ds-border));
+  border: 1px solid #e2e8f0;
   border-radius: var(--ds-radius-lg);
-  background: rgb(var(--ds-card));
+  background: linear-gradient(180deg, rgb(var(--ds-card)), rgb(var(--ds-surface) / 0.58));
   box-shadow: var(--ds-shadow-card);
   overflow: hidden;
+}
+
+.dark .ds-panel {
+  border-color: rgb(var(--ds-border));
+  background: linear-gradient(180deg, rgb(var(--ds-card)), rgb(var(--ds-surface) / 0.82));
 }
 
 .ds-panel-hover {
@@ -565,7 +570,7 @@ body {
   color: rgb(var(--ds-muted));
   font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -573,7 +578,7 @@ body {
   color: rgb(var(--ds-primary));
   font-size: 1rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 .ds-subtle-divider {
@@ -769,7 +774,7 @@ body {
 }
 
 .ds-page-header-title {
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .ds-page-header-description {
@@ -1052,13 +1057,8 @@ code {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(120deg, transparent 0%, rgb(var(--color-primary) / 0.055) 42%, transparent 76%),
-    linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
-  background-size:
-    auto,
-    34px 34px,
-    34px 34px;
+    radial-gradient(circle at 16% 18%, rgb(var(--color-warm) / 0.08), transparent 28%),
+    linear-gradient(120deg, transparent 0%, rgb(var(--color-primary) / 0.05) 46%, transparent 80%);
   pointer-events: none;
 }
 
@@ -1216,13 +1216,8 @@ code {
 
 .dark .auth-form-side::before {
   background:
-    linear-gradient(120deg, transparent 0%, rgb(var(--color-primary) / 0.08) 42%, transparent 76%),
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size:
-    auto,
-    34px 34px,
-    34px 34px;
+    radial-gradient(circle at 16% 18%, rgb(var(--color-warm) / 0.09), transparent 30%),
+    linear-gradient(120deg, transparent 0%, rgb(var(--color-primary) / 0.08) 46%, transparent 80%);
 }
 
 .dark .auth-panel,

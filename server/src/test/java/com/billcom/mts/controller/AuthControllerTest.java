@@ -34,8 +34,8 @@ class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-        @Autowired
-        private AuthController authController;
+    @Autowired
+    private AuthController authController;
 
     @MockBean
     private AuthService authService;
@@ -79,6 +79,45 @@ class AuthControllerTest {
 
         verify(authRateLimitService).checkRegister("203.0.113.10");
         verify(authService).register(org.mockito.ArgumentMatchers.any(), eq("203.0.113.10"));
+    }
+
+    @Test
+    @DisplayName("POST /api/auth/register ne cree pas de session si verification email requise")
+    void register_doesNotCreateSessionWhenEmailVerificationRequired() throws Exception {
+        when(authService.register(org.mockito.ArgumentMatchers.any(), eq("203.0.113.11")))
+                .thenReturn(sampleEmailVerificationRequiredResponse());
+
+        mockMvc.perform(post("/api/auth/register")
+                        .header("X-Forwarded-For", "203.0.113.11")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "email": "client@test.tn",
+                                  "password": "Password1!",
+                                  "confirmPassword": "Password1!",
+                                  "firstName": "Client",
+                                  "lastName": "Test",
+                                  "role": "CLIENT",
+                                  "companyName": "Test Corp"
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tokenType").value("Cookie"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist())
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(jsonPath("$.emailVerificationRequired").value(true))
+                .andExpect(jsonPath("$.emailVerificationSent").value(true))
+                .andExpect(jsonPath("$.user.emailVerified").value(false))
+                .andExpect(header().stringValues(
+                        "Set-Cookie",
+                        org.hamcrest.Matchers.hasItems(
+                                org.hamcrest.Matchers.containsString("mts_auth_token=;"),
+                                org.hamcrest.Matchers.containsString("mts_refresh_token=;")
+                        )
+                ));
+
+        verify(authRateLimitService).checkRegister("203.0.113.11");
+        verify(authService).register(org.mockito.ArgumentMatchers.any(), eq("203.0.113.11"));
     }
 
     @Test
@@ -280,6 +319,24 @@ class AuthControllerTest {
                         .email("admin@test.tn")
                         .firstName("Admin")
                         .lastName("Root")
+                        .build())
+                .build();
+    }
+
+    private AuthResponse sampleEmailVerificationRequiredResponse() {
+        return AuthResponse.builder()
+                .accessToken(null)
+                .refreshToken(null)
+                .tokenType("Bearer")
+                .expiresIn(0L)
+                .emailVerificationRequired(true)
+                .emailVerificationSent(true)
+                .user(AuthResponse.UserInfo.builder()
+                        .id(2L)
+                        .email("client@test.tn")
+                        .firstName("Client")
+                        .lastName("Test")
+                        .emailVerified(false)
                         .build())
                 .build();
     }

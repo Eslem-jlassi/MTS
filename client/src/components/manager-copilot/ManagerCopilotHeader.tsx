@@ -7,7 +7,6 @@ import {
   formatManagerCopilotUpdatedLabel,
   getManagerCopilotMoment,
   getManagerCopilotTelemetryLabel,
-  MANAGER_COPILOT_PRODUCT_LABEL,
   MANAGER_COPILOT_TITLE,
 } from "./managerCopilotUi";
 
@@ -53,7 +52,7 @@ const ManagerCopilotHeader: React.FC<ManagerCopilotHeaderProps> = ({
           </div>
           <div className="manager-copilot-header-copy">
             <div className="manager-copilot-header-kicker-row">
-              <span className="manager-copilot-header-kicker">{MANAGER_COPILOT_PRODUCT_LABEL}</span>
+              <span className="manager-copilot-header-kicker">Copilote KNN de supervision</span>
               {showDecisionBadge && (
                 <Badge
                   size="sm"
