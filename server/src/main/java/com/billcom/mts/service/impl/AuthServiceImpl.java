@@ -64,6 +64,9 @@ public class AuthServiceImpl implements AuthService {
     @Value("${app.google.client-id:}")
     private String googleClientId;
 
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
     @Value("${app.auth.require-email-verification:false}")
     private boolean requireEmailVerification;
 
@@ -297,8 +300,14 @@ public class AuthServiceImpl implements AuthService {
         user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(passwordResetExpirationHours));
         userRepository.save(user);
 
-        emailService.sendPasswordResetEmail(normalizedEmail, token);
-        log.info("Password reset token generated for user: {}", normalizedEmail);
+        try {
+            emailService.sendPasswordResetEmail(normalizedEmail, token);
+            log.info("Password reset token generated for user: {}", normalizedEmail);
+        } catch (com.billcom.mts.exception.ServiceUnavailableException ex) {
+            log.warn("Password reset email could not be sent for user {} (mail service unavailable): {}",
+                    normalizedEmail, ex.getMessage());
+            // Token is still persisted — user can retry once mail is configured.
+        }
     }
 
     @Override
@@ -407,7 +416,13 @@ public class AuthServiceImpl implements AuthService {
 
         validatePasswordStrength(request.getPassword());
 
-        boolean verificationRequired = requireEmailVerification;
+        // Email verification cannot be enforced when the mail service is disabled.
+        // Forcing it would permanently block registration with no way for users to verify.
+        boolean verificationRequired = requireEmailVerification && mailEnabled;
+        if (requireEmailVerification && !mailEnabled) {
+            log.warn("Email verification is configured (AUTH_REQUIRE_EMAIL_VERIFICATION=true) but MAIL_ENABLED=false. "
+                    + "Skipping email verification for user: {}", normalizedEmail);
+        }
         String rawEmailVerificationToken = null;
 
         User user = User.builder()

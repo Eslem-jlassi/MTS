@@ -45,6 +45,7 @@ public class SecurityConfig {
             "/api/auth/register",
             "/api/auth/google",
             "/api/auth/google/config",
+            "/api/auth/email-service-status",
             "/api/auth/refresh",
             "/api/auth/forgot-password",
             "/api/auth/reset-password",
