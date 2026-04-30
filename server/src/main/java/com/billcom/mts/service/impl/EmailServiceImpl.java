@@ -133,7 +133,7 @@ public class EmailServiceImpl implements EmailService {
                         <p>Si vous n'etes pas a l'origine de cette demande, vous pouvez ignorer ce message.</p>
                         """.formatted(buildActionButton(safeResetUrl, "Definir un nouveau mot de passe"))
                 ),
-                true);
+                false);
     }
 
     @Override
@@ -168,7 +168,7 @@ public class EmailServiceImpl implements EmailService {
                                 buildActionButton(safeVerificationUrl, "Verifier mon adresse email"),
                                 safeExpiresLabel)
                 ),
-                true);
+                false);
     }
 
     @Override
