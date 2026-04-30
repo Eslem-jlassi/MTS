@@ -152,14 +152,14 @@ app:
         max-attempts: ${AUTH_RATE_LIMIT_REGISTER_MAX_ATTEMPTS:5}
         window-seconds: ${AUTH_RATE_LIMIT_REGISTER_WINDOW_SECONDS:300}
       forgot-password:
-        max-attempts: ${AUTH_RATE_LIMIT_FORGOT_MAX_ATTEMPTS:5}
-        window-seconds: ${AUTH_RATE_LIMIT_FORGOT_WINDOW_SECONDS:300}
+        max-attempts: ${AUTH_RATE_LIMIT_FORGOT_MAX_ATTEMPTS:10}
+        window-seconds: ${AUTH_RATE_LIMIT_FORGOT_WINDOW_SECONDS:60}
       reset-password:
-        max-attempts: ${AUTH_RATE_LIMIT_RESET_MAX_ATTEMPTS:10}
-        window-seconds: ${AUTH_RATE_LIMIT_RESET_WINDOW_SECONDS:300}
+        max-attempts: ${AUTH_RATE_LIMIT_RESET_MAX_ATTEMPTS:20}
+        window-seconds: ${AUTH_RATE_LIMIT_RESET_WINDOW_SECONDS:60}
       resend-verification:
-        max-attempts: ${AUTH_RATE_LIMIT_RESEND_MAX_ATTEMPTS:5}
-        window-seconds: ${AUTH_RATE_LIMIT_RESEND_WINDOW_SECONDS:300}
+        max-attempts: ${AUTH_RATE_LIMIT_RESEND_MAX_ATTEMPTS:10}
+        window-seconds: ${AUTH_RATE_LIMIT_RESEND_WINDOW_SECONDS:60}
 
 # Cookie configuration
 cookie:

@@ -47,6 +47,21 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend-base-url:http://localhost:3000}")
     private String frontendBaseUrl;
 
+    @Value("${spring.mail.host:}")
+    private String mailHost;
+
+    @Value("${spring.mail.port:587}")
+    private int mailPort;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
+    @Value("${spring.mail.properties.mail.smtp.auth:true}")
+    private boolean smtpAuth;
+
     @Override
     public void sendTicketCreatedNotification(String toEmail, String ticketNumber, String ticketTitle) {
         sendEmail(
@@ -213,7 +228,14 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Email envoye a {} avec sujet '{}'", toEmail, subject);
         } catch (MailException | MessagingException | java.io.UnsupportedEncodingException ex) {
-            log.error("Echec d'envoi email vers {}: {}", toEmail, ex.getMessage(), ex);
+            log.error(
+                    "Echec SMTP pour email '{}' vers {} via {}:{}: {}",
+                    subject,
+                    toEmail,
+                    safeLogValue(mailHost),
+                    mailPort,
+                    sanitizeMailErrorMessage(ex.getMessage()));
+            log.debug("Trace SMTP detaillee sans secret pour '{}'", subject, ex);
             if (!required) {
                 return;
             }
@@ -239,6 +261,20 @@ public class EmailServiceImpl implements EmailService {
             }
             throw new ServiceUnavailableException("L'adresse d'expedition email n'est pas configuree.");
         }
+        if (!StringUtils.hasText(mailHost)) {
+            if (!required) {
+                log.warn("Email '{}' ignore pour {} car MAIL_HOST n'est pas configure", subject, toEmail);
+                return false;
+            }
+            throw new ServiceUnavailableException("Le serveur SMTP n'est pas configure.");
+        }
+        if (smtpAuth && (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailPassword))) {
+            if (!required) {
+                log.warn("Email '{}' ignore pour {} car les identifiants SMTP sont incomplets", subject, toEmail);
+                return false;
+            }
+            throw new ServiceUnavailableException("Les identifiants SMTP ne sont pas configures.");
+        }
         return true;
     }
 
@@ -249,40 +285,40 @@ public class EmailServiceImpl implements EmailService {
         return normalizedBase + relativePath;
     }
 
-        private String buildActionButton(String safeUrl, String label) {
-                return """
-                                <p style=\"margin: 24px 0;\">
-                                    <a href=\"%s\" style=\"display:inline-block;padding:12px 18px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">%s</a>
-                                </p>
-                                <p style=\"margin-top: 0; font-size: 12px; color: #64748b; word-break: break-all;\">Ou copiez ce lien dans votre navigateur : %s</p>
-                                """.formatted(safeUrl, escapeHtml(label), safeUrl);
-        }
+    private String buildActionButton(String safeUrl, String label) {
+        return """
+                <p style=\"margin: 24px 0;\">
+                    <a href=\"%s\" style=\"display:inline-block;padding:12px 18px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">%s</a>
+                </p>
+                <p style=\"margin-top: 0; font-size: 12px; color: #64748b; word-break: break-all;\">Ou copiez ce lien dans votre navigateur : %s</p>
+                """.formatted(safeUrl, escapeHtml(label), safeUrl);
+    }
 
-        private String buildEmailLayout(String title, String innerHtml) {
-                return """
-                                <div style=\"margin:0;padding:24px;background:#f8fafc;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;\">
-                                    <table role=\"presentation\" style=\"max-width:640px;width:100%%;margin:0 auto;border-collapse:collapse;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;\">
-                                        <tr>
-                                            <td style=\"padding:16px 20px;background:#0f172a;color:#e2e8f0;font-size:14px;font-weight:600;\">%s</td>
-                                        </tr>
-                                        <tr>
-                                            <td style=\"padding:24px 20px 18px 20px;\">
-                                                <h2 style=\"margin:0 0 12px 0;font-size:20px;color:#0f172a;\">%s</h2>
-                                                %s
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style=\"padding:0 20px 20px 20px;font-size:12px;color:#64748b;\">%s</td>
-                                        </tr>
-                                    </table>
-                                </div>
-                                """.formatted(
-                                escapeHtml(EMAIL_BRAND_TITLE),
-                                escapeHtml(title),
-                                innerHtml,
-                                escapeHtml(EMAIL_SAFE_NOTICE)
-                );
-        }
+    private String buildEmailLayout(String title, String innerHtml) {
+        return """
+                <div style=\"margin:0;padding:24px;background:#f8fafc;font-family:Segoe UI,Arial,sans-serif;color:#0f172a;\">
+                    <table role=\"presentation\" style=\"max-width:640px;width:100%%;margin:0 auto;border-collapse:collapse;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;\">
+                        <tr>
+                            <td style=\"padding:16px 20px;background:#0f172a;color:#e2e8f0;font-size:14px;font-weight:600;\">%s</td>
+                        </tr>
+                        <tr>
+                            <td style=\"padding:24px 20px 18px 20px;\">
+                                <h2 style=\"margin:0 0 12px 0;font-size:20px;color:#0f172a;\">%s</h2>
+                                %s
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style=\"padding:0 20px 20px 20px;font-size:12px;color:#64748b;\">%s</td>
+                        </tr>
+                    </table>
+                </div>
+                """.formatted(
+                escapeHtml(EMAIL_BRAND_TITLE),
+                escapeHtml(title),
+                innerHtml,
+                escapeHtml(EMAIL_SAFE_NOTICE)
+        );
+    }
 
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
@@ -299,5 +335,24 @@ public class EmailServiceImpl implements EmailService {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    private String sanitizeMailErrorMessage(String message) {
+        if (message == null) {
+            return "Erreur SMTP sans message";
+        }
+
+        String sanitized = message;
+        if (StringUtils.hasText(mailPassword)) {
+            sanitized = sanitized.replace(mailPassword, "[MAIL_PASSWORD]");
+        }
+        if (StringUtils.hasText(mailUsername)) {
+            sanitized = sanitized.replace(mailUsername, "[MAIL_USERNAME]");
+        }
+        return sanitized;
+    }
+
+    private String safeLogValue(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "non-configure";
     }
 }

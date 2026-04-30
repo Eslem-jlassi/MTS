@@ -54,10 +54,10 @@ const EmailVerificationPage: React.FC = () => {
 
     const verify = async () => {
       try {
-        await authFlowService.verifyEmail(token);
+        await authFlowService.verifyEmail(token, normalizedEmail || undefined);
         if (!active) return;
         setPageState("verified");
-        toast.success("Votre adresse email a ete verifiee.");
+        toast.success("Votre adresse email a été vérifiée.");
       } catch (error) {
         if (!active) return;
         const message = getErrorMessage(error);
@@ -83,7 +83,7 @@ const EmailVerificationPage: React.FC = () => {
     try {
       await authFlowService.resendVerificationEmail(normalizedEmail);
       setPageState("pending");
-      toast.success("Un nouvel email de verification a ete envoye.");
+      toast.success("Un nouvel email de vérification a été envoyé.");
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
@@ -95,43 +95,43 @@ const EmailVerificationPage: React.FC = () => {
 
   const title =
     pageState === "verified"
-      ? "Email verifie"
+      ? "Email vérifié"
       : pageState === "pending"
         ? isSignupPending
-          ? "Compte cree, verifiez votre boite mail"
-          : "Verification en attente"
+          ? "Compte créé, vérifiez votre boîte mail."
+          : "Vérification en attente"
         : pageState === "loading"
-          ? "Verification en cours"
+          ? "Vérification en cours"
           : pageState === "expired"
-            ? "Lien expire"
+            ? "Lien expiré"
             : pageState === "invalid"
               ? "Lien invalide"
-              : "Verification de l'email";
+              : "Vérification de l'email";
 
   const description =
     pageState === "loading"
-      ? "Verification du lien en cours..."
+      ? "Vérification du lien en cours..."
       : pageState === "verified"
-        ? "Votre compte est maintenant confirme. Vous pouvez vous connecter a la plateforme."
+        ? "Votre compte est maintenant confirmé. Vous pouvez vous connecter à la plateforme."
         : pageState === "pending"
           ? isSignupPending
             ? normalizedEmail
-              ? `Votre compte a bien ete cree. Un email de verification a ete envoye a ${normalizedEmail}. Ouvrez votre boite mail puis cliquez sur le lien recu.`
-              : "Votre compte a bien ete cree. Un email de verification a ete envoye. Consultez votre boite mail pour activer le compte."
+              ? `Votre compte a bien été créé. Un email de vérification a été envoyé à ${normalizedEmail}. Ouvrez votre boîte mail puis cliquez sur le lien reçu.`
+              : "Votre compte a bien été créé. Un email de vérification a été envoyé. Consultez votre boîte mail pour activer le compte."
             : normalizedEmail
-              ? `Un email de verification a ete envoye a ${normalizedEmail}. Consultez votre boite mail puis cliquez sur le lien recu.`
-              : "Un email de verification a ete envoye. Consultez votre boite mail."
+              ? `Un email de vérification a été envoyé à ${normalizedEmail}. Consultez votre boîte mail puis cliquez sur le lien reçu.`
+              : "Un email de vérification a été envoyé. Consultez votre boîte mail."
           : pageState === "expired"
             ? normalizedEmail
-              ? `Le lien de verification pour ${normalizedEmail} a expire. Vous pouvez demander un nouveau lien ci-dessous.`
-              : "Ce lien de verification a expire. Demandez un nouvel email depuis l'ecran de connexion."
+              ? `Le lien de vérification pour ${normalizedEmail} a expiré. Vous pouvez demander un nouveau lien ci-dessous.`
+              : "Ce lien de vérification a expiré. Demandez un nouvel email depuis l'écran de connexion."
             : pageState === "invalid"
               ? normalizedEmail
-                ? `Le lien de verification transmis pour ${normalizedEmail} n'est plus valide. Vous pouvez demander un nouveau lien ci-dessous.`
-                : "Ce lien de verification n'est pas valide ou a deja ete utilise."
+                ? `Le lien de vérification transmis pour ${normalizedEmail} n'est plus valide. Vous pouvez demander un nouveau lien ci-dessous.`
+                : "Ce lien de vérification n'est pas valide ou a déjà été utilisé."
               : pageState === "error"
-                ? "La verification n'a pas pu aboutir. Vous pouvez reessayer ou demander un nouveau lien."
-                : "Ce lien ne peut pas etre utilise sans jeton de verification ou adresse email.";
+                ? "La vérification n'a pas pu aboutir. Vous pouvez réessayer ou demander un nouveau lien."
+                : "Ce lien ne peut pas être utilisé sans jeton de vérification ou adresse email.";
 
   return (
     <AuthLayout>
@@ -149,7 +149,7 @@ const EmailVerificationPage: React.FC = () => {
         >
           <span className="auth-kicker">
             <MailCheck size={14} />
-            Verification du compte
+            Vérification du compte
           </span>
         </motion.div>
 
@@ -180,9 +180,9 @@ const EmailVerificationPage: React.FC = () => {
           <div className="flex items-start gap-3">
             <MailCheck size={18} className="mt-0.5 flex-shrink-0 text-primary-500" />
             <div>
-              <p className="text-sm font-medium text-ds-primary">Lien de verification</p>
+              <p className="text-sm font-medium text-ds-primary">Lien de vérification</p>
               <p className="mt-0.5 text-xs text-ds-muted">
-                Le lien d'activation est limite dans le temps pour proteger le compte.
+                Le lien d'activation est limité dans le temps pour protéger le compte.
               </p>
             </div>
           </div>
@@ -191,8 +191,8 @@ const EmailVerificationPage: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-ds-primary">Besoin d'assistance</p>
               <p className="mt-0.5 text-xs text-ds-muted">
-                Verifiez egalement le dossier spam. Si le lien a expire, vous pouvez en demander
-                un nouveau.
+                Vérifiez également le dossier spam. Si le lien a expiré, vous pouvez en demander un
+                nouveau.
               </p>
             </div>
           </div>
@@ -216,7 +216,7 @@ const EmailVerificationPage: React.FC = () => {
                 ) : (
                   <>
                     <RefreshCw size={16} />
-                    Renvoyer l'email de verification
+                    Renvoyer l'email de vérification
                   </>
                 )}
               </button>
@@ -231,7 +231,7 @@ const EmailVerificationPage: React.FC = () => {
         >
           <p className="text-center text-sm text-ds-muted">
             <Link to="/login" className="auth-link inline-flex items-center gap-1 font-semibold">
-              Retour a la connexion
+              Retour à la connexion
               <ArrowRight size={14} />
             </Link>
           </p>

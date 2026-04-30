@@ -261,6 +261,7 @@ export interface AuthResponse {
   user: UserResponse; // Infos de l'utilisateur
   emailVerificationRequired?: boolean;
   emailVerificationSent?: boolean;
+  status?: "AUTHENTICATED" | "CREATED" | "PENDING_EMAIL_VERIFICATION" | string;
 }
 
 export interface AdminHardDeleteRequestPayload {

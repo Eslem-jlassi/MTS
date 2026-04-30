@@ -74,7 +74,7 @@ const formatIpAddress = (value?: string | null): string => {
 
   const lowerValue = normalized.toLowerCase();
   if (LOCAL_IP_VALUES.has(lowerValue) || lowerValue.startsWith("::ffff:127.")) {
-    return "Localhost";
+    return "Adresse locale";
   }
 
   return normalized;

@@ -186,39 +186,54 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     @Operation(summary = "Envoie un email de reinitialisation du mot de passe")
-    public ResponseEntity<Map<String, Boolean>> forgotPassword(
+    public ResponseEntity<Map<String, Object>> forgotPassword(
             @Valid @RequestBody EmailAddressRequest request,
             HttpServletRequest httpRequest) {
         authRateLimitService.checkForgotPassword(resolveClientIp(httpRequest));
         authService.forgotPassword(request.getEmail());
-        return ResponseEntity.ok(Map.of("success", true));
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Si cette adresse existe, un lien de reinitialisation a ete envoye."
+        ));
     }
 
     @PostMapping("/reset-password")
     @Operation(summary = "Reinitialise le mot de passe avec un token")
-    public ResponseEntity<Map<String, Boolean>> resetPassword(
+    public ResponseEntity<Map<String, Object>> resetPassword(
             @Valid @RequestBody PasswordResetConfirmRequest request,
             HttpServletRequest httpRequest) {
         authRateLimitService.checkResetPassword(resolveClientIp(httpRequest));
         authService.resetPassword(request.getToken(), request.getNewPassword());
-        return ResponseEntity.ok(Map.of("success", true));
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Mot de passe reinitialise avec succes."
+        ));
     }
 
     @GetMapping("/verify-email")
     @Operation(summary = "Verifie l'email d'un utilisateur avec un token")
-    public ResponseEntity<Map<String, Boolean>> verifyEmail(@RequestParam String token) {
-        authService.verifyEmail(token);
-        return ResponseEntity.ok(Map.of("success", true));
+    public ResponseEntity<Map<String, Object>> verifyEmail(
+            @RequestParam String token,
+            @RequestParam(required = false) String email) {
+        authService.verifyEmail(token, email);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "status", "EMAIL_VERIFIED",
+                "message", "Adresse email verifiee avec succes."
+        ));
     }
 
     @PostMapping("/resend-verification")
     @Operation(summary = "Renvoie l'email de verification")
-    public ResponseEntity<Map<String, Boolean>> resendVerification(
+    public ResponseEntity<Map<String, Object>> resendVerification(
             @Valid @RequestBody EmailAddressRequest request,
             HttpServletRequest httpRequest) {
         authRateLimitService.checkResendVerification(resolveClientIp(httpRequest));
         authService.resendVerificationEmail(request.getEmail());
-        return ResponseEntity.ok(Map.of("success", true));
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Si cette adresse existe, un nouvel email de verification a ete envoye."
+        ));
     }
 
     private void writeAuthCookies(AuthResponse authResponse, HttpServletResponse response) {
@@ -275,6 +290,7 @@ public class AuthController {
                 .user(authResponse.getUser())
                 .emailVerificationRequired(authResponse.getEmailVerificationRequired())
                 .emailVerificationSent(authResponse.getEmailVerificationSent())
+                .status(authResponse.getStatus())
                 .build();
     }
 
@@ -291,6 +307,7 @@ public class AuthController {
                 .user(authResponse.getUser())
                 .emailVerificationRequired(authResponse.getEmailVerificationRequired())
                 .emailVerificationSent(authResponse.getEmailVerificationSent())
+                .status(authResponse.getStatus() != null ? authResponse.getStatus() : AuthResponse.STATUS_CREATED)
                 .build();
     }
 

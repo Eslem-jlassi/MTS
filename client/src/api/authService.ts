@@ -28,7 +28,7 @@ function normalizeUser(u: unknown): UserResponse {
 }
 
 function shouldPersistBrowserSession(response: AuthResponse, user: UserResponse): boolean {
-  if (response.emailVerificationRequired) {
+  if (response.emailVerificationRequired || response.status === "PENDING_EMAIL_VERIFICATION") {
     return false;
   }
 

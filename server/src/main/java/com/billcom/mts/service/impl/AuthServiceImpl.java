@@ -327,7 +327,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
-    public void verifyEmail(String token) {
+    public void verifyEmail(String token, String email) {
         String normalizedToken = normalizeOpaqueToken(token);
         if (!StringUtils.hasText(normalizedToken)) {
             throw new BadRequestException("Token de verification invalide");
@@ -335,6 +335,11 @@ public class AuthServiceImpl implements AuthService {
 
         User user = findUserByEmailVerificationToken(normalizedToken)
                 .orElseThrow(() -> new BadRequestException("Token de verification invalide"));
+
+        String normalizedEmail = normalizeEmail(email);
+        if (StringUtils.hasText(normalizedEmail) && !normalizedEmail.equals(user.getEmail())) {
+            throw new BadRequestException("Token de verification invalide pour cette adresse email");
+        }
 
         if (Boolean.TRUE.equals(user.getEmailVerified())) {
             return;
@@ -376,7 +381,7 @@ public class AuthServiceImpl implements AuthService {
         emailService.sendEmailVerificationEmail(
                 user.getEmail(),
                 resolveRecipientName(user),
-            rawVerificationToken,
+                rawVerificationToken,
                 user.getEmailVerificationTokenExpiry()
         );
         log.info("Verification email resent for user: {}", normalizedEmail);
@@ -451,14 +456,15 @@ public class AuthServiceImpl implements AuthService {
         AuthResponse response = createAuthResponse(user, refreshTokenValue);
         response.setEmailVerificationRequired(verificationRequired);
         response.setEmailVerificationSent(verificationRequired);
+        if (verificationRequired) {
+            response.setStatus(AuthResponse.STATUS_PENDING_EMAIL_VERIFICATION);
+        }
         return response;
     }
 
     private void ensureEmailVerifiedForPasswordLogin(User user) {
         if (!Boolean.TRUE.equals(user.getEmailVerified())) {
-            throw new ForbiddenException(
-                    "Votre adresse email n'est pas encore verifiee. Consultez votre boite mail ou renvoyez le lien de verification."
-            );
+            throw new ForbiddenException("Veuillez vérifier votre adresse email avant de vous connecter.");
         }
     }
 
@@ -471,9 +477,7 @@ public class AuthServiceImpl implements AuthService {
             refreshTokenService.revokeToken(refreshToken);
         }
 
-        throw new ForbiddenException(
-                "Votre adresse email n'est pas encore verifiee. Consultez votre boite mail ou renvoyez le lien de verification."
-        );
+        throw new ForbiddenException("Veuillez vérifier votre adresse email avant de vous connecter.");
     }
 
     private String prepareEmailVerification(User user) {

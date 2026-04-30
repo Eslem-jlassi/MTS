@@ -85,6 +85,73 @@ Variables importantes :
 - pour une validation locale sur poste de dev, l'exemple `.env.prod.example` est deja preconfigure sur `COMPOSE_FRONTEND_PORT=80`, `COMPOSE_BACKEND_PORT=8085`, `COMPOSE_FRONTEND_BASE_URL=http://localhost`, `COMPOSE_CORS_ALLOWED_ORIGINS=http://localhost`, `COMPOSE_WS_ALLOWED_ORIGIN_PATTERNS=http://localhost`, `COMPOSE_REACT_APP_API_URL=http://localhost:8085/api`, `COMPOSE_COOKIE_SECURE=false`, `COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION=false` et `COMPOSE_MAIL_ENABLED=false`
 - la validation authentifiee la plus fidele se fait derriere HTTPS ou un reverse proxy TLS, car `COMPOSE_COOKIE_SECURE=true` reste volontairement impose en production
 
+## Variables email, OAuth et Railway
+
+Ne commitez jamais les fichiers `.env`, mots de passe Gmail, secrets JWT ou Client Secret Google.
+Le Client ID OAuth Web peut etre configure cote frontend et backend, mais le mot de passe
+d'application Gmail doit rester uniquement dans les variables d'environnement de l'hebergeur.
+
+Local :
+
+```dotenv
+REACT_APP_API_URL=http://localhost:8080/api
+REACT_APP_GOOGLE_OAUTH_ENABLED=true
+REACT_APP_GOOGLE_OAUTH_CLIENT_ID=<GOOGLE_CLIENT_ID>
+FRONTEND_BASE_URL=http://localhost:3000
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+AUTH_REQUIRE_EMAIL_VERIFICATION=true
+MAIL_ENABLED=true
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=<gmail>
+MAIL_PASSWORD=<google_app_password>
+MAIL_FROM=<gmail>
+MAIL_FROM_NAME=MTS Telecom
+MAIL_SMTP_AUTH=true
+MAIL_SMTP_STARTTLS_ENABLE=true
+```
+
+Railway backend :
+
+```dotenv
+FRONTEND_BASE_URL=https://mts-frontend-production-a29f.up.railway.app
+CORS_ALLOWED_ORIGINS=https://mts-frontend-production-a29f.up.railway.app
+AUTH_REQUIRE_EMAIL_VERIFICATION=true
+MAIL_ENABLED=true
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=<gmail>
+MAIL_PASSWORD=<google_app_password>
+MAIL_FROM=<gmail>
+MAIL_FROM_NAME=MTS Telecom
+MAIL_SMTP_AUTH=true
+MAIL_SMTP_STARTTLS_ENABLE=true
+COOKIE_SECURE=true
+GOOGLE_CLIENT_ID=<GOOGLE_CLIENT_ID>
+```
+
+Railway frontend :
+
+```dotenv
+REACT_APP_API_URL=https://mts-backend-production-2f0e.up.railway.app/api
+REACT_APP_GOOGLE_OAUTH_ENABLED=true
+REACT_APP_GOOGLE_OAUTH_CLIENT_ID=<GOOGLE_CLIENT_ID>
+```
+
+Google Cloud > Authorized JavaScript origins :
+
+```text
+http://localhost:3000
+https://mts-frontend-production-a29f.up.railway.app
+```
+
+Les liens envoyes par email utilisent toujours `FRONTEND_BASE_URL`, par exemple :
+
+```text
+http://localhost:3000/verify-email?token=...&email=...
+https://mts-frontend-production-a29f.up.railway.app/verify-email?token=...&email=...
+```
+
 Exemple minimal de reference production :
 
 ```dotenv

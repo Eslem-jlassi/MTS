@@ -55,7 +55,7 @@ public interface AuthService {
     /**
      * Verify user email using a verification token.
      */
-    void verifyEmail(String token);
+    void verifyEmail(String token, String email);
 
     /**
      * Resend verification email.

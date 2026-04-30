@@ -14,6 +14,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AuthResponse {
 
+    public static final String STATUS_AUTHENTICATED = "AUTHENTICATED";
+    public static final String STATUS_CREATED = "CREATED";
+    public static final String STATUS_PENDING_EMAIL_VERIFICATION = "PENDING_EMAIL_VERIFICATION";
+
     @Schema(description = "Token d'acces JWT (duree 15 min)", example = "eyJhbGciOiJIUzI1NiJ9...")
     private String accessToken;
 
@@ -34,6 +38,9 @@ public class AuthResponse {
 
     @Schema(description = "Indique si un email de verification a ete emis")
     private Boolean emailVerificationSent;
+
+    @Schema(description = "Statut metier du flux auth", example = "PENDING_EMAIL_VERIFICATION")
+    private String status;
 
     @Schema(description = "Informations resumees de l'utilisateur")
     @Data
@@ -68,6 +75,7 @@ public class AuthResponse {
             .user(user)
             .emailVerificationRequired(false)
             .emailVerificationSent(false)
+            .status(accessToken != null ? STATUS_AUTHENTICATED : STATUS_CREATED)
             .build();
     }
 }

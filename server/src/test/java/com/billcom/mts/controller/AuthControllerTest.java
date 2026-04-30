@@ -107,6 +107,7 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(jsonPath("$.emailVerificationRequired").value(true))
                 .andExpect(jsonPath("$.emailVerificationSent").value(true))
+                .andExpect(jsonPath("$.status").value("PENDING_EMAIL_VERIFICATION"))
                 .andExpect(jsonPath("$.user.emailVerified").value(false))
                 .andExpect(header().stringValues(
                         "Set-Cookie",
@@ -231,7 +232,8 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Si cette adresse existe, un lien de reinitialisation a ete envoye."));
 
         verify(authRateLimitService).checkForgotPassword("192.0.2.34");
         verify(authService).forgotPassword("client@test.tn");
@@ -250,7 +252,8 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Mot de passe reinitialise avec succes."));
 
         verify(authRateLimitService).checkResetPassword("192.0.2.41");
         verify(authService).resetPassword("reset-token", "NouveauPass1");
@@ -268,7 +271,8 @@ class AuthControllerTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("Si cette adresse existe, un nouvel email de verification a ete envoye."));
 
         verify(authRateLimitService).checkResendVerification("192.0.2.77");
         verify(authService).resendVerificationEmail("client@test.tn");
@@ -278,11 +282,13 @@ class AuthControllerTest {
     @DisplayName("GET /api/auth/verify-email delegue au service")
     void verifyEmail_delegatesToService() throws Exception {
         mockMvc.perform(get("/api/auth/verify-email")
-                        .param("token", "verify-token"))
+                        .param("token", "verify-token")
+                        .param("email", "client@test.tn"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.status").value("EMAIL_VERIFIED"));
 
-        verify(authService).verifyEmail("verify-token");
+        verify(authService).verifyEmail("verify-token", "client@test.tn");
     }
 
     @Test
@@ -314,6 +320,7 @@ class AuthControllerTest {
                 .refreshToken("refresh-token")
                 .tokenType("Bearer")
                 .expiresIn(900_000L)
+                .status(AuthResponse.STATUS_AUTHENTICATED)
                 .user(AuthResponse.UserInfo.builder()
                         .id(1L)
                         .email("admin@test.tn")
@@ -331,6 +338,7 @@ class AuthControllerTest {
                 .expiresIn(0L)
                 .emailVerificationRequired(true)
                 .emailVerificationSent(true)
+                .status(AuthResponse.STATUS_PENDING_EMAIL_VERIFICATION)
                 .user(AuthResponse.UserInfo.builder()
                         .id(2L)
                         .email("client@test.tn")

@@ -2,10 +2,26 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowLeft, KeyRound, Mail, ShieldCheck } from "lucide-react";
+import axios from "axios";
 import AuthLayout from "../components/auth/AuthLayout";
 import { authFlowService } from "../api/authFlowService";
 import { useToast } from "../context/ToastContext";
 import { getErrorMessage } from "../api/client";
+
+const SUCCESS_MESSAGE = "Si cette adresse existe, un lien de réinitialisation a été envoyé.";
+
+function getForgotPasswordErrorMessage(error: unknown): string {
+  if (axios.isAxiosError(error)) {
+    if (error.response?.status === 429) {
+      return "Trop de tentatives, réessayez dans quelques minutes.";
+    }
+    if (error.response?.status === 503) {
+      return getErrorMessage(error);
+    }
+  }
+
+  return getErrorMessage(error);
+}
 
 const ForgotPasswordPage: React.FC = () => {
   const toast = useToast();
@@ -24,9 +40,9 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await authFlowService.forgotPassword(email.trim());
       setSuccess(true);
-      toast.success("Si un compte existe, un email de réinitialisation a été émis.");
+      toast.success(SUCCESS_MESSAGE);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(getForgotPasswordErrorMessage(error));
     } finally {
       setSubmitting(false);
     }
@@ -62,10 +78,7 @@ const ForgotPasswordPage: React.FC = () => {
               <p className="text-sm font-medium text-success-700 dark:text-success-200">
                 Demande prise en compte
               </p>
-              <p className="mt-2 text-sm text-ds-muted">
-                Si un compte correspond à cette adresse, un email avec un lien de réinitialisation a
-                été envoyé.
-              </p>
+              <p className="mt-2 text-sm text-ds-muted">{SUCCESS_MESSAGE}</p>
             </div>
             <p className="text-xs text-ds-muted">Pensez à vérifier également votre dossier spam.</p>
           </motion.div>
@@ -116,10 +129,7 @@ const ForgotPasswordPage: React.FC = () => {
         )}
 
         <p className="mt-6 text-center text-sm text-ds-muted">
-          <Link
-            to="/login"
-            className="auth-link inline-flex items-center gap-1.5 font-semibold"
-          >
+          <Link to="/login" className="auth-link inline-flex items-center gap-1.5 font-semibold">
             <ArrowLeft size={16} />
             Retour à la connexion
           </Link>

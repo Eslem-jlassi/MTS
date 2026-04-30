@@ -146,7 +146,7 @@ class AuthServiceImplTest {
 
             assertThatThrownBy(() -> authService.login(request, "127.0.0.1"))
                     .isInstanceOf(ForbiddenException.class)
-                    .hasMessageContaining("pas encore verifiee");
+                    .hasMessageContaining("Veuillez vérifier");
 
             verify(refreshTokenService, never()).createRefreshToken(any(), anyString(), anyString());
         }
@@ -231,6 +231,7 @@ class AuthServiceImplTest {
             assertThat(response.getRefreshToken()).isNull();
             assertThat(response.getEmailVerificationRequired()).isTrue();
             assertThat(response.getEmailVerificationSent()).isTrue();
+            assertThat(response.getStatus()).isEqualTo(AuthResponse.STATUS_PENDING_EMAIL_VERIFICATION);
             assertThat(response.getUser().getEmailVerified()).isFalse();
 
             verify(refreshTokenService, never()).createRefreshToken(any(), anyString(), anyString());
@@ -341,7 +342,7 @@ class AuthServiceImplTest {
 
             assertThatThrownBy(() -> authService.refreshToken("stale-refresh-token", "127.0.0.1"))
                     .isInstanceOf(ForbiddenException.class)
-                    .hasMessageContaining("pas encore verifiee");
+                    .hasMessageContaining("Veuillez vérifier");
 
             verify(refreshTokenService).revokeToken("stale-refresh-token");
             verify(refreshTokenService, never()).rotateRefreshToken(anyString(), anyString(), anyString());
@@ -459,7 +460,7 @@ class AuthServiceImplTest {
             when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(java.util.Optional.empty());
             when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
 
-            authService.verifyEmail("verify-token");
+            authService.verifyEmail("verify-token", "client@test.tn");
 
             verify(userRepository).save(argThat(saved ->
                     Boolean.TRUE.equals(saved.getEmailVerified())
@@ -482,7 +483,7 @@ class AuthServiceImplTest {
             when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(java.util.Optional.empty());
             when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
 
-            assertThatThrownBy(() -> authService.verifyEmail("verify-token"))
+            assertThatThrownBy(() -> authService.verifyEmail("verify-token", "client@test.tn"))
                     .isInstanceOf(BadRequestException.class)
                     .hasMessageContaining("expire");
         }
@@ -501,9 +502,28 @@ class AuthServiceImplTest {
             when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(java.util.Optional.empty());
             when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
 
-            authService.verifyEmail("verify-token");
+            authService.verifyEmail("verify-token", "verified@test.tn");
 
             verify(userRepository, never()).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Devrait refuser un token de verification associe a un autre email")
+        void verifyEmail_emailMismatch() {
+            User user = User.builder()
+                    .id(9L)
+                    .email("client@test.tn")
+                    .emailVerified(false)
+                    .emailVerificationToken("verify-token")
+                    .emailVerificationTokenExpiry(LocalDateTime.now().plusHours(2))
+                    .build();
+
+            when(userRepository.findByEmailVerificationToken(anyString())).thenReturn(java.util.Optional.empty());
+            when(userRepository.findByEmailVerificationToken("verify-token")).thenReturn(java.util.Optional.of(user));
+
+            assertThatThrownBy(() -> authService.verifyEmail("verify-token", "other@test.tn"))
+                    .isInstanceOf(BadRequestException.class)
+                    .hasMessageContaining("adresse email");
         }
     }
 

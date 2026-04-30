@@ -40,7 +40,11 @@ function extractErrorMessage(error: unknown, fallback: string): string {
 }
 
 function shouldAuthenticate(response: AuthResponse): boolean {
-  return !response.emailVerificationRequired && response.user.emailVerified !== false;
+  return (
+    response.status !== "PENDING_EMAIL_VERIFICATION" &&
+    !response.emailVerificationRequired &&
+    response.user.emailVerified !== false
+  );
 }
 
 export const login = createAsyncThunk<AuthResponse, LoginRequest, { rejectValue: string }>(
@@ -76,26 +80,27 @@ export const googleLogin = createAsyncThunk<AuthResponse, string, { rejectValue:
   },
 );
 
-export const fetchCurrentUser = createAsyncThunk<UserResponse, void, { rejectValue: AuthThunkError }>(
-  "auth/fetchCurrentUser",
-  async (_, { rejectWithValue }) => {
-    try {
-      return await authService.getCurrentUser();
-    } catch (error: unknown) {
-      const status = axios.isAxiosError(error) ? error.response?.status : undefined;
-      const shouldClearSession = status === 401;
+export const fetchCurrentUser = createAsyncThunk<
+  UserResponse,
+  void,
+  { rejectValue: AuthThunkError }
+>("auth/fetchCurrentUser", async (_, { rejectWithValue }) => {
+  try {
+    return await authService.getCurrentUser();
+  } catch (error: unknown) {
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+    const shouldClearSession = status === 401;
 
-      if (shouldClearSession) {
-        authService.clearLocalSession();
-      }
-
-      return rejectWithValue({
-        message: extractErrorMessage(error, "Aucune session active"),
-        shouldClearSession,
-      });
+    if (shouldClearSession) {
+      authService.clearLocalSession();
     }
-  },
-);
+
+    return rejectWithValue({
+      message: extractErrorMessage(error, "Aucune session active"),
+      shouldClearSession,
+    });
+  }
+});
 
 export const authSlice = createSlice({
   name: "auth",

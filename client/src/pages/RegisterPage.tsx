@@ -51,7 +51,11 @@ const pageTransition = {
 };
 
 function shouldWaitForEmailVerification(response: AuthResponse): boolean {
-  return Boolean(response.emailVerificationRequired || response.user.emailVerified === false);
+  return Boolean(
+    response.status === "PENDING_EMAIL_VERIFICATION" ||
+    response.emailVerificationRequired ||
+    response.user.emailVerified === false,
+  );
 }
 
 export default function RegisterPage() {

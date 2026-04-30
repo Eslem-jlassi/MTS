@@ -51,7 +51,7 @@ const ResetPasswordPage: React.FC = () => {
       try {
         await authFlowService.resetPassword(token, password);
         setPageState("success");
-        toast.success("Votre mot de passe a ete reinitialise avec succes.");
+        toast.success("Votre mot de passe a été réinitialisé avec succès.");
       } catch (error) {
         setPageState("error");
         toast.error(getErrorMessage(error));
@@ -117,9 +117,7 @@ const ResetPasswordPage: React.FC = () => {
         </div>
 
         <h2 className="auth-title">Réinitialiser le mot de passe</h2>
-        <p className="auth-subtitle mt-2">
-          Definissez un nouveau mot de passe pour votre compte.
-        </p>
+        <p className="auth-subtitle mt-2">Definissez un nouveau mot de passe pour votre compte.</p>
 
         {pageState === "success" && (
           <motion.div

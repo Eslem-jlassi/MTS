@@ -82,10 +82,16 @@ const LoginPage: React.FC = () => {
   }, [email, navigate, toast]);
 
   const displayError = error || googleError;
-  const isVerificationError = useMemo(
-    () => Boolean(displayError && /verifi/i.test(displayError)),
-    [displayError],
-  );
+  const isVerificationError = useMemo(() => {
+    if (!displayError) {
+      return false;
+    }
+    const normalizedError = displayError
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    return normalizedError.includes("verifi");
+  }, [displayError]);
 
   return (
     <AuthLayout>

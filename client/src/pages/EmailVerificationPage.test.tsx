@@ -38,23 +38,23 @@ describe("EmailVerificationPage", () => {
   it("shows account-created pending message after signup", () => {
     renderPage("/verify-email?email=client%40test.tn&status=pending&source=signup");
 
-    expect(screen.getByText("Compte cree, verifiez votre boite mail")).toBeInTheDocument();
-    expect(screen.getByText(/Votre compte a bien ete cree/i)).toBeInTheDocument();
+    expect(screen.getByText("Compte créé, vérifiez votre boîte mail.")).toBeInTheDocument();
+    expect(screen.getByText(/Votre compte a bien été créé/i)).toBeInTheDocument();
   });
 
   it("shows the pending verification state when an email is provided", () => {
     renderPage("/verify-email?email=client%40test.tn&status=pending");
 
-    expect(screen.getByText("Verification en attente")).toBeInTheDocument();
+    expect(screen.getByText("Vérification en attente")).toBeInTheDocument();
     expect(screen.getByText(/client@test.tn/)).toBeInTheDocument();
-    expect(screen.getByText(/Renvoyer l'email de verification/i)).toBeInTheDocument();
+    expect(screen.getByText(/Renvoyer l'email de vérification/i)).toBeInTheDocument();
   });
 
   it("shows an invalid state when no token and no email are provided", () => {
     renderPage("/verify-email");
 
     expect(screen.getByText("Lien invalide")).toBeInTheDocument();
-    expect(screen.getByText(/Ce lien de verification n'est pas valide/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ce lien de vérification n'est pas valide/i)).toBeInTheDocument();
   });
 
   it("shows an expired state with resend action when the token has expired", async () => {
@@ -64,8 +64,9 @@ describe("EmailVerificationPage", () => {
 
     renderPage("/verify-email?token=expired-token&email=client%40test.tn");
 
-    expect(await screen.findByText("Lien expire")).toBeInTheDocument();
+    expect(await screen.findByText("Lien expiré")).toBeInTheDocument();
+    expect(authFlowService.verifyEmail).toHaveBeenCalledWith("expired-token", "client@test.tn");
     expect(screen.getByText(/client@test.tn/)).toBeInTheDocument();
-    expect(screen.getByText(/Renvoyer l'email de verification/i)).toBeInTheDocument();
+    expect(screen.getByText(/Renvoyer l'email de vérification/i)).toBeInTheDocument();
   });
 });

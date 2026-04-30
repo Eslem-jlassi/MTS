@@ -71,10 +71,14 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshResponse = await axios.post<AuthResponse>(`${API_BASE_URL}/auth/refresh`, null, {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        });
+        const refreshResponse = await axios.post<AuthResponse>(
+          `${API_BASE_URL}/auth/refresh`,
+          null,
+          {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+          },
+        );
 
         authStorage.saveTokens(
           refreshResponse.data?.accessToken ?? null,
@@ -125,10 +129,6 @@ export const getErrorMessage = (error: unknown): string => {
         : "Trop de requêtes. Veuillez patienter avant de réessayer.";
     }
 
-    if (status === 503) {
-      return "Le service est temporairement indisponible. Réessayez dans quelques instants.";
-    }
-
     if (data && typeof data === "object") {
       if ("detail" in data && typeof (data as ProblemDetail).detail === "string") {
         return (data as ProblemDetail).detail;
@@ -136,6 +136,10 @@ export const getErrorMessage = (error: unknown): string => {
       if ("message" in data && typeof (data as ApiError).message === "string") {
         return (data as ApiError).message;
       }
+    }
+
+    if (status === 503) {
+      return "Le service est temporairement indisponible. Réessayez dans quelques instants.";
     }
 
     if (status === 400) {

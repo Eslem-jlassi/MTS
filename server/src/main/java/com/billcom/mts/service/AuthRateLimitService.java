@@ -30,22 +30,22 @@ public class AuthRateLimitService {
     @Value("${app.auth.rate-limit.register.window-seconds:300}")
     private int registerWindowSeconds;
 
-    @Value("${app.auth.rate-limit.forgot-password.max-attempts:5}")
+    @Value("${app.auth.rate-limit.forgot-password.max-attempts:10}")
     private int forgotPasswordMaxAttempts;
 
-    @Value("${app.auth.rate-limit.forgot-password.window-seconds:300}")
+    @Value("${app.auth.rate-limit.forgot-password.window-seconds:60}")
     private int forgotPasswordWindowSeconds;
 
-    @Value("${app.auth.rate-limit.reset-password.max-attempts:10}")
+    @Value("${app.auth.rate-limit.reset-password.max-attempts:20}")
     private int resetPasswordMaxAttempts;
 
-    @Value("${app.auth.rate-limit.reset-password.window-seconds:300}")
+    @Value("${app.auth.rate-limit.reset-password.window-seconds:60}")
     private int resetPasswordWindowSeconds;
 
-    @Value("${app.auth.rate-limit.resend-verification.max-attempts:5}")
+    @Value("${app.auth.rate-limit.resend-verification.max-attempts:10}")
     private int resendVerificationMaxAttempts;
 
-    @Value("${app.auth.rate-limit.resend-verification.window-seconds:300}")
+    @Value("${app.auth.rate-limit.resend-verification.window-seconds:60}")
     private int resendVerificationWindowSeconds;
 
     public void checkLogin(String clientIp) {
