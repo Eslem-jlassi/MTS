@@ -61,6 +61,9 @@ public class AuthController {
     @Value("${app.google.client-id:}")
     private String googleClientId;
 
+    @Value("${app.mail.enabled:false}")
+    private boolean mailEnabled;
+
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Inscrit un nouvel utilisateur (client par defaut)")
@@ -107,6 +110,18 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
                 "enabled", enabled,
                 "reason", reason
+        ));
+    }
+
+    @GetMapping("/email-service-status")
+    @Operation(summary = "Expose l'etat du service email (utile pour le frontend)")
+    public ResponseEntity<Map<String, Object>> emailServiceStatus() {
+        return ResponseEntity.ok(Map.of(
+                "enabled", mailEnabled,
+                "message", mailEnabled
+                        ? "Le service email est actif."
+                        : "Le service email est desactive (MAIL_ENABLED=false). "
+                                + "La verification par email et la reinitialisation de mot de passe ne sont pas disponibles."
         ));
     }
 
