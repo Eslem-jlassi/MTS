@@ -114,6 +114,7 @@ MAIL_SMTP_STARTTLS_ENABLE=true
 Railway backend :
 
 ```dotenv
+PORT=8080
 FRONTEND_BASE_URL=https://mts-frontend-production-a29f.up.railway.app
 CORS_ALLOWED_ORIGINS=https://mts-frontend-production-a29f.up.railway.app
 AUTH_REQUIRE_EMAIL_VERIFICATION=true
@@ -129,6 +130,20 @@ MAIL_SMTP_STARTTLS_ENABLE=true
 COOKIE_SECURE=true
 GOOGLE_CLIENT_ID=<GOOGLE_CLIENT_ID>
 ```
+
+Ces variables doivent etre posees sur le service Railway backend (`MTS-Backend`), pas sur le
+service frontend. Ne mettez pas de guillemets autour de `true`, `587` ou des URLs dans Railway.
+Apres modification, redemarrez/redeployez le backend puis verifiez `/actuator/health`.
+
+Si `/api/auth/forgot-password` retourne :
+
+```text
+Le service email n'est pas configure sur cette instance. Configurez SMTP pour activer ce flux.
+```
+
+alors le backend n'a pas recu `MAIL_ENABLED=true` ou une configuration SMTP complete. Verifiez
+en priorite `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` et que le mot de passe est
+un Google App Password, pas le mot de passe Gmail principal.
 
 Railway frontend :
 

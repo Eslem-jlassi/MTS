@@ -2,6 +2,7 @@ package com.billcom.mts.service.impl;
 
 import com.billcom.mts.exception.ServiceUnavailableException;
 import com.billcom.mts.service.EmailService;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
@@ -36,7 +37,13 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
 
     @Value("${app.mail.enabled:false}")
-    private boolean mailEnabled;
+    private String mailEnabledSetting;
+
+    @Value("${MAIL_ENABLED:}")
+    private String mailEnabledRaw;
+
+    @Value("${COMPOSE_MAIL_ENABLED:}")
+    private String composeMailEnabledRaw;
 
     @Value("${app.mail.from:no-reply@mts-telecom.local}")
     private String fromEmail;
@@ -60,7 +67,23 @@ public class EmailServiceImpl implements EmailService {
     private String mailPassword;
 
     @Value("${spring.mail.properties.mail.smtp.auth:true}")
-    private boolean smtpAuth;
+    private String smtpAuthSetting;
+
+    @PostConstruct
+    void logMailConfigurationSummary() {
+        log.info(
+                "Configuration email effective: enabled={}, hostConfigured={}, smtpAuth={}, credentialsConfigured={}, fromConfigured={}, frontendBaseUrl={}",
+                isMailFeatureEnabled(),
+                StringUtils.hasText(mailHost),
+                isSmtpAuthEnabled(),
+                areSmtpCredentialsConfigured(),
+                StringUtils.hasText(fromEmail),
+                safeLogValue(frontendBaseUrl));
+        if (!isMailFeatureEnabled()) {
+            log.warn(
+                    "Les emails applicatifs sont desactives ou incomplets. Configurez MAIL_ENABLED=true, MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD et MAIL_FROM sur le service backend.");
+        }
+    }
 
     @Override
     public void sendTicketCreatedNotification(String toEmail, String ticketNumber, String ticketTitle) {
@@ -246,9 +269,9 @@ public class EmailServiceImpl implements EmailService {
     }
 
     private boolean ensureMailConfigured(boolean required, String subject, String toEmail) {
-        if (!mailEnabled) {
+        if (!isMailFeatureEnabled()) {
             if (!required) {
-                log.warn("Email '{}' ignore pour {} car MAIL_ENABLED=false", subject, toEmail);
+                log.warn("Email '{}' ignore pour {} car la configuration email est inactive ou incomplete", subject, toEmail);
                 return false;
             }
             throw new ServiceUnavailableException(
@@ -268,7 +291,7 @@ public class EmailServiceImpl implements EmailService {
             }
             throw new ServiceUnavailableException("Le serveur SMTP n'est pas configure.");
         }
-        if (smtpAuth && (!StringUtils.hasText(mailUsername) || !StringUtils.hasText(mailPassword))) {
+        if (isSmtpAuthEnabled() && !areSmtpCredentialsConfigured()) {
             if (!required) {
                 log.warn("Email '{}' ignore pour {} car les identifiants SMTP sont incomplets", subject, toEmail);
                 return false;
@@ -276,6 +299,62 @@ public class EmailServiceImpl implements EmailService {
             throw new ServiceUnavailableException("Les identifiants SMTP ne sont pas configures.");
         }
         return true;
+    }
+
+    private boolean isMailFeatureEnabled() {
+        if (isTruthy(mailEnabledSetting)) {
+            return true;
+        }
+        if (isExplicitMailDisabled()) {
+            return false;
+        }
+        return hasSmtpDeliveryConfig();
+    }
+
+    private boolean hasSmtpDeliveryConfig() {
+        return StringUtils.hasText(mailHost)
+                && StringUtils.hasText(fromEmail)
+                && (!isSmtpAuthEnabled() || areSmtpCredentialsConfigured());
+    }
+
+    private boolean areSmtpCredentialsConfigured() {
+        return StringUtils.hasText(mailUsername) && StringUtils.hasText(mailPassword);
+    }
+
+    private boolean isSmtpAuthEnabled() {
+        return !isExplicitFalse(smtpAuthSetting);
+    }
+
+    private boolean isExplicitMailDisabled() {
+        return isExplicitFalse(mailEnabledRaw) || isExplicitFalse(composeMailEnabledRaw);
+    }
+
+    private boolean isTruthy(String value) {
+        String normalized = normalizeFlag(value);
+        return "true".equals(normalized)
+                || "1".equals(normalized)
+                || "yes".equals(normalized)
+                || "on".equals(normalized);
+    }
+
+    private boolean isExplicitFalse(String value) {
+        String normalized = normalizeFlag(value);
+        return "false".equals(normalized)
+                || "0".equals(normalized)
+                || "no".equals(normalized)
+                || "off".equals(normalized);
+    }
+
+    private String normalizeFlag(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        String normalized = value.trim();
+        if ((normalized.startsWith("\"") && normalized.endsWith("\""))
+                || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+            normalized = normalized.substring(1, normalized.length() - 1).trim();
+        }
+        return normalized.toLowerCase();
     }
 
     private String buildFrontendUrl(String relativePath) {
