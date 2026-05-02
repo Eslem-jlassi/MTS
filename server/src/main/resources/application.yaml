@@ -15,19 +15,13 @@ spring:
   config:
     import: optional:file:../.env[.properties],optional:file:.env[.properties]
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/mts_telecom_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Europe/Paris&useUnicode=true&characterEncoding=UTF-8&connectionCollation=utf8mb4_unicode_ci}
-    username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:mts2026}
+    url: ${MYSQL_URL:jdbc:mysql://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:mts_telecom_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${MYSQLUSER:root}
+    password: ${MYSQLPASSWORD:mts2026}
     driver-class-name: com.mysql.cj.jdbc.Driver
-    hikari:
-      maximum-pool-size: 10
-      minimum-idle: 5
-      idle-timeout: 300000
-      connection-timeout: 20000
-      max-lifetime: 1200000
 
   flyway:
-    enabled: true
+    enabled: false
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
@@ -202,8 +196,8 @@ ai:
     wait-timeout-ms: ${AI_AUTOSTART_WAIT_TIMEOUT_MS:180000}
     poll-interval-ms: ${AI_AUTOSTART_POLL_INTERVAL_MS:1000}
   sentiment:
-    base-url: ${AI_SENTIMENT_BASE_URL:http://127.0.0.1:8000}
+    base-url: ${AI_SENTIMENT_BASE_URL:}
   duplicate:
-    base-url: ${AI_DUPLICATE_BASE_URL:http://127.0.0.1:8001}
+    base-url: ${AI_DUPLICATE_BASE_URL:}
   chatbot:
-    base-url: ${AI_CHATBOT_BASE_URL:http://127.0.0.1:8002}
+    base-url: ${AI_CHATBOT_BASE_URL:}
