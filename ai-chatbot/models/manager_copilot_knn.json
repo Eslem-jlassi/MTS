@@ -1,8 +1,8 @@
 {
   "model_version": "manager-copilot-knn-1.0.0",
-  "trained_at": "2026-04-21T20:35:46.057086+00:00",
+  "trained_at": "2026-04-27T09:45:51.175637+00:00",
   "dataset_path": "data\\manager_copilot_knn_seed.csv",
-  "dataset_hash": "958ad1785e7500aecc27598e74e51fd4e6f854ee6de0ec62ba7a21b27dce4ccc",
+  "dataset_hash": "05e1820b10ddc8eb7d465b5f96a4b1971de1d041454b3f5e18f1ed3fb0d88ad3",
   "k": 5,
   "numeric_features": [
     "age_hours",
