@@ -137,7 +137,7 @@ app:
   frontend-base-url: ${FRONTEND_BASE_URL:${COMPOSE_FRONTEND_BASE_URL:http://localhost:3000}}
   mail:
     enabled: ${MAIL_ENABLED:false}
-    from: ${MAIL_FROM:no-reply@mts-telecom.local}
+    from: ${MAIL_FROM:${MAIL_USERNAME:no-reply@mts-telecom.local}}
     from-name: ${MAIL_FROM_NAME:MTS Telecom}
   auth:
     require-email-verification: ${AUTH_REQUIRE_EMAIL_VERIFICATION:${COMPOSE_AUTH_REQUIRE_EMAIL_VERIFICATION:${MAIL_ENABLED:${COMPOSE_MAIL_ENABLED:false}}}}

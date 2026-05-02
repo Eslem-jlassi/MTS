@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AnimatePresence, motion } from "framer-motion";
@@ -157,21 +157,24 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
-    try {
-      setGoogleError(null);
-      if (credentialResponse.credential) {
-        await dispatch(googleLogin(credentialResponse.credential)).unwrap();
-        navigate("/dashboard");
+  const handleGoogleSuccess = useCallback(
+    async (credentialResponse: CredentialResponse) => {
+      try {
+        setGoogleError(null);
+        if (credentialResponse.credential) {
+          await dispatch(googleLogin(credentialResponse.credential)).unwrap();
+          navigate("/dashboard");
+        }
+      } catch (err) {
+        setGoogleError(typeof err === "string" ? err : "Erreur de connexion Google");
       }
-    } catch (err) {
-      setGoogleError(typeof err === "string" ? err : "Erreur de connexion Google");
-    }
-  };
+    },
+    [dispatch, navigate],
+  );
 
-  const handleGoogleError = () => {
+  const handleGoogleError = useCallback(() => {
     setGoogleError("Échec de la connexion Google");
-  };
+  }, []);
 
   const selectedRole = roleOptions.find((r) => r.value === formData.role);
   const steps = [

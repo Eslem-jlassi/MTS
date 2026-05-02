@@ -21,7 +21,7 @@ interface BackendGoogleConfig {
   reason: BackendGoogleReason;
 }
 
-export default function GoogleAuthSection({ mode, onSuccess, onError }: GoogleAuthSectionProps) {
+function GoogleAuthSection({ mode, onSuccess, onError }: GoogleAuthSectionProps) {
   const [backendGoogleConfig, setBackendGoogleConfig] = useState<BackendGoogleConfig | null>(null);
   const frontendConfigured = googleOAuthConfig.reason === "enabled";
   const currentOrigin = googleOAuthConfig.currentOrigin || null;
@@ -140,3 +140,5 @@ export default function GoogleAuthSection({ mode, onSuccess, onError }: GoogleAu
     </>
   );
 }
+
+export default React.memo(GoogleAuthSection);
