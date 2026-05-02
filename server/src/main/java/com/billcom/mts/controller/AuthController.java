@@ -67,6 +67,21 @@ public class AuthController {
     @Value("${MAIL_ENABLED:}")
     private String mailEnabledRaw;
 
+    @Value("${spring.mail.host:}")
+    private String mailHost;
+
+    @Value("${spring.mail.port:587}")
+    private int mailPort;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    @Value("${spring.mail.password:}")
+    private String mailPassword;
+
+    @Value("${app.mail.from:}")
+    private String mailFrom;
+
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Inscrit un nouvel utilisateur (client par defaut)")
@@ -127,6 +142,31 @@ public class AuthController {
         }
 
         return ResponseEntity.ok(Map.of("enabled", enabled));
+    }
+
+    @GetMapping("/email-diagnostics")
+    @Operation(summary = "Expose un diagnostic email sans secrets")
+    public ResponseEntity<Map<String, Object>> emailDiagnostics() {
+        boolean enabled = false;
+        try {
+            enabled = resolveMailEnabledFlag();
+        } catch (Exception ex) {
+            enabled = false;
+        }
+
+        boolean hostConfigured = StringUtils.hasText(mailHost);
+        boolean usernameConfigured = StringUtils.hasText(mailUsername);
+        boolean passwordConfigured = StringUtils.hasText(mailPassword);
+        boolean fromConfigured = StringUtils.hasText(mailFrom);
+
+        return ResponseEntity.ok(Map.of(
+                "mailEnabled", enabled,
+                "hostConfigured", hostConfigured,
+                "port", mailPort,
+                "usernameConfigured", usernameConfigured,
+                "passwordConfigured", passwordConfigured,
+                "fromConfigured", fromConfigured
+        ));
     }
 
     @PostMapping("/login")

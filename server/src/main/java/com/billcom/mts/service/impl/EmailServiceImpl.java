@@ -251,6 +251,7 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
             log.info("Email envoye a {} avec sujet '{}'", toEmail, subject);
         } catch (MailException | MessagingException | java.io.UnsupportedEncodingException ex) {
+            log.error("Email sending failed to {}: {}", toEmail, ex.getMessage(), ex);
             log.error(
                     "Echec SMTP pour email '{}' vers {} via {}:{}: {}",
                     subject,
