@@ -61,6 +61,12 @@ public class AuthController {
     @Value("${app.google.client-id:}")
     private String googleClientId;
 
+    @Value("${mail.enabled:false}")
+    private boolean mailEnabled;
+
+    @Value("${MAIL_ENABLED:}")
+    private String mailEnabledRaw;
+
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Inscrit un nouvel utilisateur (client par defaut)")
@@ -108,6 +114,19 @@ public class AuthController {
                 "enabled", enabled,
                 "reason", reason
         ));
+    }
+
+    @GetMapping("/email-service-status")
+    @Operation(summary = "Expose le statut de disponibilite email cote backend")
+    public ResponseEntity<Map<String, Object>> emailServiceStatus() {
+        boolean enabled = false;
+        try {
+            enabled = resolveMailEnabledFlag();
+        } catch (Exception ex) {
+            enabled = false;
+        }
+
+        return ResponseEntity.ok(Map.of("enabled", enabled));
     }
 
     @PostMapping("/login")
@@ -353,5 +372,32 @@ public class AuthController {
 
     private String resolveSameSitePolicy() {
         return cookieSecure ? "None" : "Lax";
+    }
+
+    private boolean resolveMailEnabledFlag() {
+        if (mailEnabled) {
+            return true;
+        }
+        return isTruthy(mailEnabledRaw);
+    }
+
+    private boolean isTruthy(String value) {
+        String normalized = normalizeFlag(value);
+        return "true".equals(normalized)
+                || "1".equals(normalized)
+                || "yes".equals(normalized)
+                || "on".equals(normalized);
+    }
+
+    private String normalizeFlag(String value) {
+        if (!StringUtils.hasText(value)) {
+            return "";
+        }
+        String normalized = value.trim();
+        if ((normalized.startsWith("\"") && normalized.endsWith("\""))
+                || (normalized.startsWith("'") && normalized.endsWith("'"))) {
+            normalized = normalized.substring(1, normalized.length() - 1).trim();
+        }
+        return normalized.toLowerCase();
     }
 }
